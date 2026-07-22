@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider     = "prisma-client"
   output       = "../generated/prisma"
@@ -11,4 +9,168 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Language {
+  FR
+  EN
+}
+
+enum AccountStatus {
+  PENDING_VERIFICATION
+  // Mineur avec téléphone vérifié mais rattachement parental pas encore confirmé
+  // (CLAUDE.md §5 : un mineur ne peut être pleinement actif sans ce rattachement).
+  AWAITING_PARENTAL_CONSENT
+  ACTIVE
+  DEACTIVATED
+  PENDING_DELETION
+  DELETED
+}
+
+enum OtpPurpose {
+  REGISTRATION
+  LOGIN_2FA
+  PASSWORD_RESET
+}
+
+enum ParentalLinkStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+}
+
+model User {
+  id       String  @id @default(cuid())
+  lsId     String? @unique
+  email    String? @unique
+  phone    String? @unique
+  password String
+
+  language Language      @default(FR)
+  status   AccountStatus @default(PENDING_VERIFICATION)
+
+  isMinor     Boolean   @default(false)
+  dateOfBirth DateTime?
+
+  failedLoginAttempts Int       @default(0)
+  lockedUntil         DateTime?
+
+  twoFactorEnabled Boolean @default(false)
+
+  deactivatedAt       DateTime?
+  deletionScheduledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roles               UserRole[]
+  otpCodes            OtpCode[]
+  refreshTokens       RefreshToken[]
+  parentLinksAsChild  ParentalLink[] @relation("ChildLinks")
+  parentLinksAsParent ParentalLink[] @relation("ParentLinks")
+  auditLogs           AuditLog[]
+
+  @@index([email])
+  @@index([phone])
+}
+
+model Role {
+  id              String  @id @default(cuid())
+  name            String  @unique
+  description     String?
+  // Un rôle non "selfAssignable" (ex: ADMIN) ne peut jamais être attribué par l'utilisateur
+  // lui-même — uniquement via une procédure interne, conformément à CLAUDE.md §3.
+  selfAssignable  Boolean @default(false)
+
+  permissions RolePermission[]
+  userRoles   UserRole[]
+}
+
+model Permission {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  description String?
+
+  roles RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  id         String    @id @default(cuid())
+  userId     String
+  roleId     String
+  isActive   Boolean   @default(true)
+  assignedAt DateTime  @default(now())
+  revokedAt  DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model ParentalLink {
+  id          String              @id @default(cuid())
+  childId     String
+  parentId    String
+  status      ParentalLinkStatus  @default(PENDING)
+  createdAt   DateTime            @default(now())
+  confirmedAt DateTime?
+
+  child  User @relation("ChildLinks", fields: [childId], references: [id], onDelete: Cascade)
+  parent User @relation("ParentLinks", fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, parentId])
+}
+
+model OtpCode {
+  id          String     @id @default(cuid())
+  userId      String
+  codeHash    String
+  purpose     OtpPurpose
+  destination String
+  attempts    Int        @default(0)
+  maxAttempts Int        @default(5)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
 }
