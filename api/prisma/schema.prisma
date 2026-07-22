@@ -75,6 +75,10 @@ model User {
   parentLinksAsParent ParentalLink[] @relation("ParentLinks")
   auditLogs           AuditLog[]
   reports             Report[]
+  profile             Profile?
+  profileShares       ProfileShare[]
+  recommendationsGiven    Recommendation[] @relation("RecommendationGiver")
+  recommendationsReceived Recommendation[] @relation("RecommendationReceiver")
 
   @@index([email])
   @@index([phone])
@@ -90,6 +94,7 @@ model Role {
 
   permissions RolePermission[]
   userRoles   UserRole[]
+  activeForProfiles Profile[]
 }
 
 model Permission {
@@ -227,4 +232,172 @@ model AuditLog {
 
   @@index([userId])
   @@index([action])
+}
+
+// ============================================================================
+// Module 2 — Gestion des profils (FR-PRO-*)
+// ============================================================================
+
+enum ProfileSection {
+  SUMMARY
+  EDUCATION
+  EXPERIENCE
+  SKILLS
+  LANGUAGES
+  DOCUMENTS
+  RECOMMENDATIONS
+}
+
+enum SectionVisibility {
+  PRIVATE
+  SHARED
+  NETWORK
+  PUBLIC
+}
+
+enum LanguageLevel {
+  BASIQUE
+  INTERMEDIAIRE
+  AVANCE
+  COURANT
+  NATIF
+}
+
+enum DocumentCategory {
+  PHOTO
+  PORTFOLIO
+  OTHER
+}
+
+model Profile {
+  id       String @id @default(cuid())
+  userId   String @unique
+  headline String?
+  summary  String?
+
+  // Casquette actuellement affichée — doit être l'un des rôles réellement détenus
+  // (UserRole.isActive), vérifié en service, pas dans le schéma.
+  activeRoleId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeRole Role?   @relation(fields: [activeRoleId], references: [id], onDelete: SetNull)
+
+  educations        Education[]
+  experiences       Experience[]
+  languages         ProfileLanguage[]
+  documents         ProfileDocument[]
+  sectionVisibility ProfileSectionVisibility[]
+  shares            ProfileShare[]
+}
+
+model Education {
+  id           String    @id @default(cuid())
+  profileId    String
+  institution  String
+  degree       String?
+  fieldOfStudy String?
+  startDate    DateTime?
+  endDate      DateTime?
+  description  String?
+  createdAt    DateTime  @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model Experience {
+  id           String    @id @default(cuid())
+  profileId    String
+  organization String
+  title        String
+  startDate    DateTime?
+  endDate      DateTime?
+  description  String?
+  createdAt    DateTime  @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model ProfileLanguage {
+  id        String        @id @default(cuid())
+  profileId String
+  language  String
+  level     LanguageLevel
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, language])
+}
+
+// Visibilité par rubrique (FR-PRO-003). Une rubrique sans ligne ici est PRIVATE par
+// défaut (fail-closed) — cf. CLAUDE.md §1 : la protection s'applique avant d'exposer,
+// jamais après coup.
+model ProfileSectionVisibility {
+  id         String             @id @default(cuid())
+  profileId  String
+  section    ProfileSection
+  visibility SectionVisibility  @default(PRIVATE)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, section])
+}
+
+// Partage explicite d'une rubrique en visibilité SHARED avec un utilisateur précis.
+model ProfileShare {
+  id               String         @id @default(cuid())
+  profileId        String
+  section          ProfileSection
+  sharedWithUserId String
+  createdAt        DateTime       @default(now())
+
+  profile    Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  sharedWith User    @relation(fields: [sharedWithUserId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, section, sharedWithUserId])
+}
+
+// Document de profil (photo, pièce de portfolio léger) — le Digital Safe (module 3)
+// prend le relais pour les diplômes/pièces d'identité. Classé "Confidentiel" au sens
+// CLAUDE.md §1 : chiffré au repos, journalisé, jamais de suppression physique immédiate.
+model ProfileDocument {
+  id         String           @id @default(cuid())
+  profileId  String
+  category   DocumentCategory
+  fileName   String
+  storageKey String           @unique
+  mimeType   String
+  sizeBytes  Int
+  // Empreinte du contenu en clair — permet de vérifier l'intégrité après déchiffrement.
+  checksum   String
+
+  deletedAt           DateTime?
+  deletionScheduledAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model Recommendation {
+  id         String   @id @default(cuid())
+  receiverId String
+  giverId    String
+  message    String
+  // Masquable par le titulaire sans suppression définitive — reste dans l'historique.
+  visible    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  receiver User @relation("RecommendationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  giver    User @relation("RecommendationGiver", fields: [giverId], references: [id], onDelete: Cascade)
+
+  @@index([receiverId])
 }

@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProfilesModule } from './profiles/profiles.module';
 import { QueueModule } from './queue/queue.module';
 import { ReportsModule } from './reports/reports.module';
 
@@ -21,6 +22,7 @@ import { ReportsModule } from './reports/reports.module';
     QueueModule,
     AuthModule,
     ReportsModule,
+    ProfilesModule,
   ],
   controllers: [AppController],
   providers: [

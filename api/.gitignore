@@ -1,6 +1,9 @@
 node_modules
 dist
 
+# Stockage local de dev pour les documents (jamais de fichier utilisateur en dépôt)
+storage-data/
+
 # Keep environment variables out of version control
 .env
 
