@@ -670,6 +670,12 @@ enum ApplicationStatus {
   INTERVIEW_PROPOSED
   INTERVIEW_CONFIRMED
   ACCEPTED
+  // Décision favorable pour un candidat mineur sur une offre à relocalisation
+  // (relocationRequired) : le stage n'est pas encore confirmé, l'accord actif du
+  // parent/tuteur déjà enregistré pour CE déplacement précis est requis avant de
+  // générer la convention. Le mineur peut candidater à toute offre dès le dépôt —
+  // c'est cette étape, à l'acceptation, qui conditionne le départ, pas la candidature.
+  AWAITING_TRAVEL_CONSENT
   REJECTED
   WITHDRAWN
   COMPLETED
@@ -683,6 +689,12 @@ enum ApplicationDocumentRequestStatus {
 enum ApplicationArtifactKind {
   CONVENTION
   ATTESTATION
+}
+
+enum TravelConsentStatus {
+  PENDING
+  CONFIRMED
+  EXPIRED
 }
 
 // Candidature — normale (opportunityId renseigné, offre ACTIVE au dépôt) ou spontanée
@@ -703,6 +715,11 @@ model Application {
   // FR-M4-005 : recueillie uniquement quand l'offre l'exige (relocationRequired) —
   // reste nulle sinon plutôt que de forcer un choix non pertinent.
   willingToRelocate Boolean?
+
+  // Déclaratif, informatif uniquement — ne conditionne jamais l'acceptation ni le
+  // consentement parental de déplacement, recueilli en plus pour un candidat mineur
+  // sur une offre à relocalisation (contexte utile à l'organisation et au parent).
+  hasFamilyInDestination Boolean?
 
   // FR-M5-007 : un seul entretien actif à la fois pour le MVP ; une reprogrammation
   // écrase la proposition précédente (l'historique reste dans ApplicationStatusEvent).
@@ -727,11 +744,37 @@ model Application {
   history          ApplicationStatusEvent[]
   documentRequests ApplicationDocumentRequest[]
   artifacts        ApplicationArtifact[]
+  travelConsent    TravelConsent?
 
   @@index([candidateId])
   @@index([organizationId])
   @@index([opportunityId])
   @@index([status])
+}
+
+// Accord parental spécifique au déplacement — distinct du consentement d'inscription
+// (ParentalLink). Déclenché uniquement à l'acceptation d'un candidat mineur sur une
+// offre à relocalisation ; jamais à la candidature elle-même. Même mécanique que le
+// consentement d'inscription : code à usage unique haché, expiration, tentatives
+// limitées (CLAUDE.md §2/§5).
+model TravelConsent {
+  id            String              @id @default(cuid())
+  applicationId String              @unique
+  status        TravelConsentStatus @default(PENDING)
+
+  consentCodeHash    String?
+  consentExpiresAt   DateTime?
+  consentAttempts    Int       @default(0)
+  maxConsentAttempts Int       @default(5)
+
+  // Signalement automatique après le délai sans réponse — ne bloque pas
+  // unilatéralement le dossier, laisse candidat/organisation décider de la suite
+  // (retrait, annulation) plutôt que d'imposer une clôture automatique.
+  flaggedAt   DateTime?
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 }
 
 // FR-M5-005 : historique consultable des actions principales.

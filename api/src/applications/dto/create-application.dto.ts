@@ -15,4 +15,10 @@ export class CreateApplicationDto {
   @IsOptional()
   @IsBoolean()
   willingToRelocate?: boolean;
+
+  // Déclaratif, requis en plus pour un candidat mineur sur une offre à relocalisation —
+  // informatif uniquement, ne bloque jamais la candidature ni le consentement parental.
+  @IsOptional()
+  @IsBoolean()
+  hasFamilyInDestination?: boolean;
 }

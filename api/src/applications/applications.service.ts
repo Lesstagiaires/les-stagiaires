@@ -6,8 +6,10 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { createHash, randomUUID } from 'crypto';
+import { ConfigService } from '@nestjs/config';
+import { createHash, randomInt, randomUUID, timingSafeEqual } from 'crypto';
 import {
   AccountStatus,
   ApplicationArtifactKind,
@@ -15,7 +17,9 @@ import {
   ApplicationStatus,
   OpportunityStatus,
   OrganizationVerificationStatus,
+  ParentalLinkStatus,
   ShareTargetType,
+  TravelConsentStatus,
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { CvService } from '../profiles/cv.service';
@@ -40,13 +44,22 @@ import { generateApplicationReference } from './reference.util';
 
 const APPLICATION_INCLUDE = {
   organization: { select: { id: true, name: true, ownerId: true } },
-  opportunity: { select: { id: true, title: true } },
+  opportunity: {
+    select: {
+      id: true,
+      title: true,
+      relocationRequired: true,
+      city: true,
+      country: true,
+    },
+  },
 } as const;
 
 @Injectable()
 export class ApplicationsService {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
     private readonly audit: AuditService,
     private readonly cv: CvService,
     private readonly profiles: ProfilesService,
@@ -94,6 +107,7 @@ export class ApplicationsService {
     let organizationId: string;
     let opportunityId: string | null = null;
     let willingToRelocate: boolean | null = null;
+    let hasFamilyInDestination: boolean | null = null;
 
     if (dto.opportunityId) {
       const opportunity = await this.prisma.opportunity.findUnique({
@@ -103,13 +117,9 @@ export class ApplicationsService {
         throw new NotFoundException('Offre introuvable ou non active.');
       }
 
-      // Hypothèse assumée (le cahier des charges ne précise pas la règle exacte, FR-M4-006) :
-      // un mineur ne candidate pas à une offre exigeant une relocalisation.
-      if (opportunity.relocationRequired && candidate.isMinor) {
-        throw new ForbiddenException(
-          'Cette offre implique une relocalisation, non autorisée pour un compte mineur.',
-        );
-      }
+      // Un mineur peut candidater à toute offre, y compris à relocalisation — c'est
+      // l'acceptation, pas le dépôt, qui déclenchera l'accord parental de déplacement
+      // (voir decide()). Ne jamais bloquer la candidature elle-même ici.
       if (opportunity.relocationRequired) {
         if (dto.willingToRelocate === undefined) {
           throw new BadRequestException(
@@ -117,6 +127,15 @@ export class ApplicationsService {
           );
         }
         willingToRelocate = dto.willingToRelocate;
+
+        if (candidate.isMinor) {
+          if (dto.hasFamilyInDestination === undefined) {
+            throw new BadRequestException(
+              'hasFamilyInDestination est requis pour cette offre (compte mineur).',
+            );
+          }
+          hasFamilyInDestination = dto.hasFamilyInDestination;
+        }
       }
 
       const duplicate = await this.prisma.application.findFirst({
@@ -181,6 +200,7 @@ export class ApplicationsService {
         opportunityId,
         dossierSnapshot,
         willingToRelocate,
+        hasFamilyInDestination,
       },
       include: APPLICATION_INCLUDE,
     });
@@ -440,34 +460,200 @@ export class ApplicationsService {
 
   async decide(ownerId: string, id: string, dto: DecideApplicationDto) {
     const application = await this.assertOrganizationOwner(ownerId, id);
-    this.assertTransition(application.status, [
+    const decisionAllowedFrom: ApplicationStatus[] = [
       ApplicationStatus.SUBMITTED,
       ApplicationStatus.UNDER_REVIEW,
       ApplicationStatus.INTERVIEW_PROPOSED,
       ApplicationStatus.INTERVIEW_CONFIRMED,
-    ]);
-
-    const newStatus =
-      dto.decision === ApplicationDecision.ACCEPTED
-        ? ApplicationStatus.ACCEPTED
-        : ApplicationStatus.REJECTED;
+    ];
+    if (dto.decision === ApplicationDecision.REJECTED) {
+      // Un rejet reste possible même en attente d'accord parental de déplacement —
+      // par exemple si le parent refuse par un autre canal ou ne répond jamais.
+      decisionAllowedFrom.push(ApplicationStatus.AWAITING_TRAVEL_CONSENT);
+    }
+    this.assertTransition(application.status, decisionAllowedFrom);
 
     await this.prisma.application.update({
       where: { id },
       data: { decisionAt: new Date(), decisionNote: dto.note },
     });
-    await this.transitionStatus(application, newStatus, ownerId, dto.note);
 
+    if (dto.decision === ApplicationDecision.REJECTED) {
+      await this.transitionStatus(
+        application,
+        ApplicationStatus.REJECTED,
+        ownerId,
+        dto.note,
+      );
+      await this.notify(
+        application.candidateId,
+        `LES STAGIAIRES — votre candidature ${application.reference} n'a pas été retenue.`,
+      );
+      return;
+    }
+
+    const candidate = await this.prisma.user.findUniqueOrThrow({
+      where: { id: application.candidateId },
+    });
+    // Un mineur peut candidater à toute offre ; c'est ici, à l'acceptation d'une offre
+    // à relocalisation, que l'accord actif du parent/tuteur pour CE déplacement précis
+    // est requis — jamais à la candidature elle-même.
+    if (candidate.isMinor && application.opportunity?.relocationRequired) {
+      await this.transitionStatus(
+        application,
+        ApplicationStatus.AWAITING_TRAVEL_CONSENT,
+        ownerId,
+        dto.note,
+      );
+      await this.requestTravelConsent(application);
+      return;
+    }
+
+    await this.transitionStatus(
+      application,
+      ApplicationStatus.ACCEPTED,
+      ownerId,
+      dto.note,
+    );
     await this.notify(
       application.candidateId,
-      newStatus === ApplicationStatus.ACCEPTED
-        ? `LES STAGIAIRES — bonne nouvelle ! Votre candidature ${application.reference} est acceptée.`
-        : `LES STAGIAIRES — votre candidature ${application.reference} n'a pas été retenue.`,
+      `LES STAGIAIRES — bonne nouvelle ! Votre candidature ${application.reference} est acceptée.`,
+    );
+    await this.generateConvention(application);
+  }
+
+  // --- Accord parental de déplacement (candidat mineur, offre à relocalisation) -----------
+
+  private hashCode(code: string): string {
+    return createHash('sha256').update(code).digest('hex');
+  }
+
+  private async requestTravelConsent(application: {
+    id: string;
+    reference: string;
+    candidateId: string;
+    opportunity: { city: string; country: string } | null;
+  }) {
+    // Garde contre un double appel concurrent (même logique que createArtifact) — la
+    // contrainte @@unique(applicationId) sur TravelConsent l'empêcherait de toute façon.
+    const existing = await this.prisma.travelConsent.findUnique({
+      where: { applicationId: application.id },
+    });
+    if (existing) return;
+
+    // Le parent/tuteur déjà actif pour ce compte (consentement d'inscription confirmé)
+    // est sollicité pour ce déplacement précis — jamais un nouveau contact non vérifié.
+    const parentLink = await this.prisma.parentalLink.findFirst({
+      where: {
+        childId: application.candidateId,
+        status: ParentalLinkStatus.ACTIVE,
+      },
+    });
+    if (!parentLink) {
+      throw new InternalServerErrorException(
+        "Aucun consentement parental actif pour ce candidat — impossible de solliciter l'accord de déplacement.",
+      );
+    }
+
+    const ttlDays = Number(
+      this.config.get<string>('TRAVEL_CONSENT_TTL_DAYS', '7'),
+    );
+    const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+    const consentExpiresAt = new Date(
+      Date.now() + ttlDays * 24 * 60 * 60 * 1000,
     );
 
-    if (newStatus === ApplicationStatus.ACCEPTED) {
-      await this.generateConvention(application);
+    const consent = await this.prisma.travelConsent.create({
+      data: {
+        applicationId: application.id,
+        consentCodeHash: this.hashCode(code),
+        consentExpiresAt,
+      },
+    });
+
+    await this.sms.send(
+      parentLink.parentPhone,
+      `LES STAGIAIRES : la candidature de votre enfant (réf. ${application.reference}) est acceptée pour un stage à ${application.opportunity?.city ?? '—'}, nécessitant un déplacement. Pour donner votre accord, communiquez-lui ce code : ${code}. Sans réponse sous ${ttlDays} jours, le dossier reste bloqué.`,
+    );
+    await this.notify(
+      application.candidateId,
+      `LES STAGIAIRES — votre candidature ${application.reference} est acceptée sous réserve de l'accord de vos parents pour le déplacement. Un code leur a été envoyé.`,
+    );
+    await this.audit.record(
+      'APPLICATION_TRAVEL_CONSENT_REQUESTED',
+      application.candidateId,
+      { applicationId: application.id, travelConsentId: consent.id },
+    );
+  }
+
+  async confirmTravelConsent(travelConsentId: string, code: string) {
+    const consent = await this.prisma.travelConsent.findUnique({
+      where: { id: travelConsentId },
+      include: { application: { include: APPLICATION_INCLUDE } },
+    });
+    if (!consent) {
+      throw new NotFoundException(
+        'Demande de consentement de déplacement introuvable.',
+      );
     }
+    if (consent.status === TravelConsentStatus.CONFIRMED) {
+      throw new BadRequestException('Ce consentement a déjà été confirmé.');
+    }
+    if (
+      !consent.consentCodeHash ||
+      !consent.consentExpiresAt ||
+      consent.consentExpiresAt < new Date()
+    ) {
+      throw new UnauthorizedException('Code invalide ou expiré.');
+    }
+    if (consent.consentAttempts >= consent.maxConsentAttempts) {
+      throw new UnauthorizedException('Nombre maximal de tentatives atteint.');
+    }
+
+    // Comparaison en temps constant (CLAUDE.md §2).
+    const isMatch = timingSafeEqual(
+      Buffer.from(consent.consentCodeHash),
+      Buffer.from(this.hashCode(code)),
+    );
+    if (!isMatch) {
+      await this.prisma.travelConsent.update({
+        where: { id: consent.id },
+        data: { consentAttempts: { increment: 1 } },
+      });
+      throw new UnauthorizedException('Code invalide ou expiré.');
+    }
+
+    await this.prisma.travelConsent.update({
+      where: { id: consent.id },
+      data: {
+        status: TravelConsentStatus.CONFIRMED,
+        confirmedAt: new Date(),
+        consentCodeHash: null,
+      },
+    });
+
+    const application = consent.application;
+    await this.transitionStatus(
+      application,
+      ApplicationStatus.ACCEPTED,
+      application.candidateId,
+      'Accord parental de déplacement confirmé.',
+    );
+    await this.notify(
+      application.candidateId,
+      `LES STAGIAIRES — l'accord de vos parents pour le déplacement est confirmé. Votre candidature ${application.reference} est acceptée.`,
+    );
+    await this.notify(
+      application.organization.ownerId,
+      `LES STAGIAIRES — l'accord parental de déplacement est confirmé pour la candidature ${application.reference}.`,
+    );
+    await this.generateConvention(application);
+    await this.audit.record(
+      'APPLICATION_TRAVEL_CONSENT_CONFIRMED',
+      application.candidateId,
+      { applicationId: application.id },
+    );
+    return { message: 'Consentement de déplacement confirmé.' };
   }
 
   private async generateConvention(application: {
@@ -567,6 +753,7 @@ export class ApplicationsService {
       ApplicationStatus.ADDITIONAL_DOCUMENT_REQUESTED,
       ApplicationStatus.INTERVIEW_PROPOSED,
       ApplicationStatus.INTERVIEW_CONFIRMED,
+      ApplicationStatus.AWAITING_TRAVEL_CONSENT,
       ApplicationStatus.ACCEPTED,
     ]);
 

@@ -9,11 +9,14 @@ import {
   Query,
   Res,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { ApplicationArtifactKind } from '../../generated/prisma/enums';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import type { AccessTokenPayload } from '../auth/token.service';
 import { ApplicationsService } from './applications.service';
+import { ConfirmTravelConsentDto } from './dto/confirm-travel-consent.dto';
 import { CreateApplicationDto } from './dto/create-application.dto';
 import { CreateDocumentRequestDto } from './dto/create-document-request.dto';
 import { DecideApplicationDto } from './dto/decide-application.dto';
@@ -125,6 +128,21 @@ export class ApplicationsController {
     @Body() dto: DecideApplicationDto,
   ) {
     return this.applications.decide(user.sub, id, dto);
+  }
+
+  // --- Accord parental de déplacement (candidat mineur, offre à relocalisation) -----------
+
+  // Public : comme pour le consentement d'inscription, le parent/tuteur n'a pas
+  // forcément de compte — seule la connaissance du code envoyé par SMS fait foi.
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('travel-consent/:travelConsentId/confirm')
+  confirmTravelConsent(
+    @Param('travelConsentId') travelConsentId: string,
+    @Body() dto: ConfirmTravelConsentDto,
+  ) {
+    return this.applications.confirmTravelConsent(travelConsentId, dto.code);
   }
 
   // --- Clôture -------------------------------------------------------------------------------
