@@ -29,8 +29,14 @@ import { RenameDocumentDto } from './dto/rename-document.dto';
 export class DocumentsController {
   constructor(private readonly documents: DocumentsService) {}
 
+  // Plafond dur indépendant de DOCUMENT_MAX_SIZE_MB — multer bufferise tout le fichier en
+  // mémoire avant que le contrôle de taille applicatif (documents.service.ts) ne s'exécute ;
+  // sans cette limite au niveau de l'intercepteur, un fichier énorme épuiserait la mémoire
+  // du serveur avant même d'être rejeté (déni de service).
   @Post('me/documents')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024 } }),
+  )
   upload(
     @CurrentUser() user: AccessTokenPayload,
     @Body('category', new ParseEnumPipe(DocumentCategory))

@@ -31,6 +31,23 @@ export interface UploadedFile {
 const IV_LENGTH = 12;
 const AUTH_TAG_LENGTH = 16;
 
+// Signatures binaires (magic bytes) des formats autorisés — le Content-Type déclaré par
+// le client n'est qu'une affirmation non vérifiée ; un exécutable renommé avec un
+// Content-Type: image/png la franchirait sans ce contrôle (CLAUDE.md §4).
+const MAGIC_BYTES: Record<string, Buffer[]> = {
+  'image/png': [Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
+  'image/jpeg': [Buffer.from([0xff, 0xd8, 0xff])],
+  'application/pdf': [Buffer.from('%PDF')],
+};
+
+function matchesDeclaredFormat(buffer: Buffer, mimetype: string): boolean {
+  const signatures = MAGIC_BYTES[mimetype];
+  if (!signatures) return false; // format sans signature connue : refusé par prudence
+  return signatures.some((signature) =>
+    buffer.subarray(0, signature.length).equals(signature),
+  );
+}
+
 // checksum et storageKey ne sont jamais renvoyés au client — ce sont des détails
 // d'implémentation du stockage chiffré, pas des données consultables (CLAUDE.md §6).
 const SAFE_DOCUMENT_SELECT = {
@@ -104,6 +121,21 @@ export class DocumentsService {
       .map((type) => type.trim());
     if (!allowedTypes.includes(file.mimetype)) {
       throw new BadRequestException(`Format non autorisé : ${file.mimetype}`);
+    }
+
+    // Le Content-Type déclaré doit correspondre au contenu réel du fichier — pas
+    // seulement à l'en-tête fourni par le client (CLAUDE.md §4).
+    if (!matchesDeclaredFormat(file.buffer, file.mimetype)) {
+      await this.audit.record(
+        'DOCUMENT_UPLOAD_REJECTED_FORMAT_MISMATCH',
+        userId,
+        {
+          declaredMimeType: file.mimetype,
+        },
+      );
+      throw new BadRequestException(
+        'Le contenu du fichier ne correspond pas au format déclaré.',
+      );
     }
 
     // Analyse anti-malware avant tout enregistrement (CLAUDE.md §4). En dev, le scanner
