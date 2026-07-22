@@ -12,6 +12,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
+import { ConfirmConsentDto } from './dto/confirm-consent.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LinkParentDto } from './dto/link-parent.dto';
 import { LoginDto } from './dto/login.dto';
@@ -20,11 +21,15 @@ import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SwitchRoleDto } from './dto/switch-role.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { ParentalConsentService } from './parental-consent.service';
 import type { AccessTokenPayload } from './token.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly auth: AuthService) {}
+  constructor(
+    private readonly auth: AuthService,
+    private readonly parentalConsent: ParentalConsentService,
+  ) {}
 
   @Public()
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
@@ -78,28 +83,35 @@ export class AuthController {
     return this.auth.resetPassword(dto);
   }
 
-  // --- Mineurs / rattachement parental (FR-AUTH-004) ---
+  // --- Mineurs / consentement parental actif (FR-AUTH-004a/b/c) ---
 
-  @Post('minors/link-parent')
-  linkParent(
+  // Renvoi manuel si le SMS initial n'est jamais arrivé, ou pour corriger un numéro —
+  // le mineur est déjà authentifiable en mode restreint dès l'inscription.
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('minors/request-consent')
+  requestConsent(
     @CurrentUser() user: AccessTokenPayload,
     @Body() dto: LinkParentDto,
   ) {
-    return this.auth.linkParent(user.sub, dto);
+    return this.parentalConsent.requestConsent(user.sub, dto.parentPhone);
   }
 
+  // Public : le parent/tuteur n'a pas forcément de compte pour consentir — seule la
+  // connaissance du code envoyé par SMS fait foi (CLAUDE.md §5).
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
-  @Post('minors/confirm-link/:linkId')
-  confirmParentLink(
-    @CurrentUser() user: AccessTokenPayload,
+  @Post('minors/consent/:linkId')
+  confirmConsent(
     @Param('linkId') linkId: string,
+    @Body() dto: ConfirmConsentDto,
   ) {
-    return this.auth.confirmParentLink(user.sub, linkId);
+    return this.parentalConsent.confirmConsent(linkId, dto.code);
   }
 
   @Get('minors/parental-links')
   listParentalLinks(@CurrentUser() user: AccessTokenPayload) {
-    return this.auth.listParentalLinks(user.sub);
+    return this.parentalConsent.listForChild(user.sub);
   }
 
   // --- Rôles multiples et historique (FR-AUTH-005 / 007) ---

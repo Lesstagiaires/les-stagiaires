@@ -46,6 +46,11 @@ Chaque donnée ou document manipulé par le système doit être rattaché à l'u
 
 ## 5. Protection des mineurs — non négociable
 
+- Un mineur peut créer un profil et explorer l'application **immédiatement**, en mode restreint, dès la saisie du numéro de téléphone d'un parent ou tuteur — ne jamais bloquer l'inscription en attendant la validation, sous peine de perdre l'utilisateur avant même de le protéger.
+- Le parent/tuteur reçoit un SMS de **consentement actif** (lien ou code à valider) expliquant LES STAGIAIRES et ce que le mineur a renseigné — une simple notification d'information ne suffit pas, il faut une action positive et traçable de sa part.
+- Tant que la validation parentale n'est pas confirmée, le compte reste en mode restreint : candidater réellement à une offre, signer une convention de stage et partager un document du Digital Safe restent bloqués. La navigation, la constitution du profil et la sauvegarde de brouillons restent, elles, accessibles.
+- Un compte mineur resté plus de 30 jours sans validation parentale doit être signalé automatiquement, puis suspendu si aucune réponse n'intervient.
+- **Limite assumée du MVP** : le numéro de téléphone du parent est déclaratif, non vérifié par pièce d'identité. C'est un risque documenté et accepté pour la Couche 1, pas un oubli — un contrôle renforcé (pièce d'identité du parent) est prévu pour la Couche 2, une fois le volume atteint.
 - Paramètres de confidentialité renforcés par défaut pour tout compte identifié comme mineur, sans action requise de l'utilisateur.
 - Visibilité publique du profil limitée automatiquement.
 - Accès parental strictement cadré aux droits prévus dans le BRD (module Parents/Représentants légaux) — jamais un accès total non justifié.

@@ -14,13 +14,13 @@ import { AuditService } from '../audit/audit.service';
 import { generateLsIdCandidate } from '../common/ls-id/ls-id.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
-import { LinkParentDto } from './dto/link-parent.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { OtpService } from './otp.service';
+import { ParentalConsentService } from './parental-consent.service';
 import { TokenService } from './token.service';
 
 const RETENTION_DAYS_BEFORE_HARD_DELETE = 30;
@@ -33,6 +33,7 @@ export class AuthService {
     private readonly otp: OtpService,
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
+    private readonly parentalConsent: ParentalConsentService,
   ) {}
 
   // --- FR-AUTH-001 / 002 / 003 : inscription, OTP, LS-ID ---------------------------------
@@ -59,6 +60,16 @@ export class AuthService {
 
     const dateOfBirth = new Date(dto.dateOfBirth);
     const isMinor = this.computeIsMinor(dateOfBirth);
+
+    // FR-AUTH-004a : le téléphone d'un parent/tuteur est requis dès l'inscription pour un
+    // mineur — jamais pour bloquer la création du compte, mais pour déclencher le
+    // consentement actif immédiatement (CLAUDE.md §5).
+    if (isMinor && !dto.parentPhone) {
+      throw new BadRequestException(
+        "Le numéro de téléphone d'un parent ou tuteur est requis pour un compte mineur.",
+      );
+    }
+
     const passwordHash = await argon2.hash(dto.password);
 
     const user = await this.prisma.user.create({
@@ -76,10 +87,18 @@ export class AuthService {
     await this.otp.generateAndSend(user.id, dto.phone, OtpPurpose.REGISTRATION);
     await this.audit.record('ACCOUNT_REGISTERED', user.id, { isMinor });
 
+    // Envoyé dès la saisie, en parallèle de l'OTP du mineur — jamais après coup
+    // (FR-AUTH-004a : ne jamais bloquer l'inscription en attendant la validation).
+    if (isMinor && dto.parentPhone) {
+      await this.parentalConsent.requestConsent(user.id, dto.parentPhone);
+    }
+
     return {
       userId: user.id,
       isMinor,
-      message: 'Code de vérification envoyé par SMS.',
+      message: isMinor
+        ? 'Code de vérification envoyé par SMS. Un SMS de consentement a également été envoyé au parent/tuteur déclaré.'
+        : 'Code de vérification envoyé par SMS.',
     };
   }
 
@@ -313,93 +332,6 @@ export class AuthService {
     };
   }
 
-  // --- FR-AUTH-004 : mineurs et rattachement parental -------------------------------------
-
-  async linkParent(childUserId: string, dto: LinkParentDto) {
-    const child = await this.prisma.user.findUniqueOrThrow({
-      where: { id: childUserId },
-    });
-    if (!child.isMinor) {
-      throw new BadRequestException(
-        'Le rattachement parental ne concerne que les comptes mineurs.',
-      );
-    }
-
-    const parent = await this.prisma.user.findUnique({
-      where: { phone: dto.parentPhone },
-    });
-    if (!parent) {
-      throw new NotFoundException(
-        "Aucun compte trouvé pour ce numéro. Le parent doit d'abord créer son propre compte.",
-      );
-    }
-    if (parent.isMinor) {
-      throw new BadRequestException(
-        'Le compte désigné comme parent est lui-même un compte mineur.',
-      );
-    }
-
-    const existing = await this.prisma.parentalLink.findUnique({
-      where: { childId_parentId: { childId: child.id, parentId: parent.id } },
-    });
-    if (existing) {
-      throw new ConflictException(
-        'Une demande de rattachement existe déjà pour ce parent.',
-      );
-    }
-
-    const link = await this.prisma.parentalLink.create({
-      data: { childId: child.id, parentId: parent.id },
-    });
-
-    await this.audit.record('PARENTAL_LINK_REQUESTED', child.id, {
-      linkId: link.id,
-      parentId: parent.id,
-    });
-    return { linkId: link.id, status: link.status };
-  }
-
-  async confirmParentLink(parentUserId: string, linkId: string) {
-    const link = await this.prisma.parentalLink.findUnique({
-      where: { id: linkId },
-    });
-    if (!link || link.parentId !== parentUserId) {
-      throw new NotFoundException('Demande de rattachement introuvable.');
-    }
-    if (link.status !== 'PENDING') {
-      throw new BadRequestException('Cette demande a déjà été traitée.');
-    }
-
-    await this.prisma.parentalLink.update({
-      where: { id: link.id },
-      data: { status: 'ACTIVE', confirmedAt: new Date() },
-    });
-
-    const child = await this.prisma.user.findUniqueOrThrow({
-      where: { id: link.childId },
-    });
-    if (child.status === AccountStatus.AWAITING_PARENTAL_CONSENT) {
-      await this.prisma.user.update({
-        where: { id: child.id },
-        data: { status: AccountStatus.ACTIVE },
-      });
-    }
-
-    await this.audit.record('PARENTAL_LINK_CONFIRMED', parentUserId, {
-      linkId: link.id,
-      childId: link.childId,
-    });
-    return { message: 'Rattachement confirmé.' };
-  }
-
-  async listParentalLinks(userId: string) {
-    const [asChild, asParent] = await Promise.all([
-      this.prisma.parentalLink.findMany({ where: { childId: userId } }),
-      this.prisma.parentalLink.findMany({ where: { parentId: userId } }),
-    ]);
-    return { asChild, asParent };
-  }
-
   // --- FR-AUTH-005 / 007 : rôles multiples et historique ----------------------------------
 
   async assignRole(userId: string, roleId: string) {
@@ -465,12 +397,25 @@ export class AuthService {
   // --- FR-AUTH-009 / 010 : export et suppression du compte --------------------------------
 
   async exportUserData(userId: string) {
+    // consentCodeHash n'est jamais inclus, même dans l'export du titulaire du compte —
+    // c'est un secret de vérification, pas une donnée personnelle (CLAUDE.md §6).
+    const parentalLinkSelect = {
+      id: true,
+      childId: true,
+      parentPhone: true,
+      parentId: true,
+      status: true,
+      flaggedAt: true,
+      createdAt: true,
+      confirmedAt: true,
+    } as const;
+
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
       include: {
         roles: { include: { role: true } },
-        parentLinksAsChild: true,
-        parentLinksAsParent: true,
+        parentLinksAsChild: { select: parentalLinkSelect },
+        parentLinksAsParent: { select: parentalLinkSelect },
       },
     });
 

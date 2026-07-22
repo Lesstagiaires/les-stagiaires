@@ -18,8 +18,11 @@ enum Language {
 
 enum AccountStatus {
   PENDING_VERIFICATION
-  // Mineur avec téléphone vérifié mais rattachement parental pas encore confirmé
-  // (CLAUDE.md §5 : un mineur ne peut être pleinement actif sans ce rattachement).
+  // Mineur en "mode restreint" (CLAUDE.md §5) : téléphone vérifié, compte pleinement
+  // explorable (profil, brouillons) dès l'inscription — jamais bloqué en attendant le
+  // parent. Seules les actions transactionnelles (candidature réelle, signature de
+  // convention, partage Digital Safe) resteront conditionnées à ce statut, une fois ces
+  // modules construits. Passe à ACTIVE dès que le parent/tuteur consent activement.
   AWAITING_PARENTAL_CONSENT
   ACTIVE
   DEACTIVATED
@@ -37,6 +40,8 @@ enum ParentalLinkStatus {
   PENDING
   ACTIVE
   REVOKED
+  // Consentement jamais obtenu au-delà du délai (CLAUDE.md §5 : signalement puis suspension à 30 jours).
+  EXPIRED
 }
 
 model User {
@@ -69,6 +74,7 @@ model User {
   parentLinksAsChild  ParentalLink[] @relation("ChildLinks")
   parentLinksAsParent ParentalLink[] @relation("ParentLinks")
   auditLogs           AuditLog[]
+  reports             Report[]
 
   @@index([email])
   @@index([phone])
@@ -119,17 +125,35 @@ model UserRole {
 }
 
 model ParentalLink {
-  id          String              @id @default(cuid())
-  childId     String
-  parentId    String
-  status      ParentalLinkStatus  @default(PENDING)
-  createdAt   DateTime            @default(now())
+  id      String @id @default(cuid())
+  childId String
+  // Le téléphone déclaré par le mineur est la source de vérité de la demande — le parent
+  // n'a pas besoin d'un compte existant sur la plateforme pour consentir (CLAUDE.md §5 :
+  // limite assumée du MVP, numéro déclaratif non vérifié par pièce d'identité).
+  parentPhone String
+  // Rattaché a posteriori si un compte existe déjà ou est créé avec ce numéro — jamais requis.
+  parentId String?
+
+  status ParentalLinkStatus @default(PENDING)
+
+  // Code de consentement envoyé par SMS au parent — propre à la demande, pas au compte
+  // parent (qui peut ne pas exister), hashé comme tout secret (CLAUDE.md §2/§6).
+  consentCodeHash    String?
+  consentExpiresAt   DateTime?
+  consentAttempts    Int       @default(0)
+  maxConsentAttempts Int       @default(5)
+
+  // Horodatage du signalement automatique à 30 jours sans réponse (CLAUDE.md §5).
+  flaggedAt DateTime?
+
+  createdAt   DateTime  @default(now())
   confirmedAt DateTime?
 
-  child  User @relation("ChildLinks", fields: [childId], references: [id], onDelete: Cascade)
-  parent User @relation("ParentLinks", fields: [parentId], references: [id], onDelete: Cascade)
+  child  User  @relation("ChildLinks", fields: [childId], references: [id], onDelete: Cascade)
+  parent User? @relation("ParentLinks", fields: [parentId], references: [id], onDelete: SetNull)
 
-  @@unique([childId, parentId])
+  @@unique([childId, parentPhone])
+  @@index([status, createdAt])
 }
 
 model OtpCode {
@@ -160,6 +184,36 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+enum ReportCategory {
+  HARASSMENT
+  ABUSE
+  DANGER
+  FRAUD
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  CLOSED
+}
+
+// Mécanisme de signalement minimal (CLAUDE.md §5 : non négociable dès le MVP, même sous
+// une forme simple — harcèlement, abus, danger).
+model Report {
+  id          String         @id @default(cuid())
+  reporterId  String
+  category    ReportCategory
+  description String
+  status      ReportStatus   @default(OPEN)
+  createdAt   DateTime       @default(now())
+
+  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+  @@index([status])
 }
 
 model AuditLog {

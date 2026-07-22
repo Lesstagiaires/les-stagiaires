@@ -41,4 +41,13 @@ export class RegisterDto {
 
   @IsDateString()
   dateOfBirth: string;
+
+  // Requis si l'utilisateur est mineur (vérifié en service, calculé depuis dateOfBirth) —
+  // permet le consentement parental actif dès l'inscription (CLAUDE.md §5, FR-AUTH-004a).
+  @IsOptional()
+  @IsPhoneNumber(undefined, {
+    message:
+      'Numéro de téléphone du parent/tuteur invalide (format international requis)',
+  })
+  parentPhone?: string;
 }

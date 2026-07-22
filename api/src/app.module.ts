@@ -10,6 +10,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { PrismaModule } from './prisma/prisma.module';
 import { QueueModule } from './queue/queue.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { QueueModule } from './queue/queue.module';
     AuditModule,
     QueueModule,
     AuthModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [
