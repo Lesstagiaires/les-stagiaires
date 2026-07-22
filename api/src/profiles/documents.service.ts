@@ -6,18 +6,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  randomBytes,
-  randomUUID,
-} from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { DocumentCategory, ProfileSection } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { MALWARE_SCANNER } from '../storage/malware-scanner.interface';
-import type { MalwareScanner } from '../storage/malware-scanner.interface';
+import { DocumentEncryptionService } from '../storage/document-encryption.service';
+import { FileValidationService } from '../storage/file-validation.service';
 import { STORAGE_PROVIDER } from '../storage/storage-provider.interface';
 import type { StorageProvider } from '../storage/storage-provider.interface';
 import { VisibilityService } from './visibility.service';
@@ -26,26 +20,6 @@ export interface UploadedFile {
   buffer: Buffer;
   mimetype: string;
   originalname: string;
-}
-
-const IV_LENGTH = 12;
-const AUTH_TAG_LENGTH = 16;
-
-// Signatures binaires (magic bytes) des formats autorisés — le Content-Type déclaré par
-// le client n'est qu'une affirmation non vérifiée ; un exécutable renommé avec un
-// Content-Type: image/png la franchirait sans ce contrôle (CLAUDE.md §4).
-const MAGIC_BYTES: Record<string, Buffer[]> = {
-  'image/png': [Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
-  'image/jpeg': [Buffer.from([0xff, 0xd8, 0xff])],
-  'application/pdf': [Buffer.from('%PDF')],
-};
-
-function matchesDeclaredFormat(buffer: Buffer, mimetype: string): boolean {
-  const signatures = MAGIC_BYTES[mimetype];
-  if (!signatures) return false; // format sans signature connue : refusé par prudence
-  return signatures.some((signature) =>
-    buffer.subarray(0, signature.length).equals(signature),
-  );
 }
 
 // checksum et storageKey ne sont jamais renvoyés au client — ce sont des détails
@@ -67,87 +41,28 @@ export class DocumentsService {
     private readonly config: ConfigService,
     private readonly audit: AuditService,
     private readonly visibility: VisibilityService,
+    private readonly encryption: DocumentEncryptionService,
+    private readonly validation: FileValidationService,
     @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
-    @Inject(MALWARE_SCANNER) private readonly scanner: MalwareScanner,
   ) {}
-
-  private getEncryptionKey(): Buffer {
-    const hex = this.config.getOrThrow<string>('DOCUMENT_ENCRYPTION_KEY');
-    const key = Buffer.from(hex, 'hex');
-    if (key.length !== 32) {
-      throw new Error(
-        'DOCUMENT_ENCRYPTION_KEY doit faire 32 octets (64 caractères hexadécimaux).',
-      );
-    }
-    return key;
-  }
-
-  private encrypt(plaintext: Buffer): Buffer {
-    const iv = randomBytes(IV_LENGTH);
-    const cipher = createCipheriv('aes-256-gcm', this.getEncryptionKey(), iv);
-    const ciphertext = Buffer.concat([
-      cipher.update(plaintext),
-      cipher.final(),
-    ]);
-    const authTag = cipher.getAuthTag();
-    return Buffer.concat([iv, authTag, ciphertext]);
-  }
-
-  private decrypt(blob: Buffer): Buffer {
-    const iv = blob.subarray(0, IV_LENGTH);
-    const authTag = blob.subarray(IV_LENGTH, IV_LENGTH + AUTH_TAG_LENGTH);
-    const ciphertext = blob.subarray(IV_LENGTH + AUTH_TAG_LENGTH);
-    const decipher = createDecipheriv(
-      'aes-256-gcm',
-      this.getEncryptionKey(),
-      iv,
-    );
-    decipher.setAuthTag(authTag);
-    return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
-  }
 
   async upload(userId: string, category: DocumentCategory, file: UploadedFile) {
     const maxSizeBytes =
       Number(this.config.get<string>('DOCUMENT_MAX_SIZE_MB', '10')) *
       1024 *
       1024;
-    if (file.buffer.length > maxSizeBytes) {
-      throw new BadRequestException('Fichier trop volumineux.');
-    }
-
     const allowedTypes = this.config
       .get<string>('DOCUMENT_ALLOWED_MIME_TYPES', '')
       .split(',')
       .map((type) => type.trim());
-    if (!allowedTypes.includes(file.mimetype)) {
-      throw new BadRequestException(`Format non autorisé : ${file.mimetype}`);
-    }
 
-    // Le Content-Type déclaré doit correspondre au contenu réel du fichier — pas
-    // seulement à l'en-tête fourni par le client (CLAUDE.md §4).
-    if (!matchesDeclaredFormat(file.buffer, file.mimetype)) {
-      await this.audit.record(
-        'DOCUMENT_UPLOAD_REJECTED_FORMAT_MISMATCH',
-        userId,
-        {
-          declaredMimeType: file.mimetype,
-        },
-      );
-      throw new BadRequestException(
-        'Le contenu du fichier ne correspond pas au format déclaré.',
-      );
-    }
-
-    // Analyse anti-malware avant tout enregistrement (CLAUDE.md §4). En dev, le scanner
-    // configuré est un stub permissif — voir DevMalwareScanner pour la limite assumée.
-    const scanResult = await this.scanner.scan(file.buffer);
-    if (!scanResult.clean) {
-      await this.audit.record('DOCUMENT_UPLOAD_REJECTED_MALWARE', userId, {
-        reason: scanResult.reason,
+    try {
+      await this.validation.validate(file, maxSizeBytes, allowedTypes);
+    } catch (error) {
+      await this.audit.record('DOCUMENT_UPLOAD_REJECTED', userId, {
+        reason: error instanceof Error ? error.message : 'unknown',
       });
-      throw new BadRequestException(
-        'Fichier rejeté par le contrôle de sécurité.',
-      );
+      throw error;
     }
 
     const profile = await this.prisma.profile.upsert({
@@ -158,7 +73,7 @@ export class DocumentsService {
 
     const checksum = createHash('sha256').update(file.buffer).digest('hex');
     const storageKey = `profiles/${profile.id}/${randomUUID()}`;
-    await this.storage.put(storageKey, this.encrypt(file.buffer));
+    await this.storage.put(storageKey, this.encryption.encrypt(file.buffer));
 
     const document = await this.prisma.profileDocument.create({
       data: {
@@ -214,7 +129,7 @@ export class DocumentsService {
     }
 
     const encrypted = await this.storage.get(document.storageKey);
-    const plaintext = this.decrypt(encrypted);
+    const plaintext = this.encryption.decrypt(encrypted);
 
     const checksum = createHash('sha256').update(plaintext).digest('hex');
     if (checksum !== document.checksum) {

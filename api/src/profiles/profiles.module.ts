@@ -26,5 +26,6 @@ import { VisibilityService } from './visibility.service';
     DocumentCleanupProcessor,
     DocumentCleanupScheduler,
   ],
+  exports: [CvService],
 })
 export class ProfilesModule {}

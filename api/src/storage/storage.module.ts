@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DevMalwareScanner } from './dev-malware-scanner';
+import { DocumentEncryptionService } from './document-encryption.service';
+import { FileValidationService } from './file-validation.service';
 import { LocalStorageProvider } from './local-storage.provider';
 import { MALWARE_SCANNER } from './malware-scanner.interface';
 import { R2StorageProvider } from './r2-storage.provider';
@@ -11,6 +13,8 @@ import { STORAGE_PROVIDER } from './storage-provider.interface';
     LocalStorageProvider,
     R2StorageProvider,
     DevMalwareScanner,
+    DocumentEncryptionService,
+    FileValidationService,
     {
       provide: STORAGE_PROVIDER,
       useFactory: (
@@ -27,6 +31,11 @@ import { STORAGE_PROVIDER } from './storage-provider.interface';
       useExisting: DevMalwareScanner,
     },
   ],
-  exports: [STORAGE_PROVIDER, MALWARE_SCANNER],
+  exports: [
+    STORAGE_PROVIDER,
+    MALWARE_SCANNER,
+    DocumentEncryptionService,
+    FileValidationService,
+  ],
 })
 export class StorageModule {}

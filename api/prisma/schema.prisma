@@ -79,6 +79,9 @@ model User {
   profileShares       ProfileShare[]
   recommendationsGiven    Recommendation[] @relation("RecommendationGiver")
   recommendationsReceived Recommendation[] @relation("RecommendationReceiver")
+  digitalSafeDocuments    DigitalSafeDocument[]
+  digitalSafeSharesReceived DigitalSafeShare[]
+  digitalSafeAccessLogs   DigitalSafeAccessLog[]
 
   @@index([email])
   @@index([phone])
@@ -400,4 +403,112 @@ model Recommendation {
   giver    User @relation("RecommendationGiver", fields: [giverId], references: [id], onDelete: Cascade)
 
   @@index([receiverId])
+}
+
+// ============================================================================
+// Module 3 — LS-ID, Passeport Professionnel Africain et Digital Safe (FR-M3-*)
+// ============================================================================
+
+enum DigitalSafeDocumentCategory {
+  IDENTITY
+  DIPLOMA
+  CONVENTION
+  CERTIFICATE
+  OTHER
+}
+
+enum ShareTargetType {
+  USER
+  LINK
+}
+
+enum DigitalSafeAccessAction {
+  VIEWED
+  DOWNLOADED
+  SHARE_CREATED
+  SHARE_REVOKED
+}
+
+// Document logique du Digital Safe — pièce d'identité, diplôme, convention, attestation.
+// Classé "Très sensible" / "Confidentiel" au sens CLAUDE.md §1 : chiffrement et
+// journalisation obligatoires, non différables, dès le MVP (CLAUDE.md §4).
+model DigitalSafeDocument {
+  id       String                      @id @default(cuid())
+  userId   String
+  category DigitalSafeDocumentCategory
+  title    String
+
+  deletedAt           DateTime?
+  deletionScheduledAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  user       User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions   DigitalSafeDocumentVersion[]
+  shares     DigitalSafeShare[]
+  accessLogs DigitalSafeAccessLog[]
+
+  @@index([userId])
+}
+
+// Versionnage (FR-M3-004) : chaque nouvel upload crée une version, les précédentes
+// restent consultables selon la politique de conservation.
+model DigitalSafeDocumentVersion {
+  id            String   @id @default(cuid())
+  documentId    String
+  versionNumber Int
+  fileName      String
+  storageKey    String   @unique
+  mimeType      String
+  sizeBytes     Int
+  // Empreinte du contenu en clair — permet de vérifier qu'un document partagé n'a pas
+  // été altéré depuis son dépôt (CLAUDE.md §4).
+  checksum      String
+  createdAt     DateTime @default(now())
+
+  document DigitalSafeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, versionNumber])
+}
+
+// Partage sélectif (FR-M3-005) avec expiration (FR-M3-006) et révocation (FR-M3-007).
+// Deux formes : vers un utilisateur précis de la plateforme, ou via un lien à jeton
+// (matérialisé par un QR Code, FR-M3-008) accessible sans compte.
+model DigitalSafeShare {
+  id         String          @id @default(cuid())
+  documentId String
+  targetType ShareTargetType
+
+  sharedWithUserId String?
+
+  // Jeton du lien de partage — comme tout secret, jamais stocké en clair, seul son hash
+  // l'est (CLAUDE.md §2/§6). Le jeton brut n'est révélé qu'une fois, à la création.
+  tokenHash String? @unique
+
+  expiresAt DateTime?
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  document       DigitalSafeDocument    @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  sharedWithUser User?                  @relation(fields: [sharedWithUserId], references: [id], onDelete: Cascade)
+  accessLogs     DigitalSafeAccessLog[]
+
+  @@index([documentId])
+}
+
+// Journal d'accès dédié (FR-M3-009) — table interrogeable, pas seulement un log
+// système : le titulaire doit pouvoir consulter qui a accédé à ses documents et quand.
+model DigitalSafeAccessLog {
+  id          String                   @id @default(cuid())
+  documentId  String
+  shareId     String?
+  actorUserId String?
+  action      DigitalSafeAccessAction
+  createdAt   DateTime                 @default(now())
+
+  document DigitalSafeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  share    DigitalSafeShare?   @relation(fields: [shareId], references: [id], onDelete: SetNull)
+  actor    User?               @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([documentId])
 }
