@@ -12,18 +12,24 @@ export class ReportsService {
     private readonly audit: AuditService,
   ) {}
 
-  async create(reporterId: string, dto: CreateReportDto) {
+  async create(
+    reporterId: string,
+    dto: CreateReportDto,
+    targetOpportunityId?: string,
+  ) {
     const report = await this.prisma.report.create({
       data: {
         reporterId,
         category: dto.category,
         description: dto.description,
+        targetOpportunityId,
       },
     });
 
     await this.audit.record('REPORT_SUBMITTED', reporterId, {
       reportId: report.id,
       category: report.category,
+      targetOpportunityId,
     });
 
     return {

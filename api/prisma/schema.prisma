@@ -82,6 +82,9 @@ model User {
   digitalSafeDocuments    DigitalSafeDocument[]
   digitalSafeSharesReceived DigitalSafeShare[]
   digitalSafeAccessLogs   DigitalSafeAccessLog[]
+  organizations           Organization[]
+  opportunityFavorites    OpportunityFavorite[]
+  opportunityAlerts       OpportunityAlert[]
 
   @@index([email])
   @@index([phone])
@@ -218,10 +221,17 @@ model Report {
   status      ReportStatus   @default(OPEN)
   createdAt   DateTime       @default(now())
 
-  reporter User @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  // Cible optionnelle — une offre pour l'instant (module 4). Colonne dédiée plutôt qu'une
+  // cible polymorphe générique : un seul type de cible supplémentaire à ce stade, intégrité
+  // référentielle réelle préférée à une abstraction prématurée.
+  targetOpportunityId String?
+
+  reporter          User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetOpportunity Opportunity? @relation(fields: [targetOpportunityId], references: [id], onDelete: Cascade)
 
   @@index([reporterId])
   @@index([status])
+  @@index([targetOpportunityId])
 }
 
 model AuditLog {
@@ -511,4 +521,137 @@ model DigitalSafeAccessLog {
   actor    User?               @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([documentId])
+}
+
+// ============================================================================
+// Module 4 — Gestion des opportunités (FR-M4-*)
+// ============================================================================
+
+enum OrganizationVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+// Modèle minimal — le module 6 (Entreprises et organisations) l'enrichira par migration
+// additive (ORG-ID d'affichage, équipe/permissions, page publique, vitrine partenaires).
+// L'id ci-dessous est déjà l'identifiant stable et permanent : un cuid, jamais régénéré.
+model Organization {
+  id     String @id @default(cuid())
+  // Compte détenant le rôle ENTREPRISE ou ETABLISSEMENT qui a créé l'organisation —
+  // vérifié en service, pas dans le schéma (cohérent avec la modélisation des rôles
+  // du module 1).
+  ownerId String
+
+  name    String
+  sector  String?
+  country String
+  city    String
+
+  // Seules les organisations vérifiées peuvent publier une offre active (FR-M4-002).
+  // Vérification réservée à un compte ADMIN (CLAUDE.md §3 : aucun rôle fourre-tout,
+  // et surtout pas d'auto-vérification par l'organisation elle-même).
+  verificationStatus OrganizationVerificationStatus @default(PENDING)
+  verifiedAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner         User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  opportunities Opportunity[]
+
+  @@index([ownerId])
+}
+
+enum OpportunityType {
+  ACADEMIC_INTERNSHIP
+  PROFESSIONAL_INTERNSHIP
+  SEASONAL
+  WORK_STUDY
+}
+
+enum WorkMode {
+  ON_SITE
+  REMOTE
+  HYBRID
+}
+
+// Cycle de vie complet (FR-M4-013). PENDING_REVIEW et SUSPENDED anticipent un futur
+// workflow de modération humaine qui n'existe pas encore (pas de module de gouvernance
+// en MVP) — PENDING_REVIEW est traversé automatiquement pour l'instant, SUSPENDED n'est
+// déclenchable que manuellement/en interne, jamais via un endpoint self-service.
+enum OpportunityStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  PAUSED
+  FILLED
+  EXPIRED
+  CANCELLED
+  REPORTED
+  SUSPENDED
+  ARCHIVED
+}
+
+model Opportunity {
+  id             String          @id @default(cuid())
+  organizationId String
+  title          String
+  description    String
+  type           OpportunityType
+  sector         String
+  country        String
+  city           String
+
+  // Affichés clairement pour que le module 5 puisse déclencher les autorisations
+  // nécessaires côté candidat, notamment pour les mineurs (précision explicite du
+  // promoteur) — jamais calculés implicitement côté client.
+  workMode              WorkMode @default(ON_SITE)
+  relocationRequired    Boolean  @default(false)
+  accommodationProvided Boolean  @default(false)
+  mobilityBenefits      String?
+
+  status      OpportunityStatus @default(DRAFT)
+  publishedAt DateTime?
+  expiresAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  favorites    OpportunityFavorite[]
+  reports      Report[]
+
+  @@index([organizationId])
+  @@index([status, country, city])
+  @@index([status, sector])
+}
+
+// FR-M4-009 : favoris.
+model OpportunityFavorite {
+  id            String   @id @default(cuid())
+  userId        String
+  opportunityId String
+  createdAt     DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, opportunityId])
+}
+
+// FR-M4-010 : définition des critères d'alerte — la livraison effective (push/SMS) est
+// du ressort du service transversal de notifications, pas de ce module.
+model OpportunityAlert {
+  id        String           @id @default(cuid())
+  userId    String
+  country   String?
+  city      String?
+  sector    String?
+  type      OpportunityType?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

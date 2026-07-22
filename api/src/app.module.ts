@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { DigitalSafeModule } from './digital-safe/digital-safe.module';
+import { OpportunitiesModule } from './opportunities/opportunities.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { QueueModule } from './queue/queue.module';
@@ -25,6 +26,7 @@ import { ReportsModule } from './reports/reports.module';
     ReportsModule,
     ProfilesModule,
     DigitalSafeModule,
+    OpportunitiesModule,
   ],
   controllers: [AppController],
   providers: [
