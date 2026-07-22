@@ -33,5 +33,8 @@ import { SharesService } from './shares.service';
     DigitalSafeCleanupProcessor,
     DigitalSafeCleanupScheduler,
   ],
+  // DigitalSafeDocumentsService et SharesService sont réutilisés par le module
+  // Candidatures (FR-M5-006 : le candidat référence un document déjà déposé).
+  exports: [DigitalSafeDocumentsService, SharesService],
 })
 export class DigitalSafeModule {}

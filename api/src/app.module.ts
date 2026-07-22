@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { ApplicationsModule } from './applications/applications.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
@@ -27,6 +28,7 @@ import { ReportsModule } from './reports/reports.module';
     ProfilesModule,
     DigitalSafeModule,
     OpportunitiesModule,
+    ApplicationsModule,
   ],
   controllers: [AppController],
   providers: [

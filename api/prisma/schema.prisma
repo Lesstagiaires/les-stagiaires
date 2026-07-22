@@ -85,6 +85,7 @@ model User {
   organizations           Organization[]
   opportunityFavorites    OpportunityFavorite[]
   opportunityAlerts       OpportunityAlert[]
+  applications            Application[]
 
   @@index([email])
   @@index([phone])
@@ -559,6 +560,7 @@ model Organization {
 
   owner         User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   opportunities Opportunity[]
+  applications  Application[]
 
   @@index([ownerId])
 }
@@ -621,6 +623,7 @@ model Opportunity {
   organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   favorites    OpportunityFavorite[]
   reports      Report[]
+  applications Application[]
 
   @@index([organizationId])
   @@index([status, country, city])
@@ -654,4 +657,137 @@ model OpportunityAlert {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+// ============================================================================
+// Module 5 — Gestion des candidatures (FR-M5-*)
+// ============================================================================
+
+enum ApplicationStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  ADDITIONAL_DOCUMENT_REQUESTED
+  INTERVIEW_PROPOSED
+  INTERVIEW_CONFIRMED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  COMPLETED
+}
+
+enum ApplicationDocumentRequestStatus {
+  PENDING
+  FULFILLED
+}
+
+enum ApplicationArtifactKind {
+  CONVENTION
+  ATTESTATION
+}
+
+// Candidature — normale (opportunityId renseigné, offre ACTIVE au dépôt) ou spontanée
+// (FR-M5-010 / FR-M4-011 : opportunityId nul, dépôt direct auprès d'une organisation
+// vérifiée). Le dossier envoyé est figé au dépôt (FR-M5-004) : dossierSnapshot n'est
+// jamais recalculé depuis le profil après coup, même si celui-ci change ensuite.
+model Application {
+  id             String  @id @default(cuid())
+  reference      String  @unique
+  candidateId    String
+  organizationId String
+  opportunityId  String?
+
+  status ApplicationStatus @default(SUBMITTED)
+
+  dossierSnapshot Json
+
+  // FR-M4-005 : recueillie uniquement quand l'offre l'exige (relocationRequired) —
+  // reste nulle sinon plutôt que de forcer un choix non pertinent.
+  willingToRelocate Boolean?
+
+  // FR-M5-007 : un seul entretien actif à la fois pour le MVP ; une reprogrammation
+  // écrase la proposition précédente (l'historique reste dans ApplicationStatusEvent).
+  interviewProposedAt  DateTime?
+  interviewMode        String?
+  interviewLocation    String?
+  interviewConfirmedAt DateTime?
+
+  decisionAt   DateTime?
+  decisionNote String?
+
+  withdrawnAt DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  candidate    User          @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunity  Opportunity?  @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  history          ApplicationStatusEvent[]
+  documentRequests ApplicationDocumentRequest[]
+  artifacts        ApplicationArtifact[]
+
+  @@index([candidateId])
+  @@index([organizationId])
+  @@index([opportunityId])
+  @@index([status])
+}
+
+// FR-M5-005 : historique consultable des actions principales.
+model ApplicationStatusEvent {
+  id            String             @id @default(cuid())
+  applicationId String
+  fromStatus    ApplicationStatus?
+  toStatus      ApplicationStatus
+  actorUserId   String?
+  note          String?
+  createdAt     DateTime           @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+// FR-M5-006 : demande de document complémentaire par l'organisation. Le candidat la
+// satisfait en référençant un document déjà présent dans son Digital Safe (jamais de
+// nouvel emplacement de stockage utilisateur hors Digital Safe, CLAUDE.md §6).
+model ApplicationDocumentRequest {
+  id                String                            @id @default(cuid())
+  applicationId     String
+  requestedByUserId String
+  description       String
+  status            ApplicationDocumentRequestStatus   @default(PENDING)
+
+  fulfilledDigitalSafeDocumentId String?
+  fulfilledAt                    DateTime?
+
+  createdAt DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+// Documents générés par le processus de candidature (convention, attestation) — distincts
+// des documents déposés par l'utilisateur, qui restent dans le Digital Safe. Chiffrés au
+// repos comme tout document (CLAUDE.md §4) ; accessibles au candidat et à l'organisation
+// de la candidature concernée pour toute la durée de la relation, sans le plafond de 30
+// jours du partage Digital Safe (pensé pour un partage volontaire ponctuel, pas pour une
+// convention censée rester accessible pendant tout le stage).
+model ApplicationArtifact {
+  id            String                  @id @default(cuid())
+  applicationId String
+  kind          ApplicationArtifactKind
+  title         String
+  storageKey    String                  @unique
+  mimeType      String
+  sizeBytes     Int
+  checksum      String
+  createdAt     DateTime                @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, kind])
+  @@index([applicationId])
 }
