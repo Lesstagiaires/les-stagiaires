@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHash, randomInt } from 'crypto';
+import { createHash, randomInt, timingSafeEqual } from 'crypto';
 import { OtpPurpose } from '../../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { SMS_PROVIDER } from '../sms/sms-provider.interface';
@@ -65,7 +65,13 @@ export class OtpService {
       return false;
     }
 
-    const isMatch = otp.codeHash === this.hashCode(code);
+    // Comparaison en temps constant — une comparaison de chaîne classique peut fuiter
+    // de l'information via le temps de réponse (CLAUDE.md §2 : secrets jamais exposés,
+    // même indirectement).
+    const isMatch = timingSafeEqual(
+      Buffer.from(otp.codeHash),
+      Buffer.from(this.hashCode(code)),
+    );
 
     if (!isMatch) {
       await this.prisma.otpCode.update({

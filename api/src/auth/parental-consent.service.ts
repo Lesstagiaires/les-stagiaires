@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHash, randomInt } from 'crypto';
+import { createHash, randomInt, timingSafeEqual } from 'crypto';
 import {
   AccountStatus,
   ParentalLinkStatus,
@@ -39,6 +39,14 @@ export class ParentalConsentService {
     if (!child.isMinor) {
       throw new BadRequestException(
         'Le consentement parental ne concerne que les comptes mineurs.',
+      );
+    }
+    // Un mineur ne peut jamais se déclarer comme son propre parent/tuteur — sinon il
+    // recevrait le code de consentement lui-même et pourrait s'auto-valider, ce qui
+    // annulerait la protection (CLAUDE.md §5).
+    if (parentPhone === child.phone) {
+      throw new BadRequestException(
+        'Le numéro du parent/tuteur ne peut pas être le même que celui du compte mineur.',
       );
     }
 
@@ -109,7 +117,12 @@ export class ParentalConsentService {
       throw new UnauthorizedException('Nombre maximal de tentatives atteint.');
     }
 
-    if (link.consentCodeHash !== this.hashCode(code)) {
+    // Comparaison en temps constant (CLAUDE.md §2).
+    const isMatch = timingSafeEqual(
+      Buffer.from(link.consentCodeHash),
+      Buffer.from(this.hashCode(code)),
+    );
+    if (!isMatch) {
       await this.prisma.parentalLink.update({
         where: { id: link.id },
         data: { consentAttempts: { increment: 1 } },
@@ -122,6 +135,14 @@ export class ParentalConsentService {
     const matchingParent = await this.prisma.user.findUnique({
       where: { phone: link.parentPhone },
     });
+    // Un compte déjà enregistré comme mineur ne peut jamais servir de "parent" — même
+    // si le code a été reçu sur ce numéro (deux mineurs ne doivent pas pouvoir
+    // s'auto-valider mutuellement, CLAUDE.md §5).
+    if (matchingParent?.isMinor) {
+      throw new BadRequestException(
+        'Le numéro déclaré correspond à un compte mineur — il ne peut pas donner de consentement parental.',
+      );
+    }
 
     await this.prisma.parentalLink.update({
       where: { id: link.id },
