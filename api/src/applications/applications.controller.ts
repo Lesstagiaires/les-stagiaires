@@ -24,6 +24,7 @@ import { DecideApplicationDto } from './dto/decide-application.dto';
 import { FulfillDocumentRequestDto } from './dto/fulfill-document-request.dto';
 import { ListReceivedDto } from './dto/list-received.dto';
 import { ProposeInterviewDto } from './dto/propose-interview.dto';
+import { SetEstablishmentParticipationDto } from './dto/set-establishment-participation.dto';
 import { SignApplicationDto } from './dto/sign-application.dto';
 import { SubmitReportDto } from './dto/submit-report.dto';
 import { CreateRecommendationDto } from '../profiles/dto/create-recommendation.dto';
@@ -180,6 +181,28 @@ export class ApplicationsController {
     @Req() req: Request,
   ) {
     return this.applications.sign(user.sub, id, dto.name, req.ip);
+  }
+
+  // --- Participation facultative de l'établissement (stage académique) --------------------
+
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/establishment-participation')
+  setEstablishmentParticipation(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: SetEstablishmentParticipationDto,
+  ) {
+    return this.applications.setEstablishmentParticipation(user.sub, id, dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/establishment-sign')
+  establishmentSign(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: SignApplicationDto,
+  ) {
+    return this.applications.establishmentSign(user.sub, id, dto.name);
   }
 
   // --- Accord parental de déplacement (candidat mineur, offre à relocalisation) -----------

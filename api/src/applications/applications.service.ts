@@ -19,6 +19,7 @@ import {
   InternshipReportStatus,
   LearnerStatus,
   OpportunityStatus,
+  OpportunityType,
   OrganizationMemberStatus,
   OrganizationVerificationStatus,
   ParentalLinkStatus,
@@ -39,6 +40,7 @@ import { CreateApplicationDto } from './dto/create-application.dto';
 import { CreateDocumentRequestDto } from './dto/create-document-request.dto';
 import { FulfillDocumentRequestDto } from './dto/fulfill-document-request.dto';
 import { ProposeInterviewDto } from './dto/propose-interview.dto';
+import { SetEstablishmentParticipationDto } from './dto/set-establishment-participation.dto';
 import {
   ApplicationDecision,
   DecideApplicationDto,
@@ -51,6 +53,7 @@ const APPLICATION_INCLUDE = {
     select: {
       id: true,
       title: true,
+      type: true,
       relocationRequired: true,
       city: true,
       country: true,
@@ -81,6 +84,9 @@ const APPLICATION_SAFE_SELECT = {
   candidateSignedName: true,
   organizationSignedAt: true,
   organizationSignedName: true,
+  establishmentParticipationRequested: true,
+  establishmentSignedAt: true,
+  establishmentSignedName: true,
   startedAt: true,
   withdrawnAt: true,
   completedAt: true,
@@ -971,6 +977,95 @@ export class ApplicationsService {
         applicationId: id,
       });
     }
+  }
+
+  // --- Participation facultative de l'établissement à la signature (stage académique) ------
+
+  // L'entreprise décide seule si elle souhaite associer l'établissement — jamais
+  // l'inverse, et jamais requis pour démarrer ou clôturer le stage (cf. sign()/complete()).
+  async setEstablishmentParticipation(
+    ownerId: string,
+    id: string,
+    dto: SetEstablishmentParticipationDto,
+  ) {
+    const application = await this.assertOrganizationOwner(ownerId, id);
+    if (application.opportunity?.type !== OpportunityType.ACADEMIC_INTERNSHIP) {
+      throw new BadRequestException(
+        "La participation de l'établissement ne concerne que les stages académiques.",
+      );
+    }
+
+    await this.prisma.application.update({
+      where: { id },
+      data: { establishmentParticipationRequested: dto.requested },
+    });
+    await this.audit.record('APPLICATION_ESTABLISHMENT_PARTICIPATION_SET', ownerId, {
+      applicationId: id,
+      requested: dto.requested,
+    });
+
+    // Notifié seulement si un établissement vérifié est déjà rattaché au candidat —
+    // sinon la demande reste enregistrée, sans erreur (jamais bloquant, cf. plus haut).
+    if (dto.requested) {
+      const learner = await this.prisma.establishmentLearner.findFirst({
+        where: {
+          userId: application.candidateId,
+          status: LearnerStatus.ACTIVE,
+          verifiedAt: { not: null },
+        },
+        include: { establishment: { select: { ownerId: true, name: true } } },
+      });
+      if (learner) {
+        await this.notify(
+          learner.establishment.ownerId,
+          `LES STAGIAIRES — l'entreprise souhaite associer votre établissement à la convention de la candidature ${application.reference}.`,
+        );
+      }
+    }
+  }
+
+  // Signature légère déclarative par l'établissement vérifié du candidat — facultative,
+  // ne conditionne jamais la signature candidat/entreprise ni le démarrage du stage.
+  async establishmentSign(actorId: string, id: string, name: string) {
+    const application = await this.getApplicationOr404(id);
+    if (!application.establishmentParticipationRequested) {
+      throw new BadRequestException(
+        "La participation de l'établissement n'a pas été sollicitée pour cette candidature.",
+      );
+    }
+
+    const learner = await this.prisma.establishmentLearner.findFirst({
+      where: {
+        userId: application.candidateId,
+        status: LearnerStatus.ACTIVE,
+        verifiedAt: { not: null },
+      },
+    });
+    if (!learner) {
+      throw new ForbiddenException(
+        "Cette candidature ne concerne pas un établissement rattaché et vérifié.",
+      );
+    }
+    // Réservé à OWNER/ADMIN de l'établissement, comme pour la signature d'organisation
+    // (FR-ORG-002) — jamais un membre RECRUITER/VIEWER.
+    await this.orgAccess.assertCanSign(learner.establishmentId, actorId);
+    this.assertTransition(application.status, [ApplicationStatus.ACCEPTED]);
+
+    await this.prisma.application.update({
+      where: { id },
+      data: { establishmentSignedAt: new Date(), establishmentSignedName: name },
+    });
+    await this.audit.record('APPLICATION_ESTABLISHMENT_SIGNED', actorId, {
+      applicationId: id,
+    });
+    await this.notify(
+      application.candidateId,
+      `LES STAGIAIRES — votre établissement a signé la convention de la candidature ${application.reference}.`,
+    );
+    await this.notify(
+      application.organization.ownerId,
+      `LES STAGIAIRES — l'établissement a signé la convention de la candidature ${application.reference}.`,
+    );
   }
 
   // --- Clôture et attestation --------------------------------------------------------------

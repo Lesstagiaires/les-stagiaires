@@ -336,6 +336,9 @@ export class EstablishmentsService {
         createdAt: true,
         startedAt: true,
         completedAt: true,
+        establishmentParticipationRequested: true,
+        establishmentSignedAt: true,
+        establishmentSignedName: true,
       },
     });
   }

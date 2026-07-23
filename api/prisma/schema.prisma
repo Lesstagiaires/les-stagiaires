@@ -861,6 +861,15 @@ model Application {
   organizationSignedAt   DateTime?
   organizationSignedName String?
   organizationSignedIp   String?
+
+  // Participation facultative de l'établissement à la signature (stage académique) :
+  // décidée par l'entreprise, jamais requise pour démarrer le stage — startedAt ne
+  // dépend que des signatures candidat + entreprise (cf. sign()). Pas d'IP collectée,
+  // la signature établissement n'engage qu'un tiers informé, pas une partie au contrat.
+  establishmentParticipationRequested Boolean   @default(false)
+  establishmentSignedAt               DateTime?
+  establishmentSignedName             String?
+
   // Renseigné automatiquement dès que les deux parties ont signé — marqueur de début
   // de stage, informatif uniquement (ne bloque jamais la clôture, cf. complete()).
   startedAt DateTime?
