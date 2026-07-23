@@ -16,6 +16,8 @@ import {
   ApplicationDocumentRequestStatus,
   ApplicationStatus,
   DigitalSafeDocumentCategory,
+  InternshipReportStatus,
+  LearnerStatus,
   OpportunityStatus,
   OrganizationMemberStatus,
   OrganizationVerificationStatus,
@@ -495,6 +497,65 @@ export class ApplicationsService {
       application.organization.ownerId,
       `LES STAGIAIRES — document complémentaire reçu pour la candidature ${application.reference}.`,
     );
+  }
+
+  // --- EDU-FR-007 : dépôt d'un rapport de stage ---------------------------------------------
+
+  // Le candidat référence un document déjà présent dans son Digital Safe (même principe
+  // que le complément documentaire, FR-M5-006) — une resoumission après correction écrase
+  // le pointeur et repart en SUBMITTED, l'historique de correction reste dans l'audit log.
+  async submitReport(
+    candidateId: string,
+    id: string,
+    digitalSafeDocumentId: string,
+  ) {
+    await this.assertCandidate(candidateId, id);
+    await this.digitalSafeDocuments.assertOwnsDocument(
+      candidateId,
+      digitalSafeDocumentId,
+    );
+
+    const existing = await this.prisma.internshipReport.findUnique({
+      where: { applicationId: id },
+    });
+    const report = existing
+      ? await this.prisma.internshipReport.update({
+          where: { applicationId: id },
+          data: {
+            digitalSafeDocumentId,
+            status: InternshipReportStatus.SUBMITTED,
+            reviewNote: null,
+            reviewedAt: null,
+            reviewedById: null,
+          },
+        })
+      : await this.prisma.internshipReport.create({
+          data: { applicationId: id, digitalSafeDocumentId },
+        });
+
+    // Partagé avec l'établissement vérifié de l'apprenant, s'il en a un — le rapport
+    // reste enregistré même sans établissement rattaché (ex. stage non académique).
+    const establishmentLearner =
+      await this.prisma.establishmentLearner.findFirst({
+        where: {
+          userId: candidateId,
+          status: LearnerStatus.ACTIVE,
+          verifiedAt: { not: null },
+        },
+        include: { establishment: { select: { ownerId: true } } },
+      });
+    if (establishmentLearner) {
+      await this.shares.create(candidateId, digitalSafeDocumentId, {
+        targetType: ShareTargetType.USER,
+        sharedWithUserId: establishmentLearner.establishment.ownerId,
+      });
+    }
+
+    await this.audit.record('INTERNSHIP_REPORT_SUBMITTED', candidateId, {
+      applicationId: id,
+      reportId: report.id,
+    });
+    return report;
   }
 
   // --- FR-M5-007 : entretien ---------------------------------------------------------------

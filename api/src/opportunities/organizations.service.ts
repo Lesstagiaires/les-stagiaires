@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   OrganizationMemberStatus,
+  OrganizationType,
   OrganizationVerificationStatus,
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
@@ -20,6 +21,7 @@ const ORG_ROLE_NAMES = ['ENTREPRISE', 'ETABLISSEMENT'];
 
 const PUBLIC_ORGANIZATION_SELECT = {
   id: true,
+  type: true,
   orgId: true,
   name: true,
   sector: true,
@@ -42,11 +44,13 @@ export class OrganizationsService {
     private readonly access: OrganizationAccessService,
   ) {}
 
-  // FR-M4-001 : seule une "organisation autorisée" peut publier — matérialisé ici par la
-  // détention active du rôle ENTREPRISE ou ETABLISSEMENT (module 1).
+  // FR-M4-001 / EDU-FR-001 : seule une "organisation autorisée" peut publier —
+  // matérialisé ici par la détention active du rôle ENTREPRISE ou ETABLISSEMENT
+  // (module 1), qui détermine aussi le type de l'organisation créée (EDU-ID vs ORG-ID).
   async create(userId: string, dto: CreateOrganizationDto) {
     const heldOrgRole = await this.prisma.userRole.findFirst({
       where: { userId, isActive: true, role: { name: { in: ORG_ROLE_NAMES } } },
+      include: { role: true },
     });
     if (!heldOrgRole) {
       throw new ForbiddenException(
@@ -54,9 +58,14 @@ export class OrganizationsService {
       );
     }
 
-    const orgId = await this.generateUniqueOrgId();
+    const type =
+      heldOrgRole.role.name === 'ETABLISSEMENT'
+        ? OrganizationType.ETABLISSEMENT
+        : OrganizationType.ENTREPRISE;
+    const orgId = await this.generateUniqueOrgId(type);
     const organization = await this.prisma.organization.create({
       data: {
+        type,
         orgId,
         ownerId: userId,
         name: dto.name,
@@ -68,21 +77,23 @@ export class OrganizationsService {
     await this.audit.record('ORGANIZATION_CREATED', userId, {
       organizationId: organization.id,
       orgId,
+      type,
     });
     return organization;
   }
 
-  private async generateUniqueOrgId(): Promise<string> {
+  private async generateUniqueOrgId(type: OrganizationType): Promise<string> {
     const countryCode = this.config.get<string>('LS_ID_COUNTRY_CODE', 'CM');
+    const prefix = type === OrganizationType.ETABLISSEMENT ? 'EDU' : 'ORG';
     for (let attempt = 0; attempt < 5; attempt++) {
-      const candidate = generateOrgIdCandidate(countryCode);
+      const candidate = generateOrgIdCandidate(countryCode, prefix);
       const exists = await this.prisma.organization.findUnique({
         where: { orgId: candidate },
       });
       if (!exists) return candidate;
     }
     throw new InternalServerErrorException(
-      'Impossible de générer un ORG-ID unique, réessayez.',
+      "Impossible de générer un identifiant d'organisation unique, réessayez.",
     );
   }
 

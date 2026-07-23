@@ -88,6 +88,8 @@ model User {
   opportunityAlerts       OpportunityAlert[]
   applications            Application[]
   needRequestsHandled     OrganizationNeedRequest[]
+  establishmentLearnerRecords EstablishmentLearner[]
+  internshipReportsReviewed   InternshipReport[]
 
   @@index([email])
   @@index([phone])
@@ -432,6 +434,7 @@ enum DigitalSafeDocumentCategory {
   CONVENTION
   CERTIFICATE
   ADMISSION_LETTER
+  INTERNSHIP_REPORT
   OTHER
 }
 
@@ -541,13 +544,23 @@ enum OrganizationVerificationStatus {
   REJECTED
 }
 
+// Distingue une entreprise d'un établissement — jusqu'au module 7, cette distinction
+// n'était jamais persistée (seulement déduite, au moment de la création, du rôle
+// ENTREPRISE/ETABLISSEMENT détenu par le créateur). Nécessaire pour réserver les
+// fonctionnalités du module 7 (apprenants, campagnes, rapports) aux établissements.
+enum OrganizationType {
+  ENTREPRISE
+  ETABLISSEMENT
+}
+
 // Modèle enrichi au module 6 (Entreprises et organisations) par migration additive :
 // ORG-ID d'affichage, équipe/permissions, page publique, vitrine partenaires.
 // L'id ci-dessous est l'identifiant stable et permanent : un cuid, jamais régénéré.
 model Organization {
-  id     String  @id @default(cuid())
-  // FR-ORG-001 : identifiant d'affichage, même mécanique que le LS-ID — attribué dès
-  // la création, indépendamment de la vérification.
+  id     String           @id @default(cuid())
+  type   OrganizationType @default(ENTREPRISE)
+  // FR-ORG-001 / EDU-FR-002 : identifiant d'affichage, même mécanique que le LS-ID —
+  // préfixe ORG- ou EDU- selon le type, attribué dès la création.
   orgId  String? @unique
   // Compte détenant le rôle ENTREPRISE ou ETABLISSEMENT qui a créé l'organisation —
   // vérifié en service, pas dans le schéma (cohérent avec la modélisation des rôles
@@ -584,6 +597,8 @@ model Organization {
   opportunities Opportunity[]
   applications  Application[]
   needRequests  OrganizationNeedRequest[]
+  learners      EstablishmentLearner[]
+  campaigns     InternshipCampaign[]
 
   @@index([ownerId])
 }
@@ -864,6 +879,7 @@ model Application {
   documentRequests ApplicationDocumentRequest[]
   artifacts        ApplicationArtifact[]
   travelConsent    TravelConsent?
+  internshipReport InternshipReport?
 
   @@index([candidateId])
   @@index([organizationId])
@@ -948,4 +964,93 @@ model ApplicationArtifact {
 
   @@unique([applicationId, kind])
   @@index([applicationId])
+}
+
+// ============================================================================
+// Module 7 — Établissements d'enseignement (EDU-FR-*)
+// ============================================================================
+
+enum LearnerStatus {
+  // Invité par l'établissement, en attente d'acceptation par l'apprenant.
+  PENDING
+  // Rattachement accepté — la vérification (verifiedAt) reste une étape distincte,
+  // jamais automatique (EDU-FR-004 : "rattacher ET vérifier").
+  ACTIVE
+  REVOKED
+}
+
+// FR-ORG-002 (équipe) a son pendant ici pour les apprenants — patron similaire
+// (invitation par téléphone d'un compte existant, acceptation) mais sémantique
+// distincte : un apprenant n'obtient aucun droit de gestion sur l'établissement.
+model EstablishmentLearner {
+  id              String        @id @default(cuid())
+  establishmentId String
+  userId          String
+  status          LearnerStatus @default(PENDING)
+
+  invitedAt  DateTime  @default(now())
+  joinedAt   DateTime?
+  // Distinct de joinedAt : confirme que l'établissement a vérifié la réalité de
+  // l'inscription de l'apprenant (EDU-FR-004), pas seulement son acceptation.
+  verifiedAt DateTime?
+  revokedAt  DateTime?
+
+  establishment Organization @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([establishmentId, userId])
+  @@index([establishmentId])
+  @@index([userId])
+}
+
+enum InternshipCampaignStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
+// EDU-FR-005 : périodes de stage gérées par l'établissement — purement informatif
+// pour le MVP (aucune offre/candidature n'y est rattachée automatiquement).
+model InternshipCampaign {
+  id              String                   @id @default(cuid())
+  establishmentId String
+  name            String
+  startDate       DateTime
+  endDate         DateTime
+  status          InternshipCampaignStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  establishment Organization @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+
+  @@index([establishmentId])
+}
+
+enum InternshipReportStatus {
+  SUBMITTED
+  NEEDS_REVISION
+  VALIDATED
+}
+
+// EDU-FR-007 : dépôt, correction et validation du rapport de stage — un rapport par
+// candidature/stage. La "soutenance" (Couche 2/3, cf. cahier des charges module 5)
+// n'est pas dans ce périmètre. Le document lui-même vit dans le Digital Safe de
+// l'apprenant (comme les artefacts de candidature, module 5) ; l'établissement y
+// accède via un partage, jamais un stockage dupliqué.
+model InternshipReport {
+  id                    String                  @id @default(cuid())
+  applicationId         String                  @unique
+  digitalSafeDocumentId String
+  status                InternshipReportStatus  @default(SUBMITTED)
+
+  reviewNote   String?
+  reviewedAt   DateTime?
+  reviewedById String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  reviewedBy  User?        @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
 }

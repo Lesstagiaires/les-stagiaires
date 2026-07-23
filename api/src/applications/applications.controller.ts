@@ -25,6 +25,7 @@ import { FulfillDocumentRequestDto } from './dto/fulfill-document-request.dto';
 import { ListReceivedDto } from './dto/list-received.dto';
 import { ProposeInterviewDto } from './dto/propose-interview.dto';
 import { SignApplicationDto } from './dto/sign-application.dto';
+import { SubmitReportDto } from './dto/submit-report.dto';
 import { CreateRecommendationDto } from '../profiles/dto/create-recommendation.dto';
 
 @Controller('applications')
@@ -106,6 +107,21 @@ export class ApplicationsController {
       id,
       requestId,
       dto,
+    );
+  }
+
+  // --- EDU-FR-007 : dépôt d'un rapport de stage ---------------------------------------------
+
+  @Post(':id/report')
+  submitReport(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: SubmitReportDto,
+  ) {
+    return this.applications.submitReport(
+      user.sub,
+      id,
+      dto.digitalSafeDocumentId,
     );
   }
 

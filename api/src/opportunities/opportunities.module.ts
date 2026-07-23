@@ -4,6 +4,8 @@ import { ReportsModule } from '../reports/reports.module';
 import { SmsModule } from '../sms/sms.module';
 import { AlertsController } from './alerts.controller';
 import { AlertsService } from './alerts.service';
+import { EstablishmentsController } from './establishments.controller';
+import { EstablishmentsService } from './establishments.service';
 import { FavoritesController } from './favorites.controller';
 import { FavoritesService } from './favorites.service';
 import { NeedRequestsController } from './need-requests.controller';
@@ -31,6 +33,7 @@ import { OrganizationsService } from './organizations.service';
     // même piège que favoris/alertes vs offres (Nest résout par ordre d'enregistrement).
     OrganizationMembersController,
     NeedRequestsController,
+    EstablishmentsController,
     OrganizationsController,
     FavoritesController,
     AlertsController,
@@ -41,6 +44,7 @@ import { OrganizationsService } from './organizations.service';
     OrganizationsService,
     OrganizationMembersService,
     NeedRequestsService,
+    EstablishmentsService,
     OpportunitiesService,
     FavoritesService,
     AlertsService,
