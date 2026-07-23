@@ -12,17 +12,7 @@ import { DateInput } from '../../components/date-input';
 import { colors, ErrorText, FormInput, LinkButton, PrimaryButton } from '../../components/form';
 import { ApiError } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
-
-// Année-mois-jour LOCAUX plutôt que toISOString() (conversion UTC) : envoyer la date
-// de naissance ainsi évite qu'elle recule d'un jour dans un fuseau horaire à l'est
-// d'UTC (ex. WAT/UTC+1 au Cameroun), ce qui fausserait le calcul serveur de la
-// majorité (CLAUDE.md §5). "YYYY-MM-DD" est un ISO 8601 valide pour @IsDateString().
-function toIsoDateString(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
+import { toIsoDateString } from '../../lib/date';
 
 function computeIsMinor(dateOfBirth: Date): boolean {
   const now = new Date();

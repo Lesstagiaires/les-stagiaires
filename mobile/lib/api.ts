@@ -27,11 +27,29 @@ function extractMessage(body: unknown, fallback: string): string {
   return fallback;
 }
 
-async function request<T>(
+// L'access token dure 15 min (JWT_ACCESS_EXPIRES_IN) — sans ce mécanisme, toute
+// action déclenchée après ce délai échouerait avec un 401 brut affiché tel quel
+// dans l'écran appelant. auth-context.tsx enregistre ce handler au démarrage ;
+// il rafraîchit via le refresh token et renvoie le nouvel access token (ou null
+// si le refresh échoue aussi, auquel cas l'appelant reçoit le 401 d'origine et
+// gère la déconnexion comme avant).
+type RefreshHandler = () => Promise<string | null>;
+let refreshHandler: RefreshHandler | null = null;
+// Le refresh token tourne à chaque appel (rotateRefreshToken côté serveur) : si
+// plusieurs requêtes expirent en même temps (ex. Promise.all au chargement d'un
+// écran), il ne faut qu'UN seul rafraîchissement partagé — un deuxième appel
+// concurrent utiliserait un refresh token déjà révoqué par le premier.
+let refreshPromise: Promise<string | null> | null = null;
+
+export function setRefreshHandler(handler: RefreshHandler | null) {
+  refreshHandler = handler;
+}
+
+async function performRequest(
   path: string,
-  options: { method?: string; body?: unknown; accessToken?: string } = {},
-): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  options: { method?: string; body?: unknown; accessToken?: string },
+): Promise<Response> {
+  return fetch(`${API_BASE_URL}${path}`, {
     method: options.method ?? 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -41,6 +59,28 @@ async function request<T>(
     },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
+}
+
+async function request<T>(
+  path: string,
+  options: { method?: string; body?: unknown; accessToken?: string } = {},
+): Promise<T> {
+  let response = await performRequest(path, options);
+
+  if (response.status === 401 && options.accessToken && refreshHandler) {
+    if (!refreshPromise) {
+      refreshPromise = refreshHandler().finally(() => {
+        refreshPromise = null;
+      });
+    }
+    const newAccessToken = await refreshPromise;
+    if (newAccessToken) {
+      response = await performRequest(path, {
+        ...options,
+        accessToken: newAccessToken,
+      });
+    }
+  }
 
   const isJson = response.headers
     .get('content-type')
@@ -92,6 +132,83 @@ export interface LoginResult {
   refreshToken: string;
 }
 
+export type LanguageLevel = 'BASIQUE' | 'INTERMEDIAIRE' | 'AVANCE' | 'COURANT' | 'NATIF';
+
+export interface RoleCatalogItem {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export interface HeldRole {
+  id: string; // id de la ligne UserRole, pas du Role
+  roleId: string;
+  isActive: boolean;
+  assignedAt: string;
+  revokedAt: string | null;
+  role: RoleCatalogItem;
+}
+
+export interface Education {
+  id: string;
+  institution: string;
+  degree: string | null;
+  fieldOfStudy: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  description: string | null;
+}
+
+export interface Experience {
+  id: string;
+  organization: string;
+  title: string;
+  startDate: string | null;
+  endDate: string | null;
+  description: string | null;
+}
+
+export interface ProfileLanguageEntry {
+  id: string;
+  language: string;
+  level: LanguageLevel;
+}
+
+export interface Profile {
+  id: string;
+  fullName: string | null;
+  headline: string | null;
+  summary: string | null;
+  activeRoleId: string | null;
+  activeRole: RoleCatalogItem | null;
+  educations: Education[];
+  experiences: Experience[];
+  languages: ProfileLanguageEntry[];
+}
+
+export interface UpdateProfileInput {
+  fullName?: string;
+  headline?: string;
+  summary?: string;
+}
+
+export interface EducationInput {
+  institution: string;
+  degree?: string;
+  fieldOfStudy?: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+}
+
+export interface ExperienceInput {
+  organization: string;
+  title: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+}
+
 export const api = {
   register: (input: RegisterInput) =>
     request<RegisterResult>('/auth/register', { method: 'POST', body: input }),
@@ -121,8 +238,84 @@ export const api = {
     }),
 
   getMyProfile: (accessToken: string) =>
-    request<{ fullName: string | null; headline: string | null }>(
-      '/profiles/me',
-      { accessToken },
-    ),
+    request<Profile>('/profiles/me', { accessToken }),
+
+  updateMyProfile: (accessToken: string, input: UpdateProfileInput) =>
+    request<Profile>('/profiles/me', {
+      method: 'PATCH',
+      body: input,
+      accessToken,
+    }),
+
+  switchActiveRole: (accessToken: string, roleId: string) =>
+    request<Profile>('/profiles/me/active-role', {
+      method: 'PATCH',
+      body: { roleId },
+      accessToken,
+    }),
+
+  addEducation: (accessToken: string, input: EducationInput) =>
+    request<Education>('/profiles/me/education', {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  updateEducation: (accessToken: string, id: string, input: EducationInput) =>
+    request<Education>(`/profiles/me/education/${id}`, {
+      method: 'PATCH',
+      body: input,
+      accessToken,
+    }),
+
+  removeEducation: (accessToken: string, id: string) =>
+    request<void>(`/profiles/me/education/${id}`, {
+      method: 'DELETE',
+      accessToken,
+    }),
+
+  addExperience: (accessToken: string, input: ExperienceInput) =>
+    request<Experience>('/profiles/me/experience', {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  updateExperience: (accessToken: string, id: string, input: ExperienceInput) =>
+    request<Experience>(`/profiles/me/experience/${id}`, {
+      method: 'PATCH',
+      body: input,
+      accessToken,
+    }),
+
+  removeExperience: (accessToken: string, id: string) =>
+    request<void>(`/profiles/me/experience/${id}`, {
+      method: 'DELETE',
+      accessToken,
+    }),
+
+  upsertLanguage: (accessToken: string, language: string, level: LanguageLevel) =>
+    request<ProfileLanguageEntry>('/profiles/me/languages', {
+      method: 'PUT',
+      body: { language, level },
+      accessToken,
+    }),
+
+  removeLanguage: (accessToken: string, language: string) =>
+    request<void>(`/profiles/me/languages/${encodeURIComponent(language)}`, {
+      method: 'DELETE',
+      accessToken,
+    }),
+
+  getRoleCatalog: () => request<RoleCatalogItem[]>('/auth/roles/catalog'),
+
+  getRoleHistory: (accessToken: string) =>
+    request<HeldRole[]>('/auth/roles/history', { accessToken }),
+
+  assignRole: (accessToken: string, roleId: string) =>
+    request<HeldRole>('/auth/roles', {
+      method: 'POST',
+      body: { roleId },
+      accessToken,
+    }),
 };

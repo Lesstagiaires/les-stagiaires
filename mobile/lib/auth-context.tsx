@@ -6,7 +6,7 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react';
-import { api, type RegisterInput } from './api';
+import { api, setRefreshHandler, type RegisterInput } from './api';
 import * as secureStorage from './secure-storage';
 
 const ACCESS_TOKEN_KEY = 'lesStagiaires.accessToken';
@@ -48,6 +48,29 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setAccessToken(token);
       setIsLoading(false);
     });
+  }, []);
+
+  // Enregistré une seule fois : appelé par lib/api.ts quand une requête authentifiée
+  // reçoit un 401 (access token expiré, 15 min) — évite qu'un simple délai d'attente
+  // de l'utilisateur transforme une action en erreur brute non récupérable.
+  useEffect(() => {
+    setRefreshHandler(async () => {
+      const refreshToken = await secureStorage.getItem(REFRESH_TOKEN_KEY);
+      if (!refreshToken) return null;
+      try {
+        const result = await api.refresh(refreshToken);
+        await persistSession(result.accessToken, result.refreshToken);
+        setAccessToken(result.accessToken);
+        return result.accessToken;
+      } catch {
+        // Refresh token lui-même expiré/révoqué (30 j, ou déjà utilisé) : la session
+        // ne peut plus être sauvée, l'appelant recevra le 401 d'origine.
+        await clearSession();
+        setAccessToken(null);
+        return null;
+      }
+    });
+    return () => setRefreshHandler(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(

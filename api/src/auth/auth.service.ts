@@ -334,6 +334,18 @@ export class AuthService {
 
   // --- FR-AUTH-005 / 007 : rôles multiples et historique ----------------------------------
 
+  // Catalogue public des rôles auto-attribuables — seul moyen pour un client de
+  // connaître les roleId à passer à assignRole()/switchActiveRole(), sans jamais
+  // exposer les rôles non auto-attribuables (ex. ADMIN) ni leurs identifiants
+  // (CLAUDE.md §3 : moindre privilège, même pour de simples identifiants techniques).
+  async listSelfAssignableRoles() {
+    return this.prisma.role.findMany({
+      where: { selfAssignable: true },
+      select: { id: true, name: true, description: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async assignRole(userId: string, roleId: string) {
     const role = await this.prisma.role.findUnique({ where: { id: roleId } });
     if (!role) throw new NotFoundException('Rôle introuvable.');

@@ -1,0 +1,681 @@
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { ChipSelect } from '../../components/chip-select';
+import { DateInput } from '../../components/date-input';
+import { colors, ErrorText, FormInput, PrimaryButton } from '../../components/form';
+import { Section } from '../../components/section';
+import {
+  api,
+  ApiError,
+  type Education,
+  type Experience,
+  type HeldRole,
+  type LanguageLevel,
+  type Profile,
+  type RoleCatalogItem,
+} from '../../lib/api';
+import { useAuth } from '../../lib/auth-context';
+import { formatDisplayDate, toIsoDateString } from '../../lib/date';
+
+const LANGUAGE_LEVEL_OPTIONS: { value: LanguageLevel; label: string }[] = [
+  { value: 'BASIQUE', label: 'Basique' },
+  { value: 'INTERMEDIAIRE', label: 'Intermédiaire' },
+  { value: 'AVANCE', label: 'Avancé' },
+  { value: 'COURANT', label: 'Courant' },
+  { value: 'NATIF', label: 'Natif' },
+];
+
+export default function ProfileScreen() {
+  const { accessToken, logout } = useAuth();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [catalog, setCatalog] = useState<RoleCatalogItem[]>([]);
+  const [heldRoles, setHeldRoles] = useState<HeldRole[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const reload = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      const [nextProfile, nextCatalog, nextHistory] = await Promise.all([
+        api.getMyProfile(accessToken),
+        api.getRoleCatalog(),
+        api.getRoleHistory(accessToken),
+      ]);
+      setProfile(nextProfile);
+      setCatalog(nextCatalog);
+      setHeldRoles(nextHistory.filter((entry) => entry.isActive));
+      setLoadError(null);
+    } catch (err) {
+      if (err instanceof ApiError && err.statusCode === 401) {
+        void logout();
+        return;
+      }
+      setLoadError(
+        err instanceof ApiError
+          ? err.message
+          : 'Chargement impossible. Vérifiez votre connexion internet.',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [accessToken, logout]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <ActivityIndicator color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (loadError || !profile || !accessToken) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <ErrorText>{loadError ?? 'Profil indisponible.'}</ErrorText>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.screenTitle}>Mon profil</Text>
+
+        <ProfileHeaderForm
+          accessToken={accessToken}
+          profile={profile}
+          onSaved={reload}
+        />
+
+        <RolesSection
+          accessToken={accessToken}
+          activeRoleId={profile.activeRoleId}
+          heldRoles={heldRoles}
+          catalog={catalog}
+          onChanged={reload}
+        />
+
+        <EducationSection
+          accessToken={accessToken}
+          educations={profile.educations}
+          onChanged={reload}
+        />
+
+        <ExperienceSection
+          accessToken={accessToken}
+          experiences={profile.experiences}
+          onChanged={reload}
+        />
+
+        <LanguageSection
+          accessToken={accessToken}
+          languages={profile.languages}
+          onChanged={reload}
+        />
+
+        <Pressable onPress={() => void logout()} style={styles.logout}>
+          <Text style={styles.logoutText}>Se déconnecter</Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+// --- FR-PRO-001 : champs de base --------------------------------------------------------
+
+function ProfileHeaderForm({
+  accessToken,
+  profile,
+  onSaved,
+}: {
+  accessToken: string;
+  profile: Profile;
+  onSaved: () => Promise<void>;
+}) {
+  const [fullName, setFullName] = useState(profile.fullName ?? '');
+  const [headline, setHeadline] = useState(profile.headline ?? '');
+  const [summary, setSummary] = useState(profile.summary ?? '');
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setFullName(profile.fullName ?? '');
+    setHeadline(profile.headline ?? '');
+    setSummary(profile.summary ?? '');
+  }, [profile]);
+
+  async function handleSave() {
+    setError(null);
+    setIsSaving(true);
+    try {
+      await api.updateMyProfile(accessToken, { fullName, headline, summary });
+      await onSaved();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Enregistrement impossible.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <View style={styles.form}>
+      <FormInput placeholder="Nom complet" value={fullName} onChangeText={setFullName} />
+      <FormInput
+        placeholder="Titre (ex : Étudiant en informatique)"
+        value={headline}
+        onChangeText={setHeadline}
+      />
+      <FormInput
+        placeholder="Présentation"
+        value={summary}
+        onChangeText={setSummary}
+        multiline
+        numberOfLines={4}
+        style={styles.multiline}
+      />
+      <ErrorText>{error}</ErrorText>
+      <PrimaryButton title="Enregistrer" onPress={handleSave} loading={isSaving} />
+    </View>
+  );
+}
+
+// --- FR-PRO-002 : casquette active -------------------------------------------------------
+
+function RolesSection({
+  accessToken,
+  activeRoleId,
+  heldRoles,
+  catalog,
+  onChanged,
+}: {
+  accessToken: string;
+  activeRoleId: string | null;
+  heldRoles: HeldRole[];
+  catalog: RoleCatalogItem[];
+  onChanged: () => Promise<void>;
+}) {
+  const [isBusy, setIsBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const heldRoleIds = new Set(heldRoles.map((entry) => entry.roleId));
+  const available = catalog.filter((role) => !heldRoleIds.has(role.id));
+
+  async function handleSwitch(roleId: string) {
+    setError(null);
+    setIsBusy(true);
+    try {
+      await api.switchActiveRole(accessToken, roleId);
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Changement impossible.');
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function handleAdd(roleId: string) {
+    setError(null);
+    setIsBusy(true);
+    try {
+      await api.assignRole(accessToken, roleId);
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Ajout impossible.');
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  return (
+    <Section title="Casquettes">
+      {heldRoles.length > 0 ? (
+        <>
+          <Text style={styles.hint}>Casquette active — appuyez pour changer.</Text>
+          <ChipSelect
+            options={heldRoles.map((entry) => ({
+              value: entry.roleId,
+              label: entry.role.name,
+            }))}
+            value={activeRoleId}
+            onChange={handleSwitch}
+          />
+        </>
+      ) : (
+        <Text style={styles.hint}>Aucune casquette pour l'instant.</Text>
+      )}
+
+      {available.length > 0 && (
+        <>
+          <Text style={styles.hint}>Ajouter une casquette :</Text>
+          <ChipSelect
+            options={available.map((role) => ({ value: role.id, label: role.name }))}
+            value={null}
+            onChange={handleAdd}
+          />
+        </>
+      )}
+
+      {isBusy && <ActivityIndicator color={colors.primary} />}
+      <ErrorText>{error}</ErrorText>
+    </Section>
+  );
+}
+
+// --- Formation ---------------------------------------------------------------------------
+
+function EducationSection({
+  accessToken,
+  educations,
+  onChanged,
+}: {
+  accessToken: string;
+  educations: Education[];
+  onChanged: () => Promise<void>;
+}) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [institution, setInstitution] = useState('');
+  const [degree, setDegree] = useState('');
+  const [fieldOfStudy, setFieldOfStudy] = useState('');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  function resetForm() {
+    setInstitution('');
+    setDegree('');
+    setFieldOfStudy('');
+    setStartDate(null);
+    setEndDate(null);
+  }
+
+  async function handleAdd() {
+    setError(null);
+    setIsSaving(true);
+    try {
+      await api.addEducation(accessToken, {
+        institution,
+        degree: degree || undefined,
+        fieldOfStudy: fieldOfStudy || undefined,
+        startDate: startDate ? toIsoDateString(startDate) : undefined,
+        endDate: endDate ? toIsoDateString(endDate) : undefined,
+      });
+      resetForm();
+      setIsAdding(false);
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Ajout impossible.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleRemove(id: string) {
+    setRemovingId(id);
+    try {
+      await api.removeEducation(accessToken, id);
+      await onChanged();
+    } catch {
+      // Erreur silencieuse : l'élément reste affiché, l'utilisateur peut réessayer.
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  return (
+    <Section title="Formations">
+      {educations.map((education) => (
+        <View key={education.id} style={styles.listItem}>
+          <View style={styles.listItemContent}>
+            <Text style={styles.listItemTitle}>{education.institution}</Text>
+            {!!education.degree && (
+              <Text style={styles.listItemSubtitle}>{education.degree}</Text>
+            )}
+            {!!(education.startDate || education.endDate) && (
+              <Text style={styles.listItemDates}>
+                {formatDisplayDate(education.startDate)} —{' '}
+                {formatDisplayDate(education.endDate) || 'en cours'}
+              </Text>
+            )}
+          </View>
+          <Pressable onPress={() => handleRemove(education.id)} hitSlop={8}>
+            {removingId === education.id ? (
+              <ActivityIndicator color={colors.error} />
+            ) : (
+              <Text style={styles.removeText}>Supprimer</Text>
+            )}
+          </Pressable>
+        </View>
+      ))}
+
+      {isAdding ? (
+        <View style={styles.form}>
+          <FormInput
+            placeholder="Établissement"
+            value={institution}
+            onChangeText={setInstitution}
+          />
+          <FormInput placeholder="Diplôme" value={degree} onChangeText={setDegree} />
+          <FormInput
+            placeholder="Domaine d'étude"
+            value={fieldOfStudy}
+            onChangeText={setFieldOfStudy}
+          />
+          <DateInput placeholder="Date de début" value={startDate} onChange={setStartDate} />
+          <DateInput placeholder="Date de fin" value={endDate} onChange={setEndDate} />
+          <ErrorText>{error}</ErrorText>
+          <PrimaryButton
+            title="Ajouter"
+            onPress={handleAdd}
+            loading={isSaving}
+            disabled={!institution}
+          />
+          <Pressable onPress={() => setIsAdding(false)}>
+            <Text style={styles.cancelText}>Annuler</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable onPress={() => setIsAdding(true)}>
+          <Text style={styles.addText}>+ Ajouter une formation</Text>
+        </Pressable>
+      )}
+    </Section>
+  );
+}
+
+// --- Expérience ----------------------------------------------------------------------------
+
+function ExperienceSection({
+  accessToken,
+  experiences,
+  onChanged,
+}: {
+  accessToken: string;
+  experiences: Experience[];
+  onChanged: () => Promise<void>;
+}) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [organization, setOrganization] = useState('');
+  const [title, setTitle] = useState('');
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
+
+  function resetForm() {
+    setOrganization('');
+    setTitle('');
+    setStartDate(null);
+    setEndDate(null);
+  }
+
+  async function handleAdd() {
+    setError(null);
+    setIsSaving(true);
+    try {
+      await api.addExperience(accessToken, {
+        organization,
+        title,
+        startDate: startDate ? toIsoDateString(startDate) : undefined,
+        endDate: endDate ? toIsoDateString(endDate) : undefined,
+      });
+      resetForm();
+      setIsAdding(false);
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Ajout impossible.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleRemove(id: string) {
+    setRemovingId(id);
+    try {
+      await api.removeExperience(accessToken, id);
+      await onChanged();
+    } catch {
+      // Erreur silencieuse : l'élément reste affiché, l'utilisateur peut réessayer.
+    } finally {
+      setRemovingId(null);
+    }
+  }
+
+  return (
+    <Section title="Expériences">
+      {experiences.map((experience) => (
+        <View key={experience.id} style={styles.listItem}>
+          <View style={styles.listItemContent}>
+            <Text style={styles.listItemTitle}>{experience.title}</Text>
+            <Text style={styles.listItemSubtitle}>{experience.organization}</Text>
+            {!!(experience.startDate || experience.endDate) && (
+              <Text style={styles.listItemDates}>
+                {formatDisplayDate(experience.startDate)} —{' '}
+                {formatDisplayDate(experience.endDate) || 'en cours'}
+              </Text>
+            )}
+          </View>
+          <Pressable onPress={() => handleRemove(experience.id)} hitSlop={8}>
+            {removingId === experience.id ? (
+              <ActivityIndicator color={colors.error} />
+            ) : (
+              <Text style={styles.removeText}>Supprimer</Text>
+            )}
+          </Pressable>
+        </View>
+      ))}
+
+      {isAdding ? (
+        <View style={styles.form}>
+          <FormInput placeholder="Intitulé du poste" value={title} onChangeText={setTitle} />
+          <FormInput
+            placeholder="Organisation"
+            value={organization}
+            onChangeText={setOrganization}
+          />
+          <DateInput placeholder="Date de début" value={startDate} onChange={setStartDate} />
+          <DateInput placeholder="Date de fin" value={endDate} onChange={setEndDate} />
+          <ErrorText>{error}</ErrorText>
+          <PrimaryButton
+            title="Ajouter"
+            onPress={handleAdd}
+            loading={isSaving}
+            disabled={!organization || !title}
+          />
+          <Pressable onPress={() => setIsAdding(false)}>
+            <Text style={styles.cancelText}>Annuler</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable onPress={() => setIsAdding(true)}>
+          <Text style={styles.addText}>+ Ajouter une expérience</Text>
+        </Pressable>
+      )}
+    </Section>
+  );
+}
+
+// --- FR-PRO-006 : langues ------------------------------------------------------------------
+
+function LanguageSection({
+  accessToken,
+  languages,
+  onChanged,
+}: {
+  accessToken: string;
+  languages: Profile['languages'];
+  onChanged: () => Promise<void>;
+}) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [language, setLanguage] = useState('');
+  const [level, setLevel] = useState<LanguageLevel>('INTERMEDIAIRE');
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [removingLanguage, setRemovingLanguage] = useState<string | null>(null);
+
+  async function handleAdd() {
+    setError(null);
+    setIsSaving(true);
+    try {
+      await api.upsertLanguage(accessToken, language, level);
+      setLanguage('');
+      setLevel('INTERMEDIAIRE');
+      setIsAdding(false);
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Ajout impossible.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleRemove(entryLanguage: string) {
+    setRemovingLanguage(entryLanguage);
+    try {
+      await api.removeLanguage(accessToken, entryLanguage);
+      await onChanged();
+    } catch {
+      // Erreur silencieuse : l'élément reste affiché, l'utilisateur peut réessayer.
+    } finally {
+      setRemovingLanguage(null);
+    }
+  }
+
+  return (
+    <Section title="Langues">
+      {languages.map((entry) => (
+        <View key={entry.id} style={styles.listItem}>
+          <View style={styles.listItemContent}>
+            <Text style={styles.listItemTitle}>{entry.language}</Text>
+            <Text style={styles.listItemSubtitle}>
+              {LANGUAGE_LEVEL_OPTIONS.find((option) => option.value === entry.level)?.label}
+            </Text>
+          </View>
+          <Pressable onPress={() => handleRemove(entry.language)} hitSlop={8}>
+            {removingLanguage === entry.language ? (
+              <ActivityIndicator color={colors.error} />
+            ) : (
+              <Text style={styles.removeText}>Supprimer</Text>
+            )}
+          </Pressable>
+        </View>
+      ))}
+
+      {isAdding ? (
+        <View style={styles.form}>
+          <FormInput placeholder="Langue (ex : Anglais)" value={language} onChangeText={setLanguage} />
+          <ChipSelect options={LANGUAGE_LEVEL_OPTIONS} value={level} onChange={(v) => setLevel(v as LanguageLevel)} />
+          <ErrorText>{error}</ErrorText>
+          <PrimaryButton title="Ajouter" onPress={handleAdd} loading={isSaving} disabled={!language} />
+          <Pressable onPress={() => setIsAdding(false)}>
+            <Text style={styles.cancelText}>Annuler</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable onPress={() => setIsAdding(true)}>
+          <Text style={styles.addText}>+ Ajouter une langue</Text>
+        </Pressable>
+      )}
+    </Section>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  content: {
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    paddingBottom: 48,
+    gap: 8,
+  },
+  screenTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 8,
+  },
+  form: {
+    gap: 12,
+  },
+  multiline: {
+    minHeight: 90,
+    textAlignVertical: 'top',
+  },
+  hint: {
+    fontSize: 13,
+    color: colors.muted,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  listItemContent: {
+    flex: 1,
+    gap: 2,
+  },
+  listItemTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  listItemSubtitle: {
+    fontSize: 14,
+    color: colors.muted,
+  },
+  listItemDates: {
+    fontSize: 12,
+    color: colors.muted,
+  },
+  removeText: {
+    fontSize: 13,
+    color: colors.error,
+  },
+  addText: {
+    fontSize: 15,
+    color: colors.primary,
+    fontWeight: '600',
+    paddingVertical: 8,
+  },
+  cancelText: {
+    fontSize: 14,
+    color: colors.muted,
+    textAlign: 'center',
+  },
+  logout: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  logoutText: {
+    fontSize: 14,
+    color: colors.error,
+  },
+});

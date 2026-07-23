@@ -116,6 +116,14 @@ export class AuthController {
 
   // --- Rôles multiples et historique (FR-AUTH-005 / 007) ---
 
+  // Public : catalogue statique nécessaire à tout client avant de pouvoir appeler
+  // POST /auth/roles — sans lui, les roleId ne sont autrement connaissables.
+  @Public()
+  @Get('roles/catalog')
+  listRoleCatalog() {
+    return this.auth.listSelfAssignableRoles();
+  }
+
   @Post('roles')
   assignRole(
     @CurrentUser() user: AccessTokenPayload,
