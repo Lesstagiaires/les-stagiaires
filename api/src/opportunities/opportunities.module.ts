@@ -6,6 +6,8 @@ import { AlertsController } from './alerts.controller';
 import { AlertsService } from './alerts.service';
 import { FavoritesController } from './favorites.controller';
 import { FavoritesService } from './favorites.service';
+import { NeedRequestsController } from './need-requests.controller';
+import { NeedRequestsService } from './need-requests.service';
 import { OpportunitiesController } from './opportunities.controller';
 import { OpportunitiesService } from './opportunities.service';
 import { OpportunityLifecycleProcessor } from './opportunity-lifecycle.processor';
@@ -28,6 +30,7 @@ import { OrganizationsService } from './organizations.service';
     // qui doivent être enregistrées avant la route générique GET /organizations/:id —
     // même piège que favoris/alertes vs offres (Nest résout par ordre d'enregistrement).
     OrganizationMembersController,
+    NeedRequestsController,
     OrganizationsController,
     FavoritesController,
     AlertsController,
@@ -37,6 +40,7 @@ import { OrganizationsService } from './organizations.service';
     OrganizationAccessService,
     OrganizationsService,
     OrganizationMembersService,
+    NeedRequestsService,
     OpportunitiesService,
     FavoritesService,
     AlertsService,

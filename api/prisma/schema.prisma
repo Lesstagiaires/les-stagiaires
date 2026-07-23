@@ -87,6 +87,7 @@ model User {
   opportunityFavorites    OpportunityFavorite[]
   opportunityAlerts       OpportunityAlert[]
   applications            Application[]
+  needRequestsHandled     OrganizationNeedRequest[]
 
   @@index([email])
   @@index([phone])
@@ -578,10 +579,11 @@ model Organization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  owner         User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner         User                      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members       OrganizationMember[]
   opportunities Opportunity[]
   applications  Application[]
+  needRequests  OrganizationNeedRequest[]
 
   @@index([ownerId])
 }
@@ -631,6 +633,44 @@ enum OpportunityType {
   PROFESSIONAL_INTERNSHIP
   SEASONAL
   WORK_STUDY
+  // Soumis à validation administrative préalable (OrganizationNeedRequest) avant de
+  // pouvoir être publié — contrairement aux stages, directement publiables une fois
+  // l'organisation vérifiée.
+  VOLUNTEER
+  TEMPORARY
+}
+
+enum NeedRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Besoin en stagiaires/bénévoles/temporaires/saisonniers soumis par l'organisation à
+// l'administrateur de la plateforme avant toute mise en relation avec des profils —
+// l'organisation reçoit une réponse sur les modalités avant de pouvoir publier une
+// offre des types concernés (SEASONAL/VOLUNTEER/TEMPORARY, cf. Opportunity.type et
+// OpportunitiesService.publish()).
+model OrganizationNeedRequest {
+  id             String            @id @default(cuid())
+  organizationId String
+  type           OpportunityType
+  quantity       Int
+  description    String
+
+  status    NeedRequestStatus @default(PENDING)
+  adminNote String?
+
+  respondedAt   DateTime?
+  respondedById String?
+
+  createdAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  respondedBy  User?        @relation(fields: [respondedById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([status])
 }
 
 enum WorkMode {

@@ -6,7 +6,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  NeedRequestStatus,
   OpportunityStatus,
+  OpportunityType,
   OrganizationMemberStatus,
   OrganizationVerificationStatus,
 } from '../../generated/prisma/enums';
@@ -20,6 +22,14 @@ import { OrganizationsService } from './organizations.service';
 
 const PUBLICLY_VISIBLE_STATUSES: OpportunityStatus[] = [
   OpportunityStatus.ACTIVE,
+];
+
+// Ces types exigent une validation administrative préalable du besoin (voir
+// NeedRequestsService) avant toute publication — contrairement aux stages classiques.
+const TYPES_REQUIRING_NEED_APPROVAL: OpportunityType[] = [
+  OpportunityType.SEASONAL,
+  OpportunityType.VOLUNTEER,
+  OpportunityType.TEMPORARY,
 ];
 
 @Injectable()
@@ -95,6 +105,21 @@ export class OpportunitiesService {
       throw new ForbiddenException(
         'Seule une organisation vérifiée peut publier une offre active — vérification en attente.',
       );
+    }
+
+    if (TYPES_REQUIRING_NEED_APPROVAL.includes(opportunity.type)) {
+      const approvedNeed = await this.prisma.organizationNeedRequest.findFirst({
+        where: {
+          organizationId: opportunity.organizationId,
+          type: opportunity.type,
+          status: NeedRequestStatus.APPROVED,
+        },
+      });
+      if (!approvedNeed) {
+        throw new ForbiddenException(
+          "Cette offre nécessite l'approbation préalable de l'administrateur (besoin saisonnier, bénévole ou temporaire) avant publication.",
+        );
+      }
     }
 
     // PENDING_REVIEW est traversé automatiquement pour le MVP — aucun workflow de
