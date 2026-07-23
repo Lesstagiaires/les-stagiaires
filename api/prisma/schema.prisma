@@ -286,6 +286,10 @@ enum DocumentCategory {
 model Profile {
   id       String @id @default(cuid())
   userId   String @unique
+  // Optionnel, ajouté a posteriori pour les documents générés (lettre d'admission,
+  // convention — module 5) qui doivent s'adresser nommément au titulaire ; en son
+  // absence, ces documents se replient sur le LS-ID.
+  fullName String?
   headline String?
   summary  String?
 
@@ -425,6 +429,7 @@ enum DigitalSafeDocumentCategory {
   DIPLOMA
   CONVENTION
   CERTIFICATE
+  ADMISSION_LETTER
   OTHER
 }
 
@@ -669,6 +674,10 @@ enum ApplicationStatus {
   ADDITIONAL_DOCUMENT_REQUESTED
   INTERVIEW_PROPOSED
   INTERVIEW_CONFIRMED
+  // Décision favorable de l'organisation : la lettre d'admission est générée et
+  // envoyée, en attente d'acceptation explicite du candidat — la décision de
+  // l'organisation ne suffit plus à elle seule à confirmer le stage.
+  ADMISSION_LETTER_SENT
   ACCEPTED
   // Décision favorable pour un candidat mineur sur une offre à relocalisation
   // (relocationRequired) : le stage n'est pas encore confirmé, l'accord actif du
@@ -687,6 +696,7 @@ enum ApplicationDocumentRequestStatus {
 }
 
 enum ApplicationArtifactKind {
+  ADMISSION_LETTER
   CONVENTION
   ATTESTATION
 }
@@ -730,6 +740,19 @@ model Application {
 
   decisionAt   DateTime?
   decisionNote String?
+
+  // Signature légère déclarative de la convention (MVP) : nom saisi, horodatage et IP
+  // journalisés par partie — sans valeur de signature électronique qualifiée, cohérent
+  // avec le niveau de déclaratif déjà admis ailleurs (numéro du parent non vérifié).
+  candidateSignedAt     DateTime?
+  candidateSignedName   String?
+  candidateSignedIp     String?
+  organizationSignedAt   DateTime?
+  organizationSignedName String?
+  organizationSignedIp   String?
+  // Renseigné automatiquement dès que les deux parties ont signé — marqueur de début
+  // de stage, informatif uniquement (ne bloque jamais la clôture, cf. complete()).
+  startedAt DateTime?
 
   withdrawnAt DateTime?
   completedAt DateTime?
@@ -812,22 +835,18 @@ model ApplicationDocumentRequest {
   @@index([applicationId])
 }
 
-// Documents générés par le processus de candidature (convention, attestation) — distincts
-// des documents déposés par l'utilisateur, qui restent dans le Digital Safe. Chiffrés au
-// repos comme tout document (CLAUDE.md §4) ; accessibles au candidat et à l'organisation
-// de la candidature concernée pour toute la durée de la relation, sans le plafond de 30
-// jours du partage Digital Safe (pensé pour un partage volontaire ponctuel, pas pour une
-// convention censée rester accessible pendant tout le stage).
+// Pointeur vers le document réel du processus de candidature (lettre d'admission,
+// convention, attestation) — le document lui-même vit dans le Digital Safe du candidat
+// (DigitalSafeDocument, chiffré, versionné) pour satisfaire l'archivage côté titulaire ;
+// l'accès de l'organisation passe par un partage Digital Safe renouvelé automatiquement
+// tant que la candidature n'est pas terminale (cf. ApplicationShareRenewalScheduler),
+// plutôt que par un stockage dupliqué en dehors du Digital Safe.
 model ApplicationArtifact {
-  id            String                  @id @default(cuid())
-  applicationId String
-  kind          ApplicationArtifactKind
-  title         String
-  storageKey    String                  @unique
-  mimeType      String
-  sizeBytes     Int
-  checksum      String
-  createdAt     DateTime                @default(now())
+  id                     String                  @id @default(cuid())
+  applicationId          String
+  kind                   ApplicationArtifactKind
+  digitalSafeDocumentId  String                  @unique
+  createdAt              DateTime                @default(now())
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 

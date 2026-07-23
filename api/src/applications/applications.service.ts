@@ -9,12 +9,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHash, randomInt, randomUUID, timingSafeEqual } from 'crypto';
+import { createHash, randomInt, timingSafeEqual } from 'crypto';
 import {
   AccountStatus,
   ApplicationArtifactKind,
   ApplicationDocumentRequestStatus,
   ApplicationStatus,
+  DigitalSafeDocumentCategory,
   OpportunityStatus,
   OrganizationVerificationStatus,
   ParentalLinkStatus,
@@ -27,9 +28,6 @@ import { ProfilesService } from '../profiles/profiles.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { DigitalSafeDocumentsService } from '../digital-safe/documents.service';
 import { SharesService } from '../digital-safe/shares.service';
-import { DocumentEncryptionService } from '../storage/document-encryption.service';
-import { STORAGE_PROVIDER } from '../storage/storage-provider.interface';
-import type { StorageProvider } from '../storage/storage-provider.interface';
 import { SMS_PROVIDER } from '../sms/sms-provider.interface';
 import type { SmsProvider } from '../sms/sms-provider.interface';
 import { CreateApplicationDto } from './dto/create-application.dto';
@@ -55,6 +53,37 @@ const APPLICATION_INCLUDE = {
   },
 } as const;
 
+// select explicite plutôt qu'include-tout pour toute réponse renvoyée telle quelle au
+// client : candidateSignedIp/organizationSignedIp sont journalisés pour la traçabilité
+// de la signature mais n'ont aucune raison d'être exposés à l'autre partie (CLAUDE.md §6).
+const APPLICATION_SAFE_SELECT = {
+  id: true,
+  reference: true,
+  candidateId: true,
+  organizationId: true,
+  opportunityId: true,
+  status: true,
+  dossierSnapshot: true,
+  willingToRelocate: true,
+  hasFamilyInDestination: true,
+  interviewProposedAt: true,
+  interviewMode: true,
+  interviewLocation: true,
+  interviewConfirmedAt: true,
+  decisionAt: true,
+  decisionNote: true,
+  candidateSignedAt: true,
+  candidateSignedName: true,
+  organizationSignedAt: true,
+  organizationSignedName: true,
+  startedAt: true,
+  withdrawnAt: true,
+  completedAt: true,
+  createdAt: true,
+  updatedAt: true,
+  ...APPLICATION_INCLUDE,
+} as const;
+
 @Injectable()
 export class ApplicationsService {
   constructor(
@@ -65,8 +94,6 @@ export class ApplicationsService {
     private readonly profiles: ProfilesService,
     private readonly digitalSafeDocuments: DigitalSafeDocumentsService,
     private readonly shares: SharesService,
-    private readonly encryption: DocumentEncryptionService,
-    @Inject(STORAGE_PROVIDER) private readonly storage: StorageProvider,
     @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
   ) {}
 
@@ -202,7 +229,7 @@ export class ApplicationsService {
         willingToRelocate,
         hasFamilyInDestination,
       },
-      include: APPLICATION_INCLUDE,
+      select: APPLICATION_SAFE_SELECT,
     });
 
     await this.recordEvent(
@@ -247,7 +274,7 @@ export class ApplicationsService {
     return this.prisma.application.findMany({
       where: { candidateId },
       orderBy: { createdAt: 'desc' },
-      include: APPLICATION_INCLUDE,
+      select: APPLICATION_SAFE_SELECT,
     });
   }
 
@@ -269,8 +296,8 @@ export class ApplicationsService {
         ...(filters.status && { status: filters.status }),
       },
       orderBy: { createdAt: 'desc' },
-      include: {
-        ...APPLICATION_INCLUDE,
+      select: {
+        ...APPLICATION_SAFE_SELECT,
         candidate: { select: { id: true, lsId: true } },
       },
     });
@@ -284,13 +311,13 @@ export class ApplicationsService {
     }
     return this.prisma.application.findUnique({
       where: { id },
-      include: {
-        ...APPLICATION_INCLUDE,
+      select: {
+        ...APPLICATION_SAFE_SELECT,
         candidate: { select: { id: true, lsId: true } },
         history: { orderBy: { createdAt: 'asc' } },
         documentRequests: { orderBy: { createdAt: 'desc' } },
         artifacts: {
-          select: { id: true, kind: true, title: true, createdAt: true },
+          select: { id: true, kind: true, createdAt: true },
         },
       },
     });
@@ -492,8 +519,32 @@ export class ApplicationsService {
       return;
     }
 
+    // Décision favorable : la plateforme génère la lettre d'admission et la notifie
+    // au candidat — l'admission n'est confirmée qu'une fois ce dernier l'acceptée
+    // explicitement (voir acceptAdmissionLetter()), pas dès la décision de l'organisation.
+    await this.transitionStatus(
+      application,
+      ApplicationStatus.ADMISSION_LETTER_SENT,
+      ownerId,
+      dto.note,
+    );
+    await this.generateAdmissionLetter(application);
+    await this.notify(
+      application.candidateId,
+      `LES STAGIAIRES — bonne nouvelle ! Vous avez reçu une lettre d'admission pour votre candidature ${application.reference}. Connectez-vous pour l'accepter.`,
+    );
+  }
+
+  // --- Acceptation de la lettre d'admission par le candidat --------------------------------
+
+  async acceptAdmissionLetter(candidateId: string, id: string) {
+    const application = await this.assertCandidate(candidateId, id);
+    this.assertTransition(application.status, [
+      ApplicationStatus.ADMISSION_LETTER_SENT,
+    ]);
+
     const candidate = await this.prisma.user.findUniqueOrThrow({
-      where: { id: application.candidateId },
+      where: { id: candidateId },
     });
     // Un mineur peut candidater à toute offre ; c'est ici, à l'acceptation d'une offre
     // à relocalisation, que l'accord actif du parent/tuteur pour CE déplacement précis
@@ -502,8 +553,7 @@ export class ApplicationsService {
       await this.transitionStatus(
         application,
         ApplicationStatus.AWAITING_TRAVEL_CONSENT,
-        ownerId,
-        dto.note,
+        candidateId,
       );
       await this.requestTravelConsent(application);
       return;
@@ -512,12 +562,11 @@ export class ApplicationsService {
     await this.transitionStatus(
       application,
       ApplicationStatus.ACCEPTED,
-      ownerId,
-      dto.note,
+      candidateId,
     );
     await this.notify(
-      application.candidateId,
-      `LES STAGIAIRES — bonne nouvelle ! Votre candidature ${application.reference} est acceptée.`,
+      application.organization.ownerId,
+      `LES STAGIAIRES — le candidat a accepté la lettre d'admission pour la candidature ${application.reference}.`,
     );
     await this.generateConvention(application);
   }
@@ -656,35 +705,132 @@ export class ApplicationsService {
     return { message: 'Consentement de déplacement confirmé.' };
   }
 
-  private async generateConvention(application: {
+  private async generateAdmissionLetter(application: {
     id: string;
     reference: string;
     candidateId: string;
-    organization: { name: string };
+    organization: { ownerId: string; name: string };
     opportunity: { title: string } | null;
   }) {
-    const title = `Convention de stage — ${application.reference}`;
+    const name = await this.getCandidateDisplayName(application.candidateId);
+    const title = `Lettre d'admission — ${application.reference}`;
     const content = [
-      'CONVENTION DE STAGE NUMÉRIQUE — LES STAGIAIRES',
+      "LETTRE D'ADMISSION EN STAGE — LES STAGIAIRES",
       `Référence de candidature : ${application.reference}`,
+      `À l'attention de : ${name}`,
       `Organisation : ${application.organization.name}`,
       application.opportunity
         ? `Offre : ${application.opportunity.title}`
         : 'Candidature spontanée',
-      `Date de génération : ${new Date().toISOString()}`,
+      `Date : ${new Date().toISOString()}`,
       '',
-      "Ce document atteste de l'acceptation de la candidature ci-dessus et formalise",
-      'le début de la relation de stage entre les deux parties. Version simplifiée MVP —',
-      'ne remplace pas une convention tripartite formelle avec établissement, à enrichir',
-      'en Couche 2/3.',
+      `Nous avons le plaisir de vous informer que votre candidature est retenue.`,
+      'Cette lettre vaut notification formelle de votre admission en stage. La convention',
+      'de stage sera générée automatiquement dès votre acceptation. Version simplifiée',
+      'MVP, sans valeur de document officiel signé à ce stade.',
     ].join('\n');
 
     return this.createArtifact(
-      application.id,
-      ApplicationArtifactKind.CONVENTION,
+      application,
+      ApplicationArtifactKind.ADMISSION_LETTER,
+      DigitalSafeDocumentCategory.ADMISSION_LETTER,
       title,
       content,
     );
+  }
+
+  private async generateConvention(application: {
+    id: string;
+    reference: string;
+    candidateId: string;
+    organization: { ownerId: string; name: string };
+    opportunity: { title: string } | null;
+  }) {
+    const name = await this.getCandidateDisplayName(application.candidateId);
+    const title = `Convention de stage — ${application.reference}`;
+    const content = [
+      'CONVENTION DE STAGE NUMÉRIQUE — LES STAGIAIRES',
+      `Référence de candidature : ${application.reference}`,
+      `Stagiaire : ${name}`,
+      `Organisation : ${application.organization.name}`,
+      application.opportunity
+        ? `Offre / missions : ${application.opportunity.title}`
+        : 'Candidature spontanée',
+      `Date de génération : ${new Date().toISOString()}`,
+      '',
+      'Établissement, période précise, horaires et encadreur : à compléter manuellement',
+      'par les parties — non disponibles automatiquement en MVP.',
+      '',
+      'Ce document formalise le début de la relation de stage entre les deux parties.',
+      "Signature légère déclarative disponible via l'action de signature de la",
+      'candidature. Version simplifiée MVP — ne remplace pas une convention tripartite',
+      'formelle avec établissement, à enrichir en Couche 2/3.',
+    ].join('\n');
+
+    return this.createArtifact(
+      application,
+      ApplicationArtifactKind.CONVENTION,
+      DigitalSafeDocumentCategory.CONVENTION,
+      title,
+      content,
+    );
+  }
+
+  // --- Signature légère déclarative ---------------------------------------------------------
+
+  async sign(userId: string, id: string, name: string, ip: string | undefined) {
+    const application = await this.getApplicationOr404(id);
+    const isCandidate = application.candidateId === userId;
+    const isOrganization = application.organization.ownerId === userId;
+    if (!isCandidate && !isOrganization) {
+      throw new ForbiddenException(
+        'Cette candidature ne concerne pas ce compte.',
+      );
+    }
+    this.assertTransition(application.status, [ApplicationStatus.ACCEPTED]);
+
+    const data = isCandidate
+      ? {
+          candidateSignedAt: new Date(),
+          candidateSignedName: name,
+          candidateSignedIp: ip,
+        }
+      : {
+          organizationSignedAt: new Date(),
+          organizationSignedName: name,
+          organizationSignedIp: ip,
+        };
+    const updated = await this.prisma.application.update({
+      where: { id },
+      data,
+    });
+
+    await this.audit.record('APPLICATION_SIGNED', userId, {
+      applicationId: id,
+      role: isCandidate ? 'CANDIDATE' : 'ORGANIZATION',
+    });
+
+    if (
+      updated.candidateSignedAt &&
+      updated.organizationSignedAt &&
+      !updated.startedAt
+    ) {
+      await this.prisma.application.update({
+        where: { id },
+        data: { startedAt: new Date() },
+      });
+      await this.notify(
+        application.candidateId,
+        `LES STAGIAIRES — la convention de la candidature ${application.reference} est signée par les deux parties. Le stage démarre.`,
+      );
+      await this.notify(
+        application.organization.ownerId,
+        `LES STAGIAIRES — la convention de la candidature ${application.reference} est signée par les deux parties. Le stage démarre.`,
+      );
+      await this.audit.record('APPLICATION_STARTED', userId, {
+        applicationId: id,
+      });
+    }
   }
 
   // --- Clôture et attestation --------------------------------------------------------------
@@ -707,10 +853,12 @@ export class ApplicationsService {
       );
     }
 
+    const name = await this.getCandidateDisplayName(application.candidateId);
     const title = `Attestation de fin de stage — ${application.reference}`;
     const content = [
       'ATTESTATION DE FIN DE STAGE — LES STAGIAIRES',
       `Référence de candidature : ${application.reference}`,
+      `Stagiaire : ${name}`,
       `Organisation : ${application.organization.name}`,
       application.opportunity
         ? `Offre : ${application.opportunity.title}`
@@ -722,8 +870,9 @@ export class ApplicationsService {
       'du module Entreprises et organisations.',
     ].join('\n');
     await this.createArtifact(
-      id,
+      application,
       ApplicationArtifactKind.ATTESTATION,
+      DigitalSafeDocumentCategory.CERTIFICATE,
       title,
       content,
     );
@@ -753,6 +902,7 @@ export class ApplicationsService {
       ApplicationStatus.ADDITIONAL_DOCUMENT_REQUESTED,
       ApplicationStatus.INTERVIEW_PROPOSED,
       ApplicationStatus.INTERVIEW_CONFIRMED,
+      ApplicationStatus.ADMISSION_LETTER_SENT,
       ApplicationStatus.AWAITING_TRAVEL_CONSENT,
       ApplicationStatus.ACCEPTED,
     ]);
@@ -791,24 +941,30 @@ export class ApplicationsService {
     });
     if (!artifact) throw new NotFoundException('Document introuvable.');
 
-    const encrypted = await this.storage.get(artifact.storageKey);
-    const plaintext = this.encryption.decrypt(encrypted);
-    const checksum = createHash('sha256').update(plaintext).digest('hex');
-    if (checksum !== artifact.checksum) {
-      throw new BadRequestException(
-        "L'intégrité du document n'a pas pu être vérifiée.",
-      );
-    }
-    return {
-      buffer: plaintext,
-      mimeType: artifact.mimeType,
-      fileName: `${artifact.title}.txt`,
-    };
+    // downloadLatest gère elle-même l'autorisation (titulaire ou partage valide) et
+    // la vérification d'intégrité — réutilisation directe du mécanisme Digital Safe.
+    return this.digitalSafeDocuments.downloadLatest(
+      userId,
+      artifact.digitalSafeDocumentId,
+    );
+  }
+
+  private async getCandidateDisplayName(candidateId: string): Promise<string> {
+    const [profile, user] = await Promise.all([
+      this.prisma.profile.findUnique({ where: { userId: candidateId } }),
+      this.prisma.user.findUniqueOrThrow({ where: { id: candidateId } }),
+    ]);
+    return profile?.fullName ?? user.lsId ?? candidateId;
   }
 
   private async createArtifact(
-    applicationId: string,
+    application: {
+      id: string;
+      candidateId: string;
+      organization: { ownerId: string };
+    },
     kind: ApplicationArtifactKind,
+    category: DigitalSafeDocumentCategory,
     title: string,
     content: string,
   ) {
@@ -817,24 +973,32 @@ export class ApplicationsService {
     // contrainte @@unique([applicationId, kind]) empêcherait un doublon de toute façon,
     // ce contrôle préalable évite juste l'erreur 500 associée.
     const existing = await this.prisma.applicationArtifact.findUnique({
-      where: { applicationId_kind: { applicationId, kind } },
+      where: { applicationId_kind: { applicationId: application.id, kind } },
     });
     if (existing) return existing;
 
+    // Le document vit dans le Digital Safe du candidat (archivage, chiffrement,
+    // versionnage réutilisés tels quels) ; l'organisation y accède via un partage,
+    // renouvelé automatiquement tant que la candidature reste active (cf.
+    // ApplicationShareRenewalProcessor) pour dépasser le plafond de 30 jours pensé
+    // pour un partage volontaire ponctuel, pas pour un document lié à un stage en cours.
     const buffer = Buffer.from(content, 'utf-8');
-    const checksum = createHash('sha256').update(buffer).digest('hex');
-    const storageKey = `applications/${applicationId}/${kind.toLowerCase()}/${randomUUID()}`;
-    await this.storage.put(storageKey, this.encryption.encrypt(buffer));
+    const document = await this.digitalSafeDocuments.createSystemGenerated(
+      application.candidateId,
+      category,
+      title,
+      { buffer, mimetype: 'text/plain', originalname: `${title}.txt` },
+    );
+    await this.shares.create(application.candidateId, document.id, {
+      targetType: ShareTargetType.USER,
+      sharedWithUserId: application.organization.ownerId,
+    });
 
     return this.prisma.applicationArtifact.create({
       data: {
-        applicationId,
+        applicationId: application.id,
         kind,
-        title,
-        storageKey,
-        mimeType: 'text/plain',
-        sizeBytes: buffer.length,
-        checksum,
+        digitalSafeDocumentId: document.id,
       },
     });
   }

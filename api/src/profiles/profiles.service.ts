@@ -38,7 +38,11 @@ export class ProfilesService {
     const profile = await this.getOrCreateOwnProfile(userId);
     const updated = await this.prisma.profile.update({
       where: { id: profile.id },
-      data: { headline: dto.headline, summary: dto.summary },
+      data: {
+        fullName: dto.fullName,
+        headline: dto.headline,
+        summary: dto.summary,
+      },
     });
     await this.audit.record('PROFILE_UPDATED', userId, {
       fields: Object.keys(dto),

@@ -7,10 +7,11 @@ import {
   Param,
   Post,
   Query,
+  Req,
   Res,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { ApplicationArtifactKind } from '../../generated/prisma/enums';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
@@ -23,6 +24,7 @@ import { DecideApplicationDto } from './dto/decide-application.dto';
 import { FulfillDocumentRequestDto } from './dto/fulfill-document-request.dto';
 import { ListReceivedDto } from './dto/list-received.dto';
 import { ProposeInterviewDto } from './dto/propose-interview.dto';
+import { SignApplicationDto } from './dto/sign-application.dto';
 
 @Controller('applications')
 export class ApplicationsController {
@@ -128,6 +130,30 @@ export class ApplicationsController {
     @Body() dto: DecideApplicationDto,
   ) {
     return this.applications.decide(user.sub, id, dto);
+  }
+
+  // --- Acceptation de la lettre d'admission par le candidat -------------------------------
+
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/admission-letter/accept')
+  acceptAdmissionLetter(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+  ) {
+    return this.applications.acceptAdmissionLetter(user.sub, id);
+  }
+
+  // --- Signature légère déclarative de la convention ---------------------------------------
+
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/sign')
+  sign(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: SignApplicationDto,
+    @Req() req: Request,
+  ) {
+    return this.applications.sign(user.sub, id, dto.name, req.ip);
   }
 
   // --- Accord parental de déplacement (candidat mineur, offre à relocalisation) -----------

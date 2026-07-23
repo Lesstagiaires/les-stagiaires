@@ -101,6 +101,31 @@ export class DigitalSafeDocumentsService {
     return { ...document, latestVersion: version };
   }
 
+  // Document généré par la plateforme elle-même (lettre d'admission, convention,
+  // attestation — module 5), jamais un fichier soumis par un tiers : le contrôle de
+  // format/anti-malware de validateFile() vise un upload utilisateur potentiellement
+  // hostile, pas un contenu que le serveur a lui-même produit. Chiffrement, versionnage
+  // et journalisation restent identiques à un document déposé (CLAUDE.md §4).
+  async createSystemGenerated(
+    userId: string,
+    category: DigitalSafeDocumentCategory,
+    title: string,
+    file: UploadedFile,
+  ) {
+    const document = await this.prisma.digitalSafeDocument.create({
+      data: { userId, category, title },
+      select: SAFE_DOCUMENT_SELECT,
+    });
+
+    const version = await this.storeVersion(document.id, file, 1);
+    await this.audit.record('DIGITAL_SAFE_DOCUMENT_CREATED', userId, {
+      documentId: document.id,
+      category,
+      generatedBySystem: true,
+    });
+    return { ...document, latestVersion: version };
+  }
+
   // FR-M3-004 : nouvelle version d'un document existant — les précédentes restent
   // consultables, jamais écrasées.
   async addVersion(userId: string, documentId: string, file: UploadedFile) {
