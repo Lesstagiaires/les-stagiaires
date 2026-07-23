@@ -83,6 +83,7 @@ model User {
   digitalSafeSharesReceived DigitalSafeShare[]
   digitalSafeAccessLogs   DigitalSafeAccessLog[]
   organizations           Organization[]
+  organizationMemberships OrganizationMember[]
   opportunityFavorites    OpportunityFavorite[]
   opportunityAlerts       OpportunityAlert[]
   applications            Application[]
@@ -539,14 +540,17 @@ enum OrganizationVerificationStatus {
   REJECTED
 }
 
-// Modèle minimal — le module 6 (Entreprises et organisations) l'enrichira par migration
-// additive (ORG-ID d'affichage, équipe/permissions, page publique, vitrine partenaires).
-// L'id ci-dessous est déjà l'identifiant stable et permanent : un cuid, jamais régénéré.
+// Modèle enrichi au module 6 (Entreprises et organisations) par migration additive :
+// ORG-ID d'affichage, équipe/permissions, page publique, vitrine partenaires.
+// L'id ci-dessous est l'identifiant stable et permanent : un cuid, jamais régénéré.
 model Organization {
-  id     String @id @default(cuid())
+  id     String  @id @default(cuid())
+  // FR-ORG-001 : identifiant d'affichage, même mécanique que le LS-ID — attribué dès
+  // la création, indépendamment de la vérification.
+  orgId  String? @unique
   // Compte détenant le rôle ENTREPRISE ou ETABLISSEMENT qui a créé l'organisation —
   // vérifié en service, pas dans le schéma (cohérent avec la modélisation des rôles
-  // du module 1).
+  // du module 1). Droits pleins et permanents, jamais révocable via l'équipe (module 6).
   ownerId String
 
   name    String
@@ -554,20 +558,72 @@ model Organization {
   country String
   city    String
 
+  // FR-ORG-003 : page publique et marque employeur — tous optionnels, à compléter par
+  // l'organisation après création.
+  logoUrl     String?
+  description String?
+  website     String?
+
   // Seules les organisations vérifiées peuvent publier une offre active (FR-M4-002).
   // Vérification réservée à un compte ADMIN (CLAUDE.md §3 : aucun rôle fourre-tout,
   // et surtout pas d'auto-vérification par l'organisation elle-même).
   verificationStatus OrganizationVerificationStatus @default(PENDING)
   verifiedAt         DateTime?
 
+  // FR-ORG-013 : signature d'une convention de partenariat — distincte de la simple
+  // vérification (une organisation vérifiée n'est pas automatiquement un partenaire
+  // affiché publiquement) ; réservée à un compte ADMIN, comme la vérification.
+  partnershipSignedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  owner         User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner         User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  members       OrganizationMember[]
   opportunities Opportunity[]
   applications  Application[]
 
   @@index([ownerId])
+}
+
+enum OrganizationMemberRole {
+  // Gère l'équipe, les offres et les candidatures — jamais la signature de convention
+  // (réservée à OWNER/ADMIN, cf. Application.sign() dans applications.service.ts).
+  ADMIN
+  // Gère les offres et les candidatures, pas l'équipe.
+  RECRUITER
+  // Lecture seule.
+  VIEWER
+}
+
+enum OrganizationMemberStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+}
+
+// FR-ORG-002 : équipe et permissions. Le propriétaire (Organization.ownerId) n'a pas de
+// ligne ici — ses droits pleins sont déjà portés par le schéma, jamais révocables via ce
+// mécanisme. Un collaborateur invité doit déjà détenir un compte LES STAGIAIRES (pas de
+// cérémonie de code par SMS comme pour le consentement parental — les deux parties sont
+// déjà authentifiées sur la plateforme).
+model OrganizationMember {
+  id             String                    @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrganizationMemberRole
+  status         OrganizationMemberStatus  @default(PENDING)
+
+  invitedAt DateTime  @default(now())
+  joinedAt  DateTime?
+  revokedAt DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
 }
 
 enum OpportunityType {

@@ -25,6 +25,7 @@ import { FulfillDocumentRequestDto } from './dto/fulfill-document-request.dto';
 import { ListReceivedDto } from './dto/list-received.dto';
 import { ProposeInterviewDto } from './dto/propose-interview.dto';
 import { SignApplicationDto } from './dto/sign-application.dto';
+import { CreateRecommendationDto } from '../profiles/dto/create-recommendation.dto';
 
 @Controller('applications')
 export class ApplicationsController {
@@ -48,6 +49,15 @@ export class ApplicationsController {
     @Query() query: ListReceivedDto,
   ) {
     return this.applications.listReceived(user.sub, query);
+  }
+
+  // FR-ORG-005 / FR-ORG-008 : suivi des stages en cours et calendrier.
+  @Get('organizations/:organizationId/calendar')
+  calendar(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('organizationId') organizationId: string,
+  ) {
+    return this.applications.calendar(user.sub, organizationId);
   }
 
   @Get(':id')
@@ -177,6 +187,16 @@ export class ApplicationsController {
   @Post(':id/complete')
   complete(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
     return this.applications.complete(user.sub, id);
+  }
+
+  // FR-ORG-006 : recommandation de l'organisation au stagiaire, une fois clôturé.
+  @Post(':id/recommend')
+  recommend(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: CreateRecommendationDto,
+  ) {
+    return this.applications.recommend(user.sub, id, dto.message);
   }
 
   // --- FR-M5-009 : retrait ---------------------------------------------------------------------

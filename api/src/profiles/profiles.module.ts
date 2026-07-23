@@ -28,7 +28,8 @@ import { VisibilityService } from './visibility.service';
   ],
   // ProfilesService est réutilisé par le module Candidatures pour garantir qu'un profil
   // existe avant de préremplir un dossier (FR-M5-001), même pour un candidat qui n'a
-  // encore jamais ouvert son profil.
-  exports: [CvService, ProfilesService],
+  // encore jamais ouvert son profil. RecommendationsService est réutilisé par le module
+  // Entreprises pour la recommandation à la clôture d'un stage (FR-ORG-006).
+  exports: [CvService, ProfilesService, RecommendationsService],
 })
 export class ProfilesModule {}

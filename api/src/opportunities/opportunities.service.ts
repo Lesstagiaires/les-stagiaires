@@ -7,6 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   OpportunityStatus,
+  OrganizationMemberStatus,
   OrganizationVerificationStatus,
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
@@ -14,6 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { SearchOpportunitiesDto } from './dto/search-opportunities.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
+import { OrganizationAccessService } from './organization-access.service';
 import { OrganizationsService } from './organizations.service';
 
 const PUBLICLY_VISIBLE_STATUSES: OpportunityStatus[] = [
@@ -27,6 +29,7 @@ export class OpportunitiesService {
     private readonly config: ConfigService,
     private readonly audit: AuditService,
     private readonly organizations: OrganizationsService,
+    private readonly access: OrganizationAccessService,
   ) {}
 
   // --- FR-M4-001 : création (brouillon) ----------------------------------------------------
@@ -286,11 +289,11 @@ export class OpportunitiesService {
     if (!opportunity) throw new NotFoundException('Offre introuvable.');
 
     const isPublic = PUBLICLY_VISIBLE_STATUSES.includes(opportunity.status);
-    const isOwner =
+    const isParticipant =
       userId &&
       opportunity.organization &&
-      (await this.isOwnedBy(opportunity.organizationId, userId));
-    if (!isPublic && !isOwner) {
+      (await this.access.isParticipant(opportunity.organizationId, userId));
+    if (!isPublic && !isParticipant) {
       throw new NotFoundException('Offre introuvable.');
     }
     return opportunity;
@@ -298,23 +301,22 @@ export class OpportunitiesService {
 
   async listMine(userId: string) {
     const myOrganizations = await this.prisma.organization.findMany({
-      where: { ownerId: userId },
+      where: {
+        OR: [
+          { ownerId: userId },
+          {
+            members: {
+              some: { userId, status: OrganizationMemberStatus.ACTIVE },
+            },
+          },
+        ],
+      },
       select: { id: true },
     });
     return this.prisma.opportunity.findMany({
       where: { organizationId: { in: myOrganizations.map((org) => org.id) } },
       orderBy: { createdAt: 'desc' },
     });
-  }
-
-  private async isOwnedBy(
-    organizationId: string,
-    userId: string,
-  ): Promise<boolean> {
-    const organization = await this.prisma.organization.findUnique({
-      where: { id: organizationId },
-    });
-    return organization?.ownerId === userId;
   }
 
   async getByIdOr404(opportunityId: string) {
@@ -325,11 +327,11 @@ export class OpportunitiesService {
     return opportunity;
   }
 
+  // FR-ORG-002 : délègue à OrganizationAccessService — propriétaire ou membre d'équipe
+  // autorisé (RECRUITER/ADMIN), pas seulement le propriétaire de l'organisation.
   async assertOwnsOpportunity(userId: string, opportunityId: string) {
     const opportunity = await this.getByIdOr404(opportunityId);
-    const owned = await this.isOwnedBy(opportunity.organizationId, userId);
-    if (!owned)
-      throw new ForbiddenException('Cette offre ne concerne pas ce compte.');
+    await this.access.assertCanManage(opportunity.organizationId, userId);
     return opportunity;
   }
 }

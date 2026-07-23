@@ -17,6 +17,7 @@ import {
   ApplicationStatus,
   DigitalSafeDocumentCategory,
   OpportunityStatus,
+  OrganizationMemberStatus,
   OrganizationVerificationStatus,
   ParentalLinkStatus,
   ShareTargetType,
@@ -25,9 +26,11 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { CvService } from '../profiles/cv.service';
 import { ProfilesService } from '../profiles/profiles.service';
+import { RecommendationsService } from '../profiles/recommendations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { DigitalSafeDocumentsService } from '../digital-safe/documents.service';
 import { SharesService } from '../digital-safe/shares.service';
+import { OrganizationAccessService } from '../opportunities/organization-access.service';
 import { SMS_PROVIDER } from '../sms/sms-provider.interface';
 import type { SmsProvider } from '../sms/sms-provider.interface';
 import { CreateApplicationDto } from './dto/create-application.dto';
@@ -92,8 +95,10 @@ export class ApplicationsService {
     private readonly audit: AuditService,
     private readonly cv: CvService,
     private readonly profiles: ProfilesService,
+    private readonly recommendations: RecommendationsService,
     private readonly digitalSafeDocuments: DigitalSafeDocumentsService,
     private readonly shares: SharesService,
+    private readonly orgAccess: OrganizationAccessService,
     @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
   ) {}
 
@@ -278,8 +283,10 @@ export class ApplicationsService {
     });
   }
 
+  // FR-ORG-002 : inclut les candidatures reçues par les organisations détenues ET
+  // celles où l'appelant est membre actif — pas seulement le propriétaire.
   async listReceived(
-    ownerId: string,
+    userId: string,
     filters: {
       organizationId?: string;
       opportunityId?: string;
@@ -288,7 +295,16 @@ export class ApplicationsService {
   ) {
     return this.prisma.application.findMany({
       where: {
-        organization: { ownerId },
+        organization: {
+          OR: [
+            { ownerId: userId },
+            {
+              members: {
+                some: { userId, status: OrganizationMemberStatus.ACTIVE },
+              },
+            },
+          ],
+        },
         ...(filters.organizationId && {
           organizationId: filters.organizationId,
         }),
@@ -303,9 +319,66 @@ export class ApplicationsService {
     });
   }
 
+  // FR-ORG-005 / FR-ORG-008 : suivi des stages en cours et calendrier — dérivé des
+  // candidatures existantes, aucun nouveau modèle nécessaire.
+  async calendar(userId: string, organizationId: string) {
+    await this.orgAccess.assertCanManage(organizationId, userId);
+
+    const applications = await this.prisma.application.findMany({
+      where: {
+        organizationId,
+        status: {
+          notIn: [ApplicationStatus.WITHDRAWN, ApplicationStatus.REJECTED],
+        },
+      },
+      select: {
+        id: true,
+        reference: true,
+        status: true,
+        interviewProposedAt: true,
+        startedAt: true,
+        completedAt: true,
+        candidate: { select: { id: true, lsId: true } },
+        opportunity: { select: { title: true } },
+      },
+    });
+
+    const events: {
+      applicationId: string;
+      reference: string;
+      type: 'INTERVIEW' | 'START' | 'END';
+      date: Date;
+      candidate: { id: string; lsId: string | null };
+      opportunityTitle: string | null;
+    }[] = [];
+    for (const application of applications) {
+      const base = {
+        applicationId: application.id,
+        reference: application.reference,
+        candidate: application.candidate,
+        opportunityTitle: application.opportunity?.title ?? null,
+      };
+      if (application.interviewProposedAt) {
+        events.push({
+          ...base,
+          type: 'INTERVIEW',
+          date: application.interviewProposedAt,
+        });
+      }
+      if (application.startedAt) {
+        events.push({ ...base, type: 'START', date: application.startedAt });
+      }
+      if (application.completedAt) {
+        events.push({ ...base, type: 'END', date: application.completedAt });
+      }
+    }
+    events.sort((a, b) => a.date.getTime() - b.date.getTime());
+    return events;
+  }
+
   async getById(userId: string, id: string) {
     const application = await this.getApplicationOr404(id);
-    if (!this.isParticipant(userId, application)) {
+    if (!(await this.isParticipant(userId, application))) {
       // 404 plutôt que 403 : ne pas confirmer l'existence d'une candidature à un tiers.
       throw new NotFoundException('Candidature introuvable.');
     }
@@ -781,10 +854,16 @@ export class ApplicationsService {
   async sign(userId: string, id: string, name: string, ip: string | undefined) {
     const application = await this.getApplicationOr404(id);
     const isCandidate = application.candidateId === userId;
-    const isOrganization = application.organization.ownerId === userId;
+    // Signature au nom de l'organisation réservée à OWNER/ADMIN (FR-ORG-002) — un
+    // RECRUITER ne doit jamais engager juridiquement l'organisation.
+    const orgAccessLevel = isCandidate
+      ? null
+      : await this.orgAccess.getAccess(application.organizationId, userId);
+    const isOrganization =
+      orgAccessLevel === 'OWNER' || orgAccessLevel === 'ADMIN';
     if (!isCandidate && !isOrganization) {
       throw new ForbiddenException(
-        'Cette candidature ne concerne pas ce compte.',
+        'Cette candidature ne concerne pas ce compte, ou votre rôle ne permet pas de signer.',
       );
     }
     this.assertTransition(application.status, [ApplicationStatus.ACCEPTED]);
@@ -866,8 +945,7 @@ export class ApplicationsService {
       `Date de clôture : ${new Date().toISOString()}`,
       '',
       'Ce document atteste que le stage lié à la candidature ci-dessus est arrivé à son',
-      "terme. Version simplifiée MVP — la recommandation et l'attestation enrichie relèvent",
-      'du module Entreprises et organisations.',
+      'terme. Version simplifiée MVP.',
     ].join('\n');
     await this.createArtifact(
       application,
@@ -890,6 +968,27 @@ export class ApplicationsService {
       application.candidateId,
       `LES STAGIAIRES — votre stage (candidature ${application.reference}) est clôturé. Attestation disponible.`,
     );
+  }
+
+  // FR-ORG-006 : recommandation de l'organisation au stagiaire, une fois le stage
+  // clôturé — réutilise le modèle Recommendation du module Profils (FR-PRO-011).
+  async recommend(userId: string, id: string, message: string) {
+    const application = await this.assertOrganizationOwner(userId, id);
+    if (application.status !== ApplicationStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Seul un stage clôturé peut donner lieu à une recommandation.',
+      );
+    }
+    const recommendation = await this.recommendations.create(
+      userId,
+      application.candidateId,
+      { message },
+    );
+    await this.notify(
+      application.candidateId,
+      `LES STAGIAIRES — ${application.organization.name} vous a laissé une recommandation suite à votre stage (candidature ${application.reference}).`,
+    );
+    return recommendation;
   }
 
   // --- FR-M5-009 : retrait ------------------------------------------------------------------
@@ -933,7 +1032,7 @@ export class ApplicationsService {
       throw new NotFoundException('Document introuvable.');
     }
     const application = await this.getApplicationOr404(id);
-    if (!this.isParticipant(userId, application)) {
+    if (!(await this.isParticipant(userId, application))) {
       throw new NotFoundException('Candidature introuvable.');
     }
     const artifact = await this.prisma.applicationArtifact.findUnique({
@@ -1050,14 +1149,14 @@ export class ApplicationsService {
     });
   }
 
-  private isParticipant(
+  // FR-ORG-002 : un participant est le candidat ou tout membre autorisé de l'organisation
+  // (propriétaire ou équipe active) — pas seulement le propriétaire.
+  private async isParticipant(
     userId: string,
-    application: { candidateId: string; organization: { ownerId: string } },
-  ): boolean {
-    return (
-      application.candidateId === userId ||
-      application.organization.ownerId === userId
-    );
+    application: { candidateId: string; organizationId: string },
+  ): Promise<boolean> {
+    if (application.candidateId === userId) return true;
+    return this.orgAccess.isParticipant(application.organizationId, userId);
   }
 
   async getApplicationOr404(id: string) {
@@ -1079,13 +1178,11 @@ export class ApplicationsService {
     return application;
   }
 
+  // FR-ORG-002 : propriétaire ou membre d'équipe autorisé (RECRUITER/ADMIN), pas
+  // seulement le propriétaire de l'organisation.
   private async assertOrganizationOwner(userId: string, id: string) {
     const application = await this.getApplicationOr404(id);
-    if (application.organization.ownerId !== userId) {
-      throw new ForbiddenException(
-        'Cette candidature ne concerne pas ce compte.',
-      );
-    }
+    await this.orgAccess.assertCanManage(application.organizationId, userId);
     return application;
   }
 
