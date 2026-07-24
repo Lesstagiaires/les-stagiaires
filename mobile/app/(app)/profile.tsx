@@ -8,20 +8,23 @@ import {
   Text,
   View,
 } from 'react-native';
+import { Badge } from '../../components/badge';
 import { ChipSelect } from '../../components/chip-select';
 import { DateInput } from '../../components/date-input';
-import { colors, ErrorText, FormInput, PrimaryButton } from '../../components/form';
+import { colors, ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../components/form';
 import { Section } from '../../components/section';
 import {
   api,
   ApiError,
   type Education,
+  type EstablishmentEnrollment,
   type Experience,
   type HeldRole,
   type LanguageLevel,
   type Profile,
   type RoleCatalogItem,
 } from '../../lib/api';
+import { LEARNER_STATUS_LABELS, LEARNER_STATUS_TONE } from '../../lib/establishment-labels';
 import { useAuth } from '../../lib/auth-context';
 import { formatDisplayDate, toIsoDateString } from '../../lib/date';
 
@@ -38,20 +41,23 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [catalog, setCatalog] = useState<RoleCatalogItem[]>([]);
   const [heldRoles, setHeldRoles] = useState<HeldRole[]>([]);
+  const [enrollments, setEnrollments] = useState<EstablishmentEnrollment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!accessToken) return;
     try {
-      const [nextProfile, nextCatalog, nextHistory] = await Promise.all([
+      const [nextProfile, nextCatalog, nextHistory, nextEnrollments] = await Promise.all([
         api.getMyProfile(accessToken),
         api.getRoleCatalog(),
         api.getRoleHistory(accessToken),
+        api.listMyEnrollments(accessToken),
       ]);
       setProfile(nextProfile);
       setCatalog(nextCatalog);
       setHeldRoles(nextHistory.filter((entry) => entry.isActive));
+      setEnrollments(nextEnrollments);
       setLoadError(null);
     } catch (err) {
       if (err instanceof ApiError && err.statusCode === 401) {
@@ -110,6 +116,10 @@ export default function ProfileScreen() {
           catalog={catalog}
           onChanged={reload}
         />
+
+        {enrollments.length > 0 && (
+          <EstablishmentsSection accessToken={accessToken} enrollments={enrollments} onChanged={reload} />
+        )}
 
         <EducationSection
           accessToken={accessToken}
@@ -271,6 +281,75 @@ function RolesSection({
       )}
 
       {isBusy && <ActivityIndicator color={colors.primary} />}
+      <ErrorText>{error}</ErrorText>
+    </Section>
+  );
+}
+
+// --- EDU-FR-004 : rattachement à un établissement -----------------------------------------
+
+function EstablishmentsSection({
+  accessToken,
+  enrollments,
+  onChanged,
+}: {
+  accessToken: string;
+  enrollments: EstablishmentEnrollment[];
+  onChanged: () => Promise<void>;
+}) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function respond(enrollment: EstablishmentEnrollment, accept: boolean) {
+    setError(null);
+    setBusyId(enrollment.id);
+    try {
+      if (accept) {
+        await api.acceptEnrollment(accessToken, enrollment.id);
+      } else {
+        await api.declineEnrollment(accessToken, enrollment.id);
+      }
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Action impossible.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <Section title="Établissement">
+      {enrollments.map((enrollment) => (
+        <View key={enrollment.id} style={styles.enrollmentItem}>
+          <View style={styles.enrollmentHeader}>
+            <Text style={styles.listItemTitle}>{enrollment.establishment.name}</Text>
+            <Badge
+              label={LEARNER_STATUS_LABELS[enrollment.status]}
+              tone={LEARNER_STATUS_TONE[enrollment.status]}
+            />
+          </View>
+          {enrollment.status === 'PENDING' && (
+            <View style={styles.enrollmentActions}>
+              <View style={styles.enrollmentButton}>
+                <PrimaryButton
+                  title="Accepter"
+                  onPress={() => respond(enrollment, true)}
+                  loading={busyId === enrollment.id}
+                  disabled={busyId !== null && busyId !== enrollment.id}
+                />
+              </View>
+              <View style={styles.enrollmentButton}>
+                <SecondaryButton
+                  title="Refuser"
+                  onPress={() => respond(enrollment, false)}
+                  loading={false}
+                  disabled={busyId !== null}
+                />
+              </View>
+            </View>
+          )}
+        </View>
+      ))}
       <ErrorText>{error}</ErrorText>
     </Section>
   );
@@ -654,6 +733,25 @@ const styles = StyleSheet.create({
   listItemDates: {
     fontSize: 12,
     color: colors.muted,
+  },
+  enrollmentItem: {
+    gap: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  enrollmentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  enrollmentActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  enrollmentButton: {
+    flex: 1,
   },
   removeText: {
     fontSize: 13,

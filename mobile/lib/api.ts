@@ -657,6 +657,130 @@ export interface SubmitNeedRequestInput {
   description: string;
 }
 
+// --- Établissements (module 7) --------------------------------------------------------------
+
+export type LearnerStatus = 'PENDING' | 'ACTIVE' | 'REVOKED';
+
+export interface LearnerUser {
+  id: string;
+  lsId: string | null;
+}
+
+export interface EstablishmentSummary {
+  id: string;
+  name: string;
+  orgId: string | null;
+}
+
+export interface EstablishmentLearner {
+  id: string;
+  establishmentId: string;
+  userId: string;
+  status: LearnerStatus;
+  invitedAt: string;
+  joinedAt: string | null;
+  verifiedAt: string | null;
+  revokedAt: string | null;
+  user: LearnerUser;
+}
+
+export interface EstablishmentEnrollment {
+  id: string;
+  establishmentId: string;
+  userId: string;
+  status: LearnerStatus;
+  invitedAt: string;
+  joinedAt: string | null;
+  verifiedAt: string | null;
+  revokedAt: string | null;
+  establishment: EstablishmentSummary;
+}
+
+export interface InviteLearnerInput {
+  phone: string;
+}
+
+export type InternshipCampaignStatus = 'DRAFT' | 'ACTIVE' | 'CLOSED';
+
+export interface InternshipCampaign {
+  id: string;
+  establishmentId: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  status: InternshipCampaignStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateCampaignInput {
+  name: string;
+  startDate: string;
+  endDate: string;
+}
+
+export interface LearnerApplicationSummary {
+  id: string;
+  reference: string;
+  status: ApplicationStatus;
+  candidateId: string;
+  candidate: LearnerUser;
+  organization: { id: string; name: string };
+  opportunity: { id: string; title: string } | null;
+  createdAt: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  establishmentParticipationRequested: boolean;
+  establishmentSignedAt: string | null;
+  establishmentSignedName: string | null;
+}
+
+export type InternshipReportStatus = 'SUBMITTED' | 'NEEDS_REVISION' | 'VALIDATED';
+
+export interface InternshipReportApplication {
+  id: string;
+  reference: string;
+  candidateId: string;
+  candidate: LearnerUser;
+}
+
+export interface InternshipReportWithApplication {
+  id: string;
+  applicationId: string;
+  digitalSafeDocumentId: string;
+  status: InternshipReportStatus;
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  reviewedById: string | null;
+  createdAt: string;
+  updatedAt: string;
+  application: InternshipReportApplication;
+}
+
+export type ReviewReportOutcome = 'VALIDATED' | 'NEEDS_REVISION';
+
+export interface ReviewReportInput {
+  status: ReviewReportOutcome;
+  note?: string;
+}
+
+export interface EstablishmentDashboard {
+  totalLearners: number;
+  verifiedLearners: number;
+  totalApplications: number;
+  learnersWithInternship: number;
+  completedInternships: number;
+  insertionRate: number;
+}
+
+export interface PartnerCompany {
+  id: string;
+  orgId: string | null;
+  name: string;
+  sector: string | null;
+  logoUrl: string | null;
+}
+
 function buildQueryString(params: Record<string, string | number | undefined>): string {
   const entries = Object.entries(params).filter(([, value]) => value !== undefined);
   if (entries.length === 0) return '';
@@ -1181,6 +1305,104 @@ export const api = {
     request<OrganizationNeedRequest>(`/organizations/${organizationId}/need-requests`, {
       method: 'POST',
       body: input,
+      accessToken,
+    }),
+
+  // --- Établissements (module 7, côté établissement) ---------------------------------------
+
+  listLearners: (accessToken: string, establishmentId: string) =>
+    request<EstablishmentLearner[]>(`/organizations/${establishmentId}/learners`, {
+      accessToken,
+    }),
+
+  inviteLearner: (accessToken: string, establishmentId: string, input: InviteLearnerInput) =>
+    request<EstablishmentLearner>(`/organizations/${establishmentId}/learners`, {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  verifyLearner: (accessToken: string, establishmentId: string, learnerId: string) =>
+    request<void>(`/organizations/${establishmentId}/learners/${learnerId}/verify`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  revokeLearner: (accessToken: string, establishmentId: string, learnerId: string) =>
+    request<void>(`/organizations/${establishmentId}/learners/${learnerId}/revoke`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  listCampaigns: (accessToken: string, establishmentId: string) =>
+    request<InternshipCampaign[]>(`/organizations/${establishmentId}/campaigns`, {
+      accessToken,
+    }),
+
+  createCampaign: (accessToken: string, establishmentId: string, input: CreateCampaignInput) =>
+    request<InternshipCampaign>(`/organizations/${establishmentId}/campaigns`, {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  updateCampaignStatus: (
+    accessToken: string,
+    establishmentId: string,
+    campaignId: string,
+    status: InternshipCampaignStatus,
+  ) =>
+    request<InternshipCampaign>(`/organizations/${establishmentId}/campaigns/${campaignId}/status`, {
+      method: 'POST',
+      body: { status },
+      accessToken,
+    }),
+
+  listLearnerApplications: (accessToken: string, establishmentId: string) =>
+    request<LearnerApplicationSummary[]>(`/organizations/${establishmentId}/learner-applications`, {
+      accessToken,
+    }),
+
+  listEstablishmentReports: (accessToken: string, establishmentId: string) =>
+    request<InternshipReportWithApplication[]>(`/organizations/${establishmentId}/reports`, {
+      accessToken,
+    }),
+
+  reviewReport: (
+    accessToken: string,
+    establishmentId: string,
+    applicationId: string,
+    input: ReviewReportInput,
+  ) =>
+    request<InternshipReportWithApplication>(
+      `/organizations/${establishmentId}/reports/${applicationId}/review`,
+      { method: 'POST', body: input, accessToken },
+    ),
+
+  getEstablishmentDashboard: (accessToken: string, establishmentId: string) =>
+    request<EstablishmentDashboard>(`/organizations/${establishmentId}/dashboard`, {
+      accessToken,
+    }),
+
+  listPartnerCompanies: (accessToken: string, establishmentId: string) =>
+    request<PartnerCompany[]>(`/organizations/${establishmentId}/partner-companies`, {
+      accessToken,
+    }),
+
+  // --- Établissements (module 7, côté apprenant) -------------------------------------------
+
+  listMyEnrollments: (accessToken: string) =>
+    request<EstablishmentEnrollment[]>('/establishments/enrollments', { accessToken }),
+
+  acceptEnrollment: (accessToken: string, learnerId: string) =>
+    request<void>(`/establishments/enrollments/${learnerId}/accept`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  declineEnrollment: (accessToken: string, learnerId: string) =>
+    request<void>(`/establishments/enrollments/${learnerId}/decline`, {
+      method: 'POST',
       accessToken,
     }),
 };

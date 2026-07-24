@@ -107,6 +107,59 @@ export default function OrganizationScreen() {
           </PressableCard>
         </View>
 
+        {organization.type === 'ETABLISSEMENT' && (
+          <>
+            <View style={styles.quickLinks}>
+              <PressableCard
+                style={styles.quickLinkCard}
+                onPress={() => router.push(`/recruiter/learners?id=${organization.id}`)}
+              >
+                <Text style={styles.quickLinkTitle}>Apprenants</Text>
+                <Text style={typography.caption}>Rattacher et vérifier vos apprenants.</Text>
+              </PressableCard>
+              <PressableCard
+                style={styles.quickLinkCard}
+                onPress={() => router.push(`/recruiter/campaigns?id=${organization.id}`)}
+              >
+                <Text style={styles.quickLinkTitle}>Campagnes</Text>
+                <Text style={typography.caption}>Périodes de stage de l'établissement.</Text>
+              </PressableCard>
+            </View>
+            <View style={styles.quickLinks}>
+              <PressableCard
+                style={styles.quickLinkCard}
+                onPress={() => router.push(`/recruiter/learner-applications?id=${organization.id}`)}
+              >
+                <Text style={styles.quickLinkTitle}>Conventions</Text>
+                <Text style={typography.caption}>Suivi des candidatures des apprenants.</Text>
+              </PressableCard>
+              <PressableCard
+                style={styles.quickLinkCard}
+                onPress={() => router.push(`/recruiter/reports?id=${organization.id}`)}
+              >
+                <Text style={styles.quickLinkTitle}>Rapports de stage</Text>
+                <Text style={typography.caption}>Correction et validation.</Text>
+              </PressableCard>
+            </View>
+            <View style={styles.quickLinks}>
+              <PressableCard
+                style={styles.quickLinkCard}
+                onPress={() => router.push(`/recruiter/dashboard?id=${organization.id}`)}
+              >
+                <Text style={styles.quickLinkTitle}>Tableau de bord</Text>
+                <Text style={typography.caption}>Taux d'insertion des apprenants.</Text>
+              </PressableCard>
+              <PressableCard
+                style={styles.quickLinkCard}
+                onPress={() => router.push(`/recruiter/partners?id=${organization.id}`)}
+              >
+                <Text style={styles.quickLinkTitle}>Entreprises partenaires</Text>
+                <Text style={typography.caption}>Répertoire des organisations d'accueil.</Text>
+              </PressableCard>
+            </View>
+          </>
+        )}
+
         <PageForm accessToken={accessToken} organization={organization} onSaved={reload} />
       </ScrollView>
     </SafeAreaView>
