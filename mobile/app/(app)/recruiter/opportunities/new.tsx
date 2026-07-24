@@ -133,6 +133,12 @@ export default function NewOpportunityScreen() {
         <View style={styles.field}>
           <Text style={typography.label}>TYPE</Text>
           <ChipSelect options={OPPORTUNITY_TYPE_OPTIONS} value={type} onChange={(v) => setType(v as OpportunityType)} />
+          {(type === 'SEASONAL' || type === 'VOLUNTEER' || type === 'TEMPORARY') && (
+            <Text style={typography.caption}>
+              Ce type nécessite une demande de besoin spécial approuvée avant publication
+              (voir "Besoins spéciaux" sur la fiche de l'organisation).
+            </Text>
+          )}
         </View>
 
         <FormInput placeholder="Secteur" value={sector} onChangeText={setSector} />

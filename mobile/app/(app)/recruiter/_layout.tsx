@@ -11,6 +11,8 @@ export default function RecruiterLayout() {
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="organization" options={{ title: 'Mon organisation' }} />
+      <Stack.Screen name="team" options={{ title: 'Équipe' }} />
+      <Stack.Screen name="needs" options={{ title: 'Besoins spéciaux' }} />
       <Stack.Screen name="opportunities/index" options={{ title: 'Mes offres' }} />
       <Stack.Screen name="opportunities/new" options={{ title: 'Nouvelle offre' }} />
       <Stack.Screen name="opportunities/[id]" options={{ title: "Gérer l'offre" }} />

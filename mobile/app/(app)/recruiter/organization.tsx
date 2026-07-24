@@ -1,8 +1,8 @@
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Badge } from '../../../components/badge';
-import { Card } from '../../../components/card';
+import { Card, PressableCard } from '../../../components/card';
 import { ErrorText, FormInput, PrimaryButton } from '../../../components/form';
 import { Section } from '../../../components/section';
 import { colors, spacing, typography } from '../../../components/theme';
@@ -15,6 +15,7 @@ import { useAuth } from '../../../lib/auth-context';
 
 export default function OrganizationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { accessToken, logout } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -88,6 +89,23 @@ export default function OrganizationScreen() {
             </Text>
           </Card>
         )}
+
+        <View style={styles.quickLinks}>
+          <PressableCard
+            style={styles.quickLinkCard}
+            onPress={() => router.push(`/recruiter/team?id=${organization.id}`)}
+          >
+            <Text style={styles.quickLinkTitle}>Équipe</Text>
+            <Text style={typography.caption}>Inviter et gérer les collaborateurs.</Text>
+          </PressableCard>
+          <PressableCard
+            style={styles.quickLinkCard}
+            onPress={() => router.push(`/recruiter/needs?id=${organization.id}`)}
+          >
+            <Text style={styles.quickLinkTitle}>Besoins spéciaux</Text>
+            <Text style={typography.caption}>Saisonnier, bénévolat, temporaire.</Text>
+          </PressableCard>
+        </View>
 
         <PageForm accessToken={accessToken} organization={organization} onSaved={reload} />
       </ScrollView>
@@ -185,6 +203,18 @@ const styles = StyleSheet.create({
   noticeCard: {
     marginTop: spacing.sm,
     backgroundColor: colors.accentLight,
+  },
+  quickLinks: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  quickLinkCard: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  quickLinkTitle: {
+    ...typography.bodyBold,
   },
   multiline: {
     minHeight: 90,

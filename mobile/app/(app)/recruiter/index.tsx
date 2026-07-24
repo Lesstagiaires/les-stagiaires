@@ -9,11 +9,18 @@ import {
   View,
 } from 'react-native';
 import { Badge } from '../../../components/badge';
-import { PressableCard } from '../../../components/card';
-import { ErrorText, FormInput, PrimaryButton } from '../../../components/form';
+import { Card, PressableCard } from '../../../components/card';
+import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../../components/form';
 import { colors, spacing, typography } from '../../../components/theme';
-import { api, ApiError, type HeldRole, type Organization } from '../../../lib/api';
 import {
+  api,
+  ApiError,
+  type HeldRole,
+  type Organization,
+  type OrganizationInvitation,
+} from '../../../lib/api';
+import {
+  MEMBER_ROLE_LABELS,
   ORGANIZATION_VERIFICATION_LABELS,
   ORGANIZATION_VERIFICATION_TONE,
 } from '../../../lib/organization-labels';
@@ -23,18 +30,21 @@ export default function RecruiterHomeScreen() {
   const router = useRouter();
   const { accessToken, logout } = useAuth();
   const [organizations, setOrganizations] = useState<Organization[] | null>(null);
+  const [invitations, setInvitations] = useState<OrganizationInvitation[]>([]);
   const [heldRoles, setHeldRoles] = useState<HeldRole[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!accessToken) return;
     try {
-      const [orgs, roles] = await Promise.all([
+      const [orgs, roles, myInvitations] = await Promise.all([
         api.listMyOrganizations(accessToken),
         api.getRoleHistory(accessToken),
+        api.listMyInvitations(accessToken),
       ]);
       setOrganizations(orgs);
       setHeldRoles(roles.filter((entry) => entry.isActive));
+      setInvitations(myInvitations);
       setError(null);
     } catch (err) {
       if (err instanceof ApiError && err.statusCode === 401) {
@@ -70,7 +80,11 @@ export default function RecruiterHomeScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.screenTitle}>Espace recruteur</Text>
 
-        {organizations.length === 0 && !isOrgEligible && (
+        {invitations.length > 0 && (
+          <InvitationsSection accessToken={accessToken} invitations={invitations} onChanged={reload} />
+        )}
+
+        {organizations.length === 0 && invitations.length === 0 && !isOrgEligible && (
           <View style={styles.emptyState}>
             <Text style={typography.body}>
               La création d'une organisation nécessite la casquette Entreprise ou
@@ -133,6 +147,69 @@ export default function RecruiterHomeScreen() {
         <ErrorText>{error}</ErrorText>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function InvitationsSection({
+  accessToken,
+  invitations,
+  onChanged,
+}: {
+  accessToken: string;
+  invitations: OrganizationInvitation[];
+  onChanged: () => Promise<void>;
+}) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function respond(invitation: OrganizationInvitation, accept: boolean) {
+    setError(null);
+    setBusyId(invitation.id);
+    try {
+      if (accept) {
+        await api.acceptInvitation(accessToken, invitation.id);
+      } else {
+        await api.declineInvitation(accessToken, invitation.id);
+      }
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Action impossible.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <View style={styles.invitationsList}>
+      <Text style={typography.h3}>Invitations reçues</Text>
+      {invitations.map((invitation) => (
+        <Card key={invitation.id} style={styles.invitationCard}>
+          <Text style={typography.bodyBold}>{invitation.organization.name}</Text>
+          <Text style={typography.caption}>
+            Rôle proposé : {MEMBER_ROLE_LABELS[invitation.role]}
+          </Text>
+          <View style={styles.invitationActions}>
+            <View style={styles.invitationButton}>
+              <PrimaryButton
+                title="Accepter"
+                onPress={() => respond(invitation, true)}
+                loading={busyId === invitation.id}
+                disabled={busyId !== null && busyId !== invitation.id}
+              />
+            </View>
+            <View style={styles.invitationButton}>
+              <SecondaryButton
+                title="Refuser"
+                onPress={() => respond(invitation, false)}
+                loading={false}
+                disabled={busyId !== null}
+              />
+            </View>
+          </View>
+        </Card>
+      ))}
+      <ErrorText>{error}</ErrorText>
+    </View>
   );
 }
 
@@ -264,5 +341,19 @@ const styles = StyleSheet.create({
   cancelText: {
     ...typography.caption,
     textAlign: 'center',
+  },
+  invitationsList: {
+    gap: spacing.sm,
+  },
+  invitationCard: {
+    gap: spacing.xs,
+  },
+  invitationActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  invitationButton: {
+    flex: 1,
   },
 });

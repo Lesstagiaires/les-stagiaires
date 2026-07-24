@@ -580,6 +580,74 @@ export interface DecideApplicationInput {
   note?: string;
 }
 
+// --- Équipe (module 6, FR-ORG-002) ----------------------------------------------------------
+
+export type OrganizationMemberRole = 'ADMIN' | 'RECRUITER' | 'VIEWER';
+export type OrganizationMemberStatus = 'PENDING' | 'ACTIVE' | 'REVOKED';
+
+export interface OrganizationMemberUser {
+  id: string;
+  lsId: string | null;
+}
+
+export interface OrganizationMember {
+  id: string;
+  organizationId: string;
+  userId: string;
+  role: OrganizationMemberRole;
+  status: OrganizationMemberStatus;
+  invitedAt: string;
+  joinedAt: string | null;
+  revokedAt: string | null;
+  user: OrganizationMemberUser;
+}
+
+export interface OrganizationInvitationOrganization {
+  id: string;
+  name: string;
+  orgId: string | null;
+}
+
+export interface OrganizationInvitation {
+  id: string;
+  organizationId: string;
+  userId: string;
+  role: OrganizationMemberRole;
+  status: OrganizationMemberStatus;
+  invitedAt: string;
+  joinedAt: string | null;
+  revokedAt: string | null;
+  organization: OrganizationInvitationOrganization;
+}
+
+export interface InviteMemberInput {
+  phone: string;
+  role: OrganizationMemberRole;
+}
+
+// --- Besoins spéciaux (FR-M4-002 / module 6) ------------------------------------------------
+
+export type NeedRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type NeedRequestType = 'SEASONAL' | 'VOLUNTEER' | 'TEMPORARY';
+
+export interface OrganizationNeedRequest {
+  id: string;
+  organizationId: string;
+  type: NeedRequestType;
+  quantity: number;
+  description: string;
+  status: NeedRequestStatus;
+  adminNote: string | null;
+  respondedAt: string | null;
+  createdAt: string;
+}
+
+export interface SubmitNeedRequestInput {
+  type: NeedRequestType;
+  quantity: number;
+  description: string;
+}
+
 function buildQueryString(params: Record<string, string | number | undefined>): string {
   const entries = Object.entries(params).filter(([, value]) => value !== undefined);
   if (entries.length === 0) return '';
@@ -1044,6 +1112,57 @@ export const api = {
     request<{ id: string }>(`/applications/${applicationId}/recommend`, {
       method: 'POST',
       body: { message },
+      accessToken,
+    }),
+
+  // --- Équipe (module 6, FR-ORG-002) -------------------------------------------------------
+
+  listTeam: (accessToken: string, organizationId: string) =>
+    request<OrganizationMember[]>(`/organizations/${organizationId}/members`, { accessToken }),
+
+  inviteMember: (accessToken: string, organizationId: string, input: InviteMemberInput) =>
+    request<OrganizationMember>(`/organizations/${organizationId}/members`, {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  listMyInvitations: (accessToken: string) =>
+    request<OrganizationInvitation[]>('/organizations/invitations', { accessToken }),
+
+  acceptInvitation: (accessToken: string, memberId: string) =>
+    request<void>(`/organizations/members/${memberId}/accept`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  declineInvitation: (accessToken: string, memberId: string) =>
+    request<void>(`/organizations/members/${memberId}/decline`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  revokeMember: (accessToken: string, organizationId: string, memberId: string) =>
+    request<void>(`/organizations/${organizationId}/members/${memberId}/revoke`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  // --- Besoins spéciaux (FR-M4-002 / module 6) ---------------------------------------------
+
+  listNeedRequests: (accessToken: string, organizationId: string) =>
+    request<OrganizationNeedRequest[]>(`/organizations/${organizationId}/need-requests`, {
+      accessToken,
+    }),
+
+  submitNeedRequest: (
+    accessToken: string,
+    organizationId: string,
+    input: SubmitNeedRequestInput,
+  ) =>
+    request<OrganizationNeedRequest>(`/organizations/${organizationId}/need-requests`, {
+      method: 'POST',
+      body: input,
       accessToken,
     }),
 };
