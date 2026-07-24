@@ -289,6 +289,104 @@ function appendFilePart(formData: FormData, file: FilePart) {
   }
 }
 
+// --- Opportunités (module 4) ---------------------------------------------------------------
+
+export type OpportunityType =
+  | 'ACADEMIC_INTERNSHIP'
+  | 'PROFESSIONAL_INTERNSHIP'
+  | 'SEASONAL'
+  | 'WORK_STUDY'
+  | 'VOLUNTEER'
+  | 'TEMPORARY';
+
+export type WorkMode = 'ON_SITE' | 'REMOTE' | 'HYBRID';
+
+export type OpportunityStatus =
+  | 'DRAFT'
+  | 'PENDING_REVIEW'
+  | 'ACTIVE'
+  | 'PAUSED'
+  | 'FILLED'
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'REPORTED'
+  | 'SUSPENDED'
+  | 'ARCHIVED';
+
+export interface OpportunityOrganization {
+  id: string;
+  name: string;
+  verificationStatus: 'PENDING' | 'VERIFIED' | 'REJECTED';
+}
+
+export interface Opportunity {
+  id: string;
+  organizationId: string;
+  title: string;
+  description: string;
+  type: OpportunityType;
+  sector: string;
+  country: string;
+  city: string;
+  workMode: WorkMode;
+  relocationRequired: boolean;
+  accommodationProvided: boolean;
+  mobilityBenefits: string | null;
+  status: OpportunityStatus;
+  publishedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+  organization: OpportunityOrganization;
+}
+
+export interface SearchOpportunitiesInput {
+  country?: string;
+  city?: string;
+  sector?: string;
+  type?: OpportunityType;
+  page?: number;
+  limit?: number;
+}
+
+export interface SearchOpportunitiesResult {
+  items: Opportunity[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface OpportunityFavorite {
+  id: string;
+  opportunityId: string;
+  createdAt: string;
+  opportunity: Opportunity;
+}
+
+export interface OpportunityAlert {
+  id: string;
+  country: string | null;
+  city: string | null;
+  sector: string | null;
+  type: OpportunityType | null;
+  createdAt: string;
+}
+
+export interface CreateAlertInput {
+  country?: string;
+  city?: string;
+  sector?: string;
+  type?: OpportunityType;
+}
+
+export type ReportCategory = 'HARASSMENT' | 'ABUSE' | 'DANGER' | 'FRAUD' | 'OTHER';
+
+function buildQueryString(params: Record<string, string | number | undefined>): string {
+  const entries = Object.entries(params).filter(([, value]) => value !== undefined);
+  if (entries.length === 0) return '';
+  const search = new URLSearchParams(entries.map(([key, value]) => [key, String(value)]));
+  return `?${search.toString()}`;
+}
+
 export const api = {
   register: (input: RegisterInput) =>
     request<RegisterResult>('/auth/register', { method: 'POST', body: input }),
@@ -504,4 +602,59 @@ export const api = {
     const blob = await response.blob();
     return { blob, fileName };
   },
+
+  // Public — la recherche d'offres ne requiert pas de connexion (FR-M4-003/004).
+  searchOpportunities: (query: SearchOpportunitiesInput) =>
+    request<SearchOpportunitiesResult>(
+      `/opportunities${buildQueryString(query as Record<string, string | number | undefined>)}`,
+    ),
+
+  getOpportunity: (id: string, accessToken?: string) =>
+    request<Opportunity>(`/opportunities/${id}`, { accessToken }),
+
+  reportOpportunity: (
+    accessToken: string,
+    id: string,
+    category: ReportCategory,
+    description: string,
+  ) =>
+    request<{ id: string }>(`/opportunities/${id}/report`, {
+      method: 'POST',
+      body: { category, description },
+      accessToken,
+    }),
+
+  listFavorites: (accessToken: string) =>
+    request<OpportunityFavorite[]>('/opportunities/favorites', { accessToken }),
+
+  addFavorite: (accessToken: string, opportunityId: string) =>
+    request<{ id: string }>(`/opportunities/favorites/${opportunityId}`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  removeFavorite: (accessToken: string, opportunityId: string) =>
+    request<void>(`/opportunities/favorites/${opportunityId}`, {
+      method: 'DELETE',
+      accessToken,
+    }),
+
+  listAlerts: (accessToken: string) =>
+    request<OpportunityAlert[]>('/opportunities/alerts', { accessToken }),
+
+  createAlert: (accessToken: string, input: CreateAlertInput) =>
+    request<OpportunityAlert>('/opportunities/alerts', {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  removeAlert: (accessToken: string, id: string) =>
+    request<void>(`/opportunities/alerts/${id}`, {
+      method: 'DELETE',
+      accessToken,
+    }),
+
+  getAlertMatches: (accessToken: string, id: string) =>
+    request<Opportunity[]>(`/opportunities/alerts/${id}/matches`, { accessToken }),
 };

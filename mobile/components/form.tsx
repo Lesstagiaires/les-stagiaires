@@ -6,16 +6,11 @@ import {
   TextInput,
   type TextInputProps,
 } from 'react-native';
+import { colors, radius, shadow, spacing, typography } from './theme';
 
-export const colors = {
-  primary: '#0B6E4F',
-  primaryDark: '#095A40',
-  text: '#111827',
-  muted: '#6B7280',
-  border: '#D1D5DB',
-  error: '#B91C1C',
-  background: '#FFFFFF',
-};
+// Réexporté pour compatibilité : les écrans existants importent `colors` depuis ce
+// fichier plutôt que directement depuis theme.ts.
+export { colors };
 
 export function FormInput({ style, ...props }: TextInputProps) {
   return (
@@ -29,7 +24,11 @@ export function FormInput({ style, ...props }: TextInputProps) {
 
 export function ErrorText({ children }: { children: string | null }) {
   if (!children) return null;
-  return <Text style={styles.error}>{children}</Text>;
+  return (
+    <Text style={styles.error} accessibilityRole="alert">
+      {children}
+    </Text>
+  );
 }
 
 export function PrimaryButton({
@@ -63,6 +62,37 @@ export function PrimaryButton({
   );
 }
 
+export function SecondaryButton({
+  title,
+  onPress,
+  loading,
+  disabled,
+}: {
+  title: string;
+  onPress: () => void;
+  loading?: boolean;
+  disabled?: boolean;
+}) {
+  const isDisabled = disabled || loading;
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={isDisabled}
+      style={({ pressed }) => [
+        styles.secondaryButton,
+        isDisabled && styles.buttonDisabled,
+        pressed && !isDisabled && styles.secondaryButtonPressed,
+      ]}
+    >
+      {loading ? (
+        <ActivityIndicator color={colors.primary} />
+      ) : (
+        <Text style={styles.secondaryButtonText}>{title}</Text>
+      )}
+    </Pressable>
+  );
+}
+
 export function LinkButton({
   title,
   onPress,
@@ -81,39 +111,61 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
     fontSize: 16,
     color: colors.text,
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
   },
   error: {
     color: colors.error,
-    fontSize: 14,
+    backgroundColor: colors.errorLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.sm,
+    fontSize: 13,
+    fontWeight: '600',
   },
   button: {
     backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingVertical: 14,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md + 2,
     alignItems: 'center',
     justifyContent: 'center',
+    ...shadow.sm,
   },
   buttonPressed: {
     backgroundColor: colors.primaryDark,
   },
   buttonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  secondaryButton: {
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md + 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  secondaryButtonPressed: {
+    backgroundColor: colors.border,
+  },
+  secondaryButtonText: {
+    ...typography.bodyBold,
+    color: colors.primaryDark,
   },
   link: {
     color: colors.primary,
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     textAlign: 'center',
   },
 });

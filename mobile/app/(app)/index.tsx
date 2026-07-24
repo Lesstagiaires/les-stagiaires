@@ -1,51 +1,129 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '../../components/form';
-import { api, ApiError } from '../../lib/api';
+import {
+  ActivityIndicator,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { typography, colors, spacing } from '../../components/theme';
+import { OpportunityCard } from '../../components/opportunity-card';
+import { api, ApiError, type Opportunity } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { accessToken, logout } = useAuth();
   const [fullName, setFullName] = useState<string | null>(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(true);
 
   // Les onglets restent montés en arrière-plan (comportement standard d'un tab
   // navigator) : sans refetch au focus, un nom modifié dans l'onglet Profil ne
   // se reflèterait jamais ici tant que l'app n'est pas rechargée.
   useFocusEffect(
     useCallback(() => {
-      if (!accessToken) return;
-      api
-        .getMyProfile(accessToken)
-        .then((profile) => setFullName(profile.fullName))
-        .catch((err) => {
-          // Token expiré/invalide (15 min) : renvoi silencieux vers la connexion plutôt
-          // qu'un écran d'erreur — le refresh automatique viendra avec les prochains écrans.
+      let cancelled = false;
+      async function load() {
+        try {
+          const searchPromise = api.searchOpportunities({ limit: 10 });
+          const profilePromise = accessToken ? api.getMyProfile(accessToken) : null;
+          const favoritesPromise = accessToken ? api.listFavorites(accessToken) : null;
+
+          const [search, profile, favorites] = await Promise.all([
+            searchPromise,
+            profilePromise,
+            favoritesPromise,
+          ]);
+          if (cancelled) return;
+          setOpportunities(search.items);
+          if (profile) setFullName(profile.fullName);
+          if (favorites) {
+            setFavoriteIds(new Set(favorites.map((entry) => entry.opportunityId)));
+          }
+        } catch (err) {
           if (err instanceof ApiError && err.statusCode === 401) {
             void logout();
           }
-        })
-        .finally(() => setIsLoadingProfile(false));
+        } finally {
+          if (!cancelled) setIsLoading(false);
+        }
+      }
+      void load();
+      return () => {
+        cancelled = true;
+      };
     }, [accessToken, logout]),
   );
 
+  async function toggleFavorite(opportunityId: string) {
+    if (!accessToken) return;
+    const isFavorite = favoriteIds.has(opportunityId);
+    setFavoriteIds((prev) => {
+      const next = new Set(prev);
+      if (isFavorite) next.delete(opportunityId);
+      else next.add(opportunityId);
+      return next;
+    });
+    try {
+      if (isFavorite) await api.removeFavorite(accessToken, opportunityId);
+      else await api.addFavorite(accessToken, opportunityId);
+    } catch {
+      // Rollback optimiste silencieux : l'utilisateur peut simplement retenter.
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (isFavorite) next.add(opportunityId);
+        else next.delete(opportunityId);
+        return next;
+      });
+    }
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>LES STAGIAIRES</Text>
-        {isLoadingProfile ? (
-          <ActivityIndicator color={colors.primary} />
-        ) : (
-          <Text style={styles.welcome}>
-            {fullName ? `Bienvenue, ${fullName}` : 'Bienvenue'}
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.hero}>
+          <Text style={styles.eyebrow}>LES STAGIAIRES</Text>
+          <Text style={styles.title}>
+            {fullName ? `Bienvenue, ${fullName.split(' ')[0]}` : 'Bienvenue'}
           </Text>
+          <Text style={styles.subtitle}>
+            Découvrez les opportunités de stage et d'emploi à travers l'Afrique.
+          </Text>
+        </View>
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Opportunités du moment</Text>
+        </View>
+
+        {isLoading ? (
+          <ActivityIndicator color={colors.primary} style={styles.loader} />
+        ) : opportunities.length === 0 ? (
+          <Text style={styles.emptyText}>Aucune offre publiée pour l'instant.</Text>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carousel}
+          >
+            {opportunities.map((opportunity) => (
+              <OpportunityCard
+                key={opportunity.id}
+                opportunity={opportunity}
+                compact
+                isFavorite={favoriteIds.has(opportunity.id)}
+                onToggleFavorite={
+                  accessToken ? () => toggleFavorite(opportunity.id) : undefined
+                }
+                onPress={() => router.push(`/opportunities/${opportunity.id}`)}
+              />
+            ))}
+          </ScrollView>
         )}
-        <Text style={styles.hint}>
-          Le reste de l'application (offres, candidatures) arrive au fur et à mesure des
-          prochains modules.
-        </Text>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -56,25 +134,48 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   content: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-    gap: 16,
+    paddingBottom: spacing.xxl,
+  },
+  hero: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xxl,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    gap: spacing.xs,
+  },
+  eyebrow: {
+    ...typography.label,
+    color: colors.primaryLight,
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.primary,
-    textAlign: 'center',
+    ...typography.h1,
+    color: '#fff',
   },
-  welcome: {
-    fontSize: 18,
-    color: colors.text,
-    textAlign: 'center',
+  subtitle: {
+    ...typography.body,
+    color: colors.primaryLight,
+    marginTop: spacing.xs,
   },
-  hint: {
-    fontSize: 14,
-    color: colors.muted,
+  sectionHeader: {
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.xl,
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    ...typography.h2,
+  },
+  carousel: {
+    paddingHorizontal: spacing.xl,
+    gap: spacing.md,
+  },
+  loader: {
+    marginTop: spacing.xl,
+  },
+  emptyText: {
+    ...typography.caption,
     textAlign: 'center',
+    marginTop: spacing.xl,
   },
 });
