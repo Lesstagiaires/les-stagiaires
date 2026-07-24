@@ -49,15 +49,18 @@ async function performRequest(
   path: string,
   options: { method?: string; body?: unknown; accessToken?: string },
 ): Promise<Response> {
+  // FormData (upload de fichier) : ni JSON.stringify, ni Content-Type explicite —
+  // fetch doit fixer lui-même le boundary multipart, un Content-Type manuel le casse.
+  const isFormData = options.body instanceof FormData;
   return fetch(`${API_BASE_URL}${path}`, {
     method: options.method ?? 'GET',
     headers: {
-      'Content-Type': 'application/json',
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(options.accessToken
         ? { Authorization: `Bearer ${options.accessToken}` }
         : {}),
     },
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: isFormData ? (options.body as FormData) : options.body ? JSON.stringify(options.body) : undefined,
   });
 }
 
@@ -209,6 +212,83 @@ export interface ExperienceInput {
   description?: string;
 }
 
+export type DigitalSafeDocumentCategory =
+  | 'IDENTITY'
+  | 'DIPLOMA'
+  | 'CONVENTION'
+  | 'CERTIFICATE'
+  | 'ADMISSION_LETTER'
+  | 'INTERNSHIP_REPORT'
+  | 'OTHER';
+
+export interface DocumentVersion {
+  id: string;
+  documentId: string;
+  versionNumber: number;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+}
+
+export interface DigitalSafeDocument {
+  id: string;
+  userId: string;
+  category: DigitalSafeDocumentCategory;
+  title: string;
+  createdAt: string;
+  latestVersion: DocumentVersion | null;
+}
+
+export type ShareTargetType = 'USER' | 'LINK';
+
+export interface DigitalSafeShare {
+  id: string;
+  targetType: ShareTargetType;
+  sharedWithUserId?: string | null;
+  expiresAt: string | null;
+  revokedAt?: string | null;
+  createdAt?: string;
+  token?: string; // uniquement à la création d'un partage LINK — jamais revu ensuite
+  shareUrl?: string;
+  qrCodeDataUrl?: string;
+}
+
+export interface CreateShareInput {
+  targetType: ShareTargetType;
+  sharedWithUserId?: string;
+  expiresAt?: string;
+}
+
+export type DigitalSafeAccessAction =
+  | 'VIEWED'
+  | 'DOWNLOADED'
+  | 'SHARE_CREATED'
+  | 'SHARE_REVOKED';
+
+export interface AccessLogEntry {
+  id: string;
+  action: DigitalSafeAccessAction;
+  actorUserId: string | null;
+  actor: { id: string; lsId: string } | null;
+  shareId: string | null;
+  createdAt: string;
+}
+
+// Forme native ({uri,name,type}, cf. expo-document-picker) ou web (File réel) — les
+// deux se passent tels quels à FormData.append(), qui sait gérer les deux.
+export type FilePart = { uri: string; name: string; type: string } | File;
+
+function appendFilePart(formData: FormData, file: FilePart) {
+  if (file instanceof File) {
+    formData.append('file', file);
+  } else {
+    // React Native FormData accepte cette forme bien que ce ne soit pas un vrai Blob —
+    // TypeScript ne le sait pas, d'où le cast.
+    formData.append('file', file as unknown as Blob, file.name);
+  }
+}
+
 export const api = {
   register: (input: RegisterInput) =>
     request<RegisterResult>('/auth/register', { method: 'POST', body: input }),
@@ -318,4 +398,110 @@ export const api = {
       body: { roleId },
       accessToken,
     }),
+
+  // --- Digital Safe (module 3) -----------------------------------------------------------
+
+  listDocuments: (accessToken: string) =>
+    request<DigitalSafeDocument[]>('/digital-safe/documents', { accessToken }),
+
+  createDocument: (
+    accessToken: string,
+    category: DigitalSafeDocumentCategory,
+    title: string,
+    file: FilePart,
+  ) => {
+    const body = new FormData();
+    body.append('category', category);
+    body.append('title', title);
+    appendFilePart(body, file);
+    return request<DigitalSafeDocument>('/digital-safe/documents', {
+      method: 'POST',
+      body,
+      accessToken,
+    });
+  },
+
+  addDocumentVersion: (accessToken: string, documentId: string, file: FilePart) => {
+    const body = new FormData();
+    appendFilePart(body, file);
+    return request<DocumentVersion>(`/digital-safe/documents/${documentId}/versions`, {
+      method: 'POST',
+      body,
+      accessToken,
+    });
+  },
+
+  listDocumentVersions: (accessToken: string, documentId: string) =>
+    request<DocumentVersion[]>(`/digital-safe/documents/${documentId}/versions`, {
+      accessToken,
+    }),
+
+  renameDocument: (accessToken: string, documentId: string, title: string) =>
+    request<{ id: string; title: string }>(`/digital-safe/documents/${documentId}`, {
+      method: 'PATCH',
+      body: { title },
+      accessToken,
+    }),
+
+  removeDocument: (accessToken: string, documentId: string) =>
+    request<void>(`/digital-safe/documents/${documentId}`, {
+      method: 'DELETE',
+      accessToken,
+    }),
+
+  getAccessLog: (accessToken: string, documentId: string) =>
+    request<AccessLogEntry[]>(`/digital-safe/documents/${documentId}/access-log`, {
+      accessToken,
+    }),
+
+  listShares: (accessToken: string, documentId: string) =>
+    request<DigitalSafeShare[]>(`/digital-safe/documents/${documentId}/shares`, {
+      accessToken,
+    }),
+
+  createShare: (accessToken: string, documentId: string, input: CreateShareInput) =>
+    request<DigitalSafeShare>(`/digital-safe/documents/${documentId}/shares`, {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  revokeShare: (accessToken: string, documentId: string, shareId: string) =>
+    request<void>(`/digital-safe/documents/${documentId}/shares/${shareId}`, {
+      method: 'DELETE',
+      accessToken,
+    }),
+
+  // Distinct de request() : la réponse est le fichier binaire lui-même, pas du JSON —
+  // le bénéficie du rafraîchissement de token nécessite malgré tout la même logique.
+  downloadDocument: async (
+    accessToken: string,
+    documentId: string,
+  ): Promise<{ blob: Blob; fileName: string }> => {
+    const path = `/digital-safe/documents/${documentId}/download`;
+    let response = await performRequest(path, { accessToken });
+    if (response.status === 401 && refreshHandler) {
+      if (!refreshPromise) {
+        refreshPromise = refreshHandler().finally(() => {
+          refreshPromise = null;
+        });
+      }
+      const newAccessToken = await refreshPromise;
+      if (newAccessToken) {
+        response = await performRequest(path, { accessToken: newAccessToken });
+      }
+    }
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new ApiError(
+        extractMessage(body, 'Téléchargement impossible.'),
+        response.status,
+      );
+    }
+    const disposition = response.headers.get('content-disposition') ?? '';
+    const match = /filename="?([^";]+)"?/.exec(disposition);
+    const fileName = match ? decodeURIComponent(match[1]) : 'document';
+    const blob = await response.blob();
+    return { blob, fileName };
+  },
 };

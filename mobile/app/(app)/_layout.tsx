@@ -11,6 +11,7 @@ export default function AppLayout() {
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Accueil' }} />
+      <Tabs.Screen name="digital-safe" options={{ title: 'Coffre-fort' }} />
       <Tabs.Screen name="profile" options={{ title: 'Profil' }} />
     </Tabs>
   );
