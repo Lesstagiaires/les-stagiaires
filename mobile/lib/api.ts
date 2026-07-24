@@ -413,6 +413,29 @@ export interface ApplicationOpportunity {
   country: string;
 }
 
+export interface DossierSnapshotRecommendation {
+  id: string;
+  message: string;
+  createdAt: string;
+  giverId: string;
+}
+
+export interface DossierSnapshot {
+  lsId: string | null;
+  activeRole: string | null;
+  headline: string | null;
+  summary: string | null;
+  education: Education[];
+  experience: Experience[];
+  languages: ProfileLanguageEntry[];
+  recommendations: DossierSnapshotRecommendation[];
+}
+
+export interface ApplicationCandidate {
+  id: string;
+  lsId: string | null;
+}
+
 export interface Application {
   id: string;
   reference: string;
@@ -420,7 +443,7 @@ export interface Application {
   organizationId: string;
   opportunityId: string | null;
   status: ApplicationStatus;
-  dossierSnapshot: unknown;
+  dossierSnapshot: DossierSnapshot;
   willingToRelocate: boolean | null;
   hasFamilyInDestination: boolean | null;
   interviewProposedAt: string | null;
@@ -443,6 +466,7 @@ export interface Application {
   updatedAt: string;
   organization: ApplicationOrganization;
   opportunity: ApplicationOpportunity | null;
+  candidate?: ApplicationCandidate;
 }
 
 export interface ApplicationStatusEvent {
@@ -482,6 +506,78 @@ export interface CreateApplicationInput {
   organizationId?: string;
   willingToRelocate?: boolean;
   hasFamilyInDestination?: boolean;
+}
+
+// --- Entreprises / Organisations (module 6, côté ENTREPRISE) -------------------------------
+
+export type OrganizationType = 'ENTREPRISE' | 'ETABLISSEMENT';
+export type OrganizationVerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
+
+export interface Organization {
+  id: string;
+  type: OrganizationType;
+  orgId: string | null;
+  ownerId: string;
+  name: string;
+  sector: string | null;
+  country: string;
+  city: string;
+  logoUrl: string | null;
+  description: string | null;
+  website: string | null;
+  verificationStatus: OrganizationVerificationStatus;
+  verifiedAt: string | null;
+  partnershipSignedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateOrganizationInput {
+  name: string;
+  sector?: string;
+  country: string;
+  city: string;
+}
+
+export interface UpdateOrganizationPageInput {
+  logoUrl?: string;
+  description?: string;
+  website?: string;
+}
+
+export interface CreateOpportunityInput {
+  organizationId: string;
+  title: string;
+  description: string;
+  type: OpportunityType;
+  sector: string;
+  country: string;
+  city: string;
+  workMode?: WorkMode;
+  relocationRequired?: boolean;
+  accommodationProvided?: boolean;
+  mobilityBenefits?: string;
+}
+
+export type UpdateOpportunityInput = Partial<Omit<CreateOpportunityInput, 'organizationId'>>;
+
+export interface ListReceivedFilters {
+  organizationId?: string;
+  opportunityId?: string;
+  status?: ApplicationStatus;
+}
+
+export interface ProposeInterviewInput {
+  proposedAt: string;
+  mode: string;
+  location?: string;
+}
+
+export type ApplicationDecisionValue = 'ACCEPTED' | 'REJECTED';
+
+export interface DecideApplicationInput {
+  decision: ApplicationDecisionValue;
+  note?: string;
 }
 
 function buildQueryString(params: Record<string, string | number | undefined>): string {
@@ -857,4 +953,97 @@ export const api = {
     const blob = await response.blob();
     return { blob, fileName };
   },
+
+  // --- Entreprises / Organisations (module 6, côté ENTREPRISE) ---------------------------
+
+  listMyOrganizations: (accessToken: string) =>
+    request<Organization[]>('/organizations/mine', { accessToken }),
+
+  createOrganization: (accessToken: string, input: CreateOrganizationInput) =>
+    request<Organization>('/organizations', { method: 'POST', body: input, accessToken }),
+
+  updateOrganizationPage: (
+    accessToken: string,
+    organizationId: string,
+    input: UpdateOrganizationPageInput,
+  ) =>
+    request<Organization>(`/organizations/${organizationId}/page`, {
+      method: 'PATCH',
+      body: input,
+      accessToken,
+    }),
+
+  // --- Offres (module 4, côté organisation) -----------------------------------------------
+
+  listMyOpportunities: (accessToken: string) =>
+    request<Opportunity[]>('/opportunities/mine', { accessToken }),
+
+  createOpportunity: (accessToken: string, input: CreateOpportunityInput) =>
+    request<Opportunity>('/opportunities', { method: 'POST', body: input, accessToken }),
+
+  updateOpportunity: (accessToken: string, id: string, input: UpdateOpportunityInput) =>
+    request<Opportunity>(`/opportunities/${id}`, { method: 'PATCH', body: input, accessToken }),
+
+  publishOpportunity: (accessToken: string, id: string) =>
+    request<void>(`/opportunities/${id}/publish`, { method: 'POST', accessToken }),
+
+  pauseOpportunity: (accessToken: string, id: string) =>
+    request<void>(`/opportunities/${id}/pause`, { method: 'POST', accessToken }),
+
+  resumeOpportunity: (accessToken: string, id: string) =>
+    request<void>(`/opportunities/${id}/resume`, { method: 'POST', accessToken }),
+
+  fillOpportunity: (accessToken: string, id: string) =>
+    request<void>(`/opportunities/${id}/fill`, { method: 'POST', accessToken }),
+
+  cancelOpportunity: (accessToken: string, id: string) =>
+    request<void>(`/opportunities/${id}/cancel`, { method: 'POST', accessToken }),
+
+  // --- Candidatures reçues (module 5, côté organisation) -----------------------------------
+
+  listReceivedApplications: (accessToken: string, filters: ListReceivedFilters = {}) =>
+    request<Application[]>(
+      `/applications/received${buildQueryString(filters as Record<string, string | undefined>)}`,
+      { accessToken },
+    ),
+
+  markApplicationUnderReview: (accessToken: string, applicationId: string) =>
+    request<void>(`/applications/${applicationId}/review`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  requestApplicationDocument: (accessToken: string, applicationId: string, description: string) =>
+    request<ApplicationDocumentRequest>(`/applications/${applicationId}/document-requests`, {
+      method: 'POST',
+      body: { description },
+      accessToken,
+    }),
+
+  proposeInterview: (accessToken: string, applicationId: string, input: ProposeInterviewInput) =>
+    request<void>(`/applications/${applicationId}/interview`, {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  decideApplication: (accessToken: string, applicationId: string, input: DecideApplicationInput) =>
+    request<void>(`/applications/${applicationId}/decision`, {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  completeApplication: (accessToken: string, applicationId: string) =>
+    request<void>(`/applications/${applicationId}/complete`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  recommendCandidate: (accessToken: string, applicationId: string, message: string) =>
+    request<{ id: string }>(`/applications/${applicationId}/recommend`, {
+      method: 'POST',
+      body: { message },
+      accessToken,
+    }),
 };
