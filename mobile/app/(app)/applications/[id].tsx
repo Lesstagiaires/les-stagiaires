@@ -125,12 +125,7 @@ export default function ApplicationDetailScreen() {
         )}
 
         {application.status === 'AWAITING_TRAVEL_CONSENT' && (
-          <Section title="Accord parental en attente">
-            <Text style={typography.body}>
-              Un SMS a été envoyé à votre parent/tuteur pour confirmer l'accord de
-              déplacement. Votre candidature reprendra dès sa confirmation.
-            </Text>
-          </Section>
+          <TravelConsentSection application={application} onChanged={reload} />
         )}
 
         {application.status === 'ACCEPTED' && (
@@ -323,6 +318,59 @@ function AdmissionLetterSection({
         title="Accepter la lettre d'admission"
         onPress={handleAccept}
         loading={isSubmitting}
+      />
+    </Section>
+  );
+}
+
+// --- Accord parental de déplacement ---------------------------------------------------------
+
+function TravelConsentSection({
+  application,
+  onChanged,
+}: {
+  application: ApplicationDetail;
+  onChanged: () => Promise<void>;
+}) {
+  const [code, setCode] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const travelConsentId = application.travelConsent?.id;
+
+  async function handleConfirm() {
+    if (!travelConsentId) return;
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await api.confirmTravelConsent(travelConsentId, code);
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Code invalide ou expiré.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <Section title="Accord parental de déplacement">
+      <Text style={typography.body}>
+        Un SMS a été envoyé à votre parent/tuteur avec un code à 6 chiffres. Demandez-le
+        lui et saisissez-le ci-dessous pour confirmer l'accord de déplacement.
+      </Text>
+      <FormInput
+        placeholder="Code à 6 chiffres"
+        value={code}
+        onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, 6))}
+        keyboardType="number-pad"
+        maxLength={6}
+      />
+      <ErrorText>{error}</ErrorText>
+      <PrimaryButton
+        title="Confirmer l'accord"
+        onPress={handleConfirm}
+        loading={isSubmitting}
+        disabled={!travelConsentId || code.length !== 6}
       />
     </Section>
   );

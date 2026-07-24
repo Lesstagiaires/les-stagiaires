@@ -92,6 +92,13 @@ const APPLICATION_SAFE_SELECT = {
   completedAt: true,
   createdAt: true,
   updatedAt: true,
+  // Expose uniquement id/status/expiration : jamais consentCodeHash (secret de
+  // vérification, CLAUDE.md §6). Sans ceci, le candidat n'a aucun moyen de retrouver
+  // le travelConsentId nécessaire à POST /applications/travel-consent/:id/confirm —
+  // le SMS envoyé au parent ne contient que le code, jamais cet identifiant.
+  travelConsent: {
+    select: { id: true, status: true, consentExpiresAt: true },
+  },
   ...APPLICATION_INCLUDE,
 } as const;
 

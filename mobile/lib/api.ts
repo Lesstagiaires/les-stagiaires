@@ -436,6 +436,14 @@ export interface ApplicationCandidate {
   lsId: string | null;
 }
 
+export type TravelConsentStatus = 'PENDING' | 'CONFIRMED' | 'EXPIRED';
+
+export interface ApplicationTravelConsent {
+  id: string;
+  status: TravelConsentStatus;
+  consentExpiresAt: string | null;
+}
+
 export interface Application {
   id: string;
   reference: string;
@@ -467,6 +475,7 @@ export interface Application {
   organization: ApplicationOrganization;
   opportunity: ApplicationOpportunity | null;
   candidate?: ApplicationCandidate;
+  travelConsent: ApplicationTravelConsent | null;
 }
 
 export interface ApplicationStatusEvent {
@@ -975,6 +984,15 @@ export const api = {
     request<void>(`/applications/${applicationId}/withdraw`, {
       method: 'POST',
       accessToken,
+    }),
+
+  // Public : le parent/tuteur n'a pas forcément de compte — seule la connaissance du
+  // code envoyé par SMS fait foi. Utilisable aussi bien par le candidat connecté (à qui
+  // le parent communique le code) que par un tiers sans session.
+  confirmTravelConsent: (travelConsentId: string, code: string) =>
+    request<{ message: string }>(`/applications/travel-consent/${travelConsentId}/confirm`, {
+      method: 'POST',
+      body: { code },
     }),
 
   submitInternshipReport: (
