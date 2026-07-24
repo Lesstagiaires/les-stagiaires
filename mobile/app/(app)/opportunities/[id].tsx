@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -34,6 +34,7 @@ const REPORT_CATEGORY_OPTIONS: { value: ReportCategory; label: string }[] = [
 
 export default function OpportunityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { accessToken, logout } = useAuth();
 
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
@@ -147,7 +148,11 @@ export default function OpportunityDetailScreen() {
           </>
         )}
 
-        <PrimaryButton title="Postuler — bientôt disponible" onPress={() => undefined} disabled />
+        <ApplySection
+          accessToken={accessToken}
+          opportunity={opportunity}
+          onApplied={(applicationId) => router.push(`/applications/${applicationId}`)}
+        />
 
         <ReportSection accessToken={accessToken} opportunityId={id} />
       </ScrollView>
@@ -160,6 +165,93 @@ function InfoRow({ icon, label }: { icon: keyof typeof Ionicons.glyphMap; label:
     <View style={styles.infoRow}>
       <Ionicons name={icon} size={18} color={colors.primaryDark} />
       <Text style={styles.infoText}>{label}</Text>
+    </View>
+  );
+}
+
+function ApplySection({
+  accessToken,
+  opportunity,
+  onApplied,
+}: {
+  accessToken: string;
+  opportunity: Opportunity;
+  onApplied: (applicationId: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [willingToRelocate, setWillingToRelocate] = useState<boolean | null>(null);
+  const [hasFamilyInDestination, setHasFamilyInDestination] = useState<boolean | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit() {
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const application = await api.createApplication(accessToken, {
+        opportunityId: opportunity.id,
+        willingToRelocate: opportunity.relocationRequired ? willingToRelocate ?? undefined : undefined,
+        hasFamilyInDestination: opportunity.relocationRequired
+          ? hasFamilyInDestination ?? undefined
+          : undefined,
+      });
+      onApplied(application.id);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Candidature impossible.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (!isOpen) {
+    return <PrimaryButton title="Postuler" onPress={() => setIsOpen(true)} />;
+  }
+
+  const canSubmit = !opportunity.relocationRequired || willingToRelocate !== null;
+
+  return (
+    <View style={styles.applyForm}>
+      <Text style={styles.sectionTitle}>Confirmer ma candidature</Text>
+      <Text style={styles.description}>
+        Votre dossier (profil, CV, langues, expériences) sera envoyé tel quel à
+        l'organisation.
+      </Text>
+
+      {opportunity.relocationRequired && (
+        <>
+          <Text style={typography.bodyBold}>Êtes-vous prêt(e) à déménager ?</Text>
+          <ChipSelect
+            options={[
+              { value: 'yes', label: 'Oui' },
+              { value: 'no', label: 'Non' },
+            ]}
+            value={willingToRelocate === null ? null : willingToRelocate ? 'yes' : 'no'}
+            onChange={(value) => setWillingToRelocate(value === 'yes')}
+          />
+          <Text style={typography.bodyBold}>Avez-vous de la famille sur place ?</Text>
+          <ChipSelect
+            options={[
+              { value: 'yes', label: 'Oui' },
+              { value: 'no', label: 'Non' },
+            ]}
+            value={
+              hasFamilyInDestination === null ? null : hasFamilyInDestination ? 'yes' : 'no'
+            }
+            onChange={(value) => setHasFamilyInDestination(value === 'yes')}
+          />
+        </>
+      )}
+
+      <ErrorText>{error}</ErrorText>
+      <PrimaryButton
+        title="Envoyer ma candidature"
+        onPress={handleSubmit}
+        loading={isSubmitting}
+        disabled={!canSubmit}
+      />
+      <Pressable onPress={() => setIsOpen(false)}>
+        <Text style={styles.cancelText}>Annuler</Text>
+      </Pressable>
     </View>
   );
 }
@@ -300,6 +392,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.lg,
   },
   reportForm: {
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  applyForm: {
     gap: spacing.sm,
     marginTop: spacing.md,
   },

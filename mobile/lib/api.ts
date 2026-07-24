@@ -380,6 +380,110 @@ export interface CreateAlertInput {
 
 export type ReportCategory = 'HARASSMENT' | 'ABUSE' | 'DANGER' | 'FRAUD' | 'OTHER';
 
+// --- Candidatures (module 5) ---------------------------------------------------------------
+
+export type ApplicationStatus =
+  | 'SUBMITTED'
+  | 'UNDER_REVIEW'
+  | 'ADDITIONAL_DOCUMENT_REQUESTED'
+  | 'INTERVIEW_PROPOSED'
+  | 'INTERVIEW_CONFIRMED'
+  | 'ADMISSION_LETTER_SENT'
+  | 'ACCEPTED'
+  | 'AWAITING_TRAVEL_CONSENT'
+  | 'REJECTED'
+  | 'WITHDRAWN'
+  | 'COMPLETED';
+
+export type ApplicationDocumentRequestStatus = 'PENDING' | 'FULFILLED';
+export type ApplicationArtifactKind = 'ADMISSION_LETTER' | 'CONVENTION' | 'ATTESTATION';
+
+export interface ApplicationOrganization {
+  id: string;
+  name: string;
+  ownerId: string;
+}
+
+export interface ApplicationOpportunity {
+  id: string;
+  title: string;
+  type: OpportunityType;
+  relocationRequired: boolean;
+  city: string;
+  country: string;
+}
+
+export interface Application {
+  id: string;
+  reference: string;
+  candidateId: string;
+  organizationId: string;
+  opportunityId: string | null;
+  status: ApplicationStatus;
+  dossierSnapshot: unknown;
+  willingToRelocate: boolean | null;
+  hasFamilyInDestination: boolean | null;
+  interviewProposedAt: string | null;
+  interviewMode: string | null;
+  interviewLocation: string | null;
+  interviewConfirmedAt: string | null;
+  decisionAt: string | null;
+  decisionNote: string | null;
+  candidateSignedAt: string | null;
+  candidateSignedName: string | null;
+  organizationSignedAt: string | null;
+  organizationSignedName: string | null;
+  establishmentParticipationRequested: boolean;
+  establishmentSignedAt: string | null;
+  establishmentSignedName: string | null;
+  startedAt: string | null;
+  withdrawnAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  organization: ApplicationOrganization;
+  opportunity: ApplicationOpportunity | null;
+}
+
+export interface ApplicationStatusEvent {
+  id: string;
+  fromStatus: ApplicationStatus | null;
+  toStatus: ApplicationStatus;
+  actorUserId: string | null;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface ApplicationDocumentRequest {
+  id: string;
+  applicationId: string;
+  requestedByUserId: string;
+  description: string;
+  status: ApplicationDocumentRequestStatus;
+  fulfilledDigitalSafeDocumentId: string | null;
+  fulfilledAt: string | null;
+  createdAt: string;
+}
+
+export interface ApplicationArtifact {
+  id: string;
+  kind: ApplicationArtifactKind;
+  createdAt: string;
+}
+
+export interface ApplicationDetail extends Application {
+  history: ApplicationStatusEvent[];
+  documentRequests: ApplicationDocumentRequest[];
+  artifacts: ApplicationArtifact[];
+}
+
+export interface CreateApplicationInput {
+  opportunityId?: string;
+  organizationId?: string;
+  willingToRelocate?: boolean;
+  hasFamilyInDestination?: boolean;
+}
+
 function buildQueryString(params: Record<string, string | number | undefined>): string {
   const entries = Object.entries(params).filter(([, value]) => value !== undefined);
   if (entries.length === 0) return '';
@@ -657,4 +761,100 @@ export const api = {
 
   getAlertMatches: (accessToken: string, id: string) =>
     request<Opportunity[]>(`/opportunities/alerts/${id}/matches`, { accessToken }),
+
+  // --- Candidatures (module 5, côté candidat) ---------------------------------------------
+
+  previewDossier: (accessToken: string) =>
+    request<unknown>('/applications/preview', { accessToken }),
+
+  createApplication: (accessToken: string, input: CreateApplicationInput) =>
+    request<Application>('/applications', { method: 'POST', body: input, accessToken }),
+
+  listMyApplications: (accessToken: string) =>
+    request<Application[]>('/applications/mine', { accessToken }),
+
+  getApplication: (accessToken: string, id: string) =>
+    request<ApplicationDetail>(`/applications/${id}`, { accessToken }),
+
+  fulfillDocumentRequest: (
+    accessToken: string,
+    applicationId: string,
+    requestId: string,
+    digitalSafeDocumentId: string,
+  ) =>
+    request<void>(`/applications/${applicationId}/document-requests/${requestId}/fulfill`, {
+      method: 'POST',
+      body: { digitalSafeDocumentId },
+      accessToken,
+    }),
+
+  confirmInterview: (accessToken: string, applicationId: string) =>
+    request<void>(`/applications/${applicationId}/interview/confirm`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  acceptAdmissionLetter: (accessToken: string, applicationId: string) =>
+    request<void>(`/applications/${applicationId}/admission-letter/accept`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  signApplication: (accessToken: string, applicationId: string, name: string) =>
+    request<void>(`/applications/${applicationId}/sign`, {
+      method: 'POST',
+      body: { name },
+      accessToken,
+    }),
+
+  withdrawApplication: (accessToken: string, applicationId: string) =>
+    request<void>(`/applications/${applicationId}/withdraw`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  submitInternshipReport: (
+    accessToken: string,
+    applicationId: string,
+    digitalSafeDocumentId: string,
+  ) =>
+    request<{ id: string }>(`/applications/${applicationId}/report`, {
+      method: 'POST',
+      body: { digitalSafeDocumentId },
+      accessToken,
+    }),
+
+  // Même logique de rafraîchissement que downloadDocument (Digital Safe) : la réponse
+  // est un fichier binaire, pas du JSON.
+  downloadArtifact: async (
+    accessToken: string,
+    applicationId: string,
+    kind: ApplicationArtifactKind,
+  ): Promise<{ blob: Blob; fileName: string }> => {
+    const path = `/applications/${applicationId}/artifacts/${kind}`;
+    let response = await performRequest(path, { accessToken });
+    if (response.status === 401 && refreshHandler) {
+      if (!refreshPromise) {
+        refreshPromise = refreshHandler().finally(() => {
+          refreshPromise = null;
+        });
+      }
+      const newAccessToken = await refreshPromise;
+      if (newAccessToken) {
+        response = await performRequest(path, { accessToken: newAccessToken });
+      }
+    }
+    if (!response.ok) {
+      const body = await response.json().catch(() => null);
+      throw new ApiError(
+        extractMessage(body, 'Téléchargement impossible.'),
+        response.status,
+      );
+    }
+    const disposition = response.headers.get('content-disposition') ?? '';
+    const match = /filename="?([^";]+)"?/.exec(disposition);
+    const fileName = match ? decodeURIComponent(match[1]) : 'document';
+    const blob = await response.blob();
+    return { blob, fileName };
+  },
 };

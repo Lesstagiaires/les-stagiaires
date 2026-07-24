@@ -1,12 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from './theme';
 
-type Tone = 'primary' | 'accent' | 'neutral';
+export type Tone = 'primary' | 'accent' | 'neutral' | 'error';
 
 const TONE_STYLES: Record<Tone, { bg: string; fg: string }> = {
   primary: { bg: colors.primaryLight, fg: colors.primaryDark },
   accent: { bg: colors.accentLight, fg: colors.accentDark },
   neutral: { bg: colors.surfaceAlt, fg: colors.textSecondary },
+  error: { bg: colors.errorLight, fg: colors.error },
 };
 
 export function Badge({ label, tone = 'neutral' }: { label: string; tone?: Tone }) {

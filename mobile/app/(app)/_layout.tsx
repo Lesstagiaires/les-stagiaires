@@ -27,6 +27,10 @@ export default function AppLayout() {
         options={{ title: 'Offres', tabBarIcon: TabIcon('search-outline') }}
       />
       <Tabs.Screen
+        name="applications"
+        options={{ title: 'Candidatures', tabBarIcon: TabIcon('document-text-outline') }}
+      />
+      <Tabs.Screen
         name="digital-safe"
         options={{ title: 'Coffre-fort', tabBarIcon: TabIcon('lock-closed-outline') }}
       />
