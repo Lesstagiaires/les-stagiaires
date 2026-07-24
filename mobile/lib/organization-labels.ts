@@ -16,7 +16,7 @@ export const ORGANIZATION_VERIFICATION_LABELS: Record<OrganizationVerificationSt
 
 export const ORGANIZATION_VERIFICATION_TONE: Record<OrganizationVerificationStatus, StatusTone> = {
   PENDING: 'accent',
-  VERIFIED: 'primary',
+  VERIFIED: 'success',
   REJECTED: 'error',
 };
 
@@ -38,7 +38,7 @@ export const OPPORTUNITY_STATUS_TONE: Record<OpportunityStatus, StatusTone> = {
   PENDING_REVIEW: 'accent',
   ACTIVE: 'primary',
   PAUSED: 'accent',
-  FILLED: 'primary',
+  FILLED: 'success',
   EXPIRED: 'neutral',
   CANCELLED: 'error',
   REPORTED: 'error',
@@ -90,6 +90,6 @@ export const NEED_REQUEST_STATUS_LABELS: Record<NeedRequestStatus, string> = {
 
 export const NEED_REQUEST_STATUS_TONE: Record<NeedRequestStatus, StatusTone> = {
   PENDING: 'accent',
-  APPROVED: 'primary',
+  APPROVED: 'success',
   REJECTED: 'error',
 };

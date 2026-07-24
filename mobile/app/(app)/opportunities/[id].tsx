@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   verified: {
-    color: colors.primary,
+    color: colors.success,
     fontWeight: '700',
   },
   infoCard: {

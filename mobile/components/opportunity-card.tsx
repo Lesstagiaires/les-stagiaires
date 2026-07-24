@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     ...typography.caption,
   },
   verified: {
-    color: colors.primary,
+    color: colors.success,
     fontWeight: '700',
   },
   metaRow: {

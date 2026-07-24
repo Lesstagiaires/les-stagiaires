@@ -1,12 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radius, spacing } from './theme';
 
-export type Tone = 'primary' | 'accent' | 'neutral' | 'error';
+export type Tone = 'primary' | 'accent' | 'neutral' | 'success' | 'error';
 
 const TONE_STYLES: Record<Tone, { bg: string; fg: string }> = {
   primary: { bg: colors.primaryLight, fg: colors.primaryDark },
   accent: { bg: colors.accentLight, fg: colors.accentDark },
   neutral: { bg: colors.surfaceAlt, fg: colors.textSecondary },
+  success: { bg: colors.successLight, fg: colors.success },
   error: { bg: colors.errorLight, fg: colors.error },
 };
 

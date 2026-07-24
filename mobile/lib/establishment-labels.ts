@@ -34,5 +34,5 @@ export const REPORT_STATUS_LABELS: Record<InternshipReportStatus, string> = {
 export const REPORT_STATUS_TONE: Record<InternshipReportStatus, StatusTone> = {
   SUBMITTED: 'accent',
   NEEDS_REVISION: 'error',
-  VALIDATED: 'primary',
+  VALIDATED: 'success',
 };

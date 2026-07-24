@@ -14,7 +14,7 @@ export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   COMPLETED: 'Terminée',
 };
 
-export type StatusTone = 'primary' | 'accent' | 'neutral' | 'error';
+export type StatusTone = 'primary' | 'accent' | 'neutral' | 'success' | 'error';
 
 export const APPLICATION_STATUS_TONE: Record<ApplicationStatus, StatusTone> = {
   SUBMITTED: 'neutral',
@@ -23,11 +23,11 @@ export const APPLICATION_STATUS_TONE: Record<ApplicationStatus, StatusTone> = {
   INTERVIEW_PROPOSED: 'accent',
   INTERVIEW_CONFIRMED: 'accent',
   ADMISSION_LETTER_SENT: 'accent',
-  ACCEPTED: 'primary',
+  ACCEPTED: 'success',
   AWAITING_TRAVEL_CONSENT: 'accent',
   REJECTED: 'error',
   WITHDRAWN: 'error',
-  COMPLETED: 'primary',
+  COMPLETED: 'success',
 };
 
 export const ARTIFACT_KIND_LABELS = {

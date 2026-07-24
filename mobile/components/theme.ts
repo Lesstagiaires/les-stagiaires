@@ -1,15 +1,17 @@
 import type { TextStyle, ViewStyle } from 'react-native';
 
-// Palette : vert profond (identité déjà en place) + accent ambre chaleureux pour les
-// actions/mises en avant, échelle neutre élargie pour distinguer fond de page, surface
-// de carte et bordures plutôt que de tout confondre en un seul gris.
+// Palette alignée sur l'identité du logo : bleu marine profond en couleur principale,
+// orange en accent (actions/mises en avant) — le vert est réservé exclusivement aux
+// états de validation et de succès (jamais utilisé comme couleur de marque générique),
+// échelle neutre élargie pour distinguer fond de page, surface de carte et bordures
+// plutôt que de tout confondre en un seul gris.
 export const colors = {
-  primary: '#0B6E4F',
-  primaryDark: '#095A40',
-  primaryLight: '#E3F2EC',
-  accent: '#F2A93B',
-  accentDark: '#C97F12',
-  accentLight: '#FDF1DD',
+  primary: '#1B2A4A',
+  primaryDark: '#12203A',
+  primaryLight: '#E7EAF1',
+  accent: '#F2901E',
+  accentDark: '#C46E0A',
+  accentLight: '#FCEBD8',
   background: '#FFFFFF',
   surface: '#FFFFFF',
   surfaceAlt: '#F6F8F7',
@@ -19,8 +21,11 @@ export const colors = {
   border: '#E4E9E6',
   error: '#C0392B',
   errorLight: '#FBEAE8',
-  success: '#0B6E4F',
-  warning: '#C97F12',
+  // Réservé aux états de validation/succès (candidature acceptée, document validé,
+  // organisation vérifiée...) — jamais utilisé comme synonyme de "primary".
+  success: '#0F6E56',
+  successLight: '#E1F5EE',
+  warning: '#C46E0A',
 } as const;
 
 export const spacing = {
@@ -44,21 +49,21 @@ export const radius = {
 // couvrant les deux moteurs de rendu plutôt que de dupliquer par plateforme.
 export const shadow: Record<'sm' | 'md' | 'lg', ViewStyle> = {
   sm: {
-    shadowColor: '#0F1F17',
+    shadowColor: '#0B1220',
     shadowOpacity: 0.06,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
   md: {
-    shadowColor: '#0F1F17',
+    shadowColor: '#0B1220',
     shadowOpacity: 0.1,
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 5,
   },
   lg: {
-    shadowColor: '#0F1F17',
+    shadowColor: '#0B1220',
     shadowOpacity: 0.14,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 12 },
