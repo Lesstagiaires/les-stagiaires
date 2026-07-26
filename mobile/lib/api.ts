@@ -191,6 +191,7 @@ export interface ProfileLanguageEntry {
 
 export interface Profile {
   id: string;
+  userId: string;
   fullName: string | null;
   headline: string | null;
   summary: string | null;

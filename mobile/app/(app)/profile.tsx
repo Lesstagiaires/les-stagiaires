@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { Badge } from '../../components/badge';
+import { Card } from '../../components/card';
 import { ChipSelect } from '../../components/chip-select';
 import { DateInput } from '../../components/date-input';
 import { colors, ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../components/form';
@@ -22,6 +23,7 @@ import {
   type HeldRole,
   type LanguageLevel,
   type Profile,
+  type Recommendation,
   type RoleCatalogItem,
 } from '../../lib/api';
 import { LEARNER_STATUS_LABELS, LEARNER_STATUS_TONE } from '../../lib/establishment-labels';
@@ -42,6 +44,7 @@ export default function ProfileScreen() {
   const [catalog, setCatalog] = useState<RoleCatalogItem[]>([]);
   const [heldRoles, setHeldRoles] = useState<HeldRole[]>([]);
   const [enrollments, setEnrollments] = useState<EstablishmentEnrollment[]>([]);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -58,6 +61,7 @@ export default function ProfileScreen() {
       setCatalog(nextCatalog);
       setHeldRoles(nextHistory.filter((entry) => entry.isActive));
       setEnrollments(nextEnrollments);
+      setRecommendations(await api.listRecommendations(accessToken, nextProfile.userId));
       setLoadError(null);
     } catch (err) {
       if (err instanceof ApiError && err.statusCode === 401) {
@@ -138,6 +142,14 @@ export default function ProfileScreen() {
           languages={profile.languages}
           onChanged={reload}
         />
+
+        {recommendations.length > 0 && (
+          <RecommendationsSection
+            accessToken={accessToken}
+            recommendations={recommendations}
+            onChanged={reload}
+          />
+        )}
 
         <Pressable onPress={() => void logout()} style={styles.logout}>
           <Text style={styles.logoutText}>Se déconnecter</Text>
@@ -676,6 +688,74 @@ function LanguageSection({
   );
 }
 
+// --- FR-PRO-011 : recommandations reçues — consentement actif avant publication ---------
+// (CLAUDE.md §5) : une recommandation reste masquée tant que le titulaire ne l'a pas
+// explicitement affichée, même une fois l'organisation émettrice ayant agi.
+
+function RecommendationsSection({
+  accessToken,
+  recommendations,
+  onChanged,
+}: {
+  accessToken: string;
+  recommendations: Recommendation[];
+  onChanged: () => Promise<void>;
+}) {
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function toggle(recommendation: Recommendation) {
+    setError(null);
+    setBusyId(recommendation.id);
+    try {
+      if (recommendation.visible) {
+        await api.hideRecommendation(accessToken, recommendation.id);
+      } else {
+        await api.showRecommendation(accessToken, recommendation.id);
+      }
+      await onChanged();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Action impossible.');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  return (
+    <Section title="Recommandations reçues">
+      <Text style={styles.hint}>
+        Une recommandation reste masquée tant que vous ne l'affichez pas vous-même sur
+        votre profil.
+      </Text>
+      {recommendations.map((recommendation) => (
+        <Card key={recommendation.id} style={styles.recommendationCard}>
+          <View style={styles.enrollmentHeader}>
+            <Badge
+              label={recommendation.visible ? 'Visible sur le profil' : 'Masquée'}
+              tone={recommendation.visible ? 'success' : 'neutral'}
+            />
+          </View>
+          <Text style={styles.recommendationMessage}>{recommendation.message}</Text>
+          <Pressable
+            onPress={() => toggle(recommendation)}
+            disabled={busyId !== null}
+            hitSlop={8}
+          >
+            {busyId === recommendation.id ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <Text style={styles.addText}>
+                {recommendation.visible ? 'Masquer' : 'Afficher sur le profil'}
+              </Text>
+            )}
+          </Pressable>
+        </Card>
+      ))}
+      <ErrorText>{error}</ErrorText>
+    </Section>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -752,6 +832,14 @@ const styles = StyleSheet.create({
   },
   enrollmentButton: {
     flex: 1,
+  },
+  recommendationCard: {
+    gap: 8,
+  },
+  recommendationMessage: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
   },
   removeText: {
     fontSize: 13,
