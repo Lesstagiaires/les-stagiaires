@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ChipSelect } from '../../../components/chip-select';
 import { OpportunityCard } from '../../../components/opportunity-card';
 import { colors, radius, spacing, typography } from '../../../components/theme';
@@ -20,6 +21,7 @@ import { useAuth } from '../../../lib/auth-context';
 
 export default function OpportunitiesSearchScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { accessToken } = useAuth();
 
   const [country, setCountry] = useState('');
@@ -54,13 +56,13 @@ export default function OpportunitiesSearchScreen() {
         setTotal(result.total);
         setPage(result.page);
       } catch (err) {
-        setError(err instanceof ApiError ? err.message : 'Recherche impossible.');
+        setError(err instanceof ApiError ? err.message : t('opportunities.search.searchError'));
       } finally {
         setIsLoading(false);
         setIsLoadingMore(false);
       }
     },
-    [country, city, sector, type],
+    [country, city, sector, type, t],
   );
 
   useFocusEffect(
@@ -110,7 +112,7 @@ export default function OpportunitiesSearchScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.topRow}>
-          <Text style={styles.title}>Offres</Text>
+          <Text style={styles.title}>{t('nav.opportunities')}</Text>
           <Pressable onPress={() => router.push('/opportunities/alerts')} hitSlop={8}>
             <Ionicons name="notifications-outline" size={24} color={colors.primary} />
           </Pressable>
@@ -118,23 +120,38 @@ export default function OpportunitiesSearchScreen() {
 
         <Pressable style={styles.filterToggle} onPress={() => setIsFilterOpen((v) => !v)}>
           <Ionicons name="options-outline" size={18} color={colors.primaryDark} />
-          <Text style={styles.filterToggleText}>Filtres</Text>
+          <Text style={styles.filterToggleText}>{t('opportunities.search.filters')}</Text>
         </Pressable>
 
         {isFilterOpen && (
           <View style={styles.filters}>
-            <FormInput placeholder="Pays" value={country} onChangeText={setCountry} />
-            <FormInput placeholder="Ville" value={city} onChangeText={setCity} />
-            <FormInput placeholder="Secteur" value={sector} onChangeText={setSector} />
+            <FormInput
+              placeholder={t('opportunities.search.countryPlaceholder')}
+              value={country}
+              onChangeText={setCountry}
+            />
+            <FormInput
+              placeholder={t('opportunities.search.cityPlaceholder')}
+              value={city}
+              onChangeText={setCity}
+            />
+            <FormInput
+              placeholder={t('opportunities.search.sectorPlaceholder')}
+              value={sector}
+              onChangeText={setSector}
+            />
             <ChipSelect
-              options={[{ value: '__all__', label: 'Tous les types' }, ...OPPORTUNITY_TYPE_OPTIONS]}
+              options={[
+                { value: '__all__', label: t('opportunities.search.allTypes') },
+                ...OPPORTUNITY_TYPE_OPTIONS,
+              ]}
               value={type ?? '__all__'}
               onChange={(value) =>
                 setType(value === '__all__' ? null : (value as OpportunityType))
               }
             />
             <Pressable style={styles.searchButton} onPress={() => void runSearch(1, false)}>
-              <Text style={styles.searchButtonText}>Rechercher</Text>
+              <Text style={styles.searchButtonText}>{t('opportunities.search.searchButton')}</Text>
             </Pressable>
           </View>
         )}
@@ -144,7 +161,7 @@ export default function OpportunitiesSearchScreen() {
         ) : error ? (
           <Text style={styles.errorText}>{error}</Text>
         ) : items.length === 0 ? (
-          <Text style={styles.emptyText}>Aucune offre ne correspond à ces critères.</Text>
+          <Text style={styles.emptyText}>{t('opportunities.search.empty')}</Text>
         ) : (
           <View style={styles.list}>
             {items.map((opportunity) => (
@@ -166,7 +183,7 @@ export default function OpportunitiesSearchScreen() {
                 {isLoadingMore ? (
                   <ActivityIndicator color={colors.primary} />
                 ) : (
-                  <Text style={styles.loadMoreText}>Voir plus d'offres</Text>
+                  <Text style={styles.loadMoreText}>{t('opportunities.search.loadMore')}</Text>
                 )}
               </Pressable>
             )}

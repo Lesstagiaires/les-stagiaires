@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ChipSelect } from '../../../components/chip-select';
 import { ErrorText, FormInput, PrimaryButton } from '../../../components/form';
 import { Card } from '../../../components/card';
@@ -25,6 +26,7 @@ import { useAuth } from '../../../lib/auth-context';
 
 export default function AlertsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
   const [alerts, setAlerts] = useState<OpportunityAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,7 +42,7 @@ export default function AlertsScreen() {
         void logout();
         return;
       }
-      setLoadError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setLoadError(err instanceof ApiError ? err.message : t('opportunities.alerts.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -57,10 +59,7 @@ export default function AlertsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.hint}>
-          Créez une alerte pour être notifié des nouvelles offres correspondant à vos
-          critères.
-        </Text>
+        <Text style={styles.hint}>{t('opportunities.alerts.hint')}</Text>
 
         <CreateAlertForm accessToken={accessToken} onCreated={reload} />
 
@@ -69,7 +68,7 @@ export default function AlertsScreen() {
         ) : loadError ? (
           <ErrorText>{loadError}</ErrorText>
         ) : alerts.length === 0 ? (
-          <Text style={styles.emptyText}>Aucune alerte pour l'instant.</Text>
+          <Text style={styles.emptyText}>{t('opportunities.alerts.noAlerts')}</Text>
         ) : (
           alerts.map((alert) => (
             <AlertCard
@@ -93,6 +92,7 @@ function CreateAlertForm({
   accessToken: string;
   onCreated: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
@@ -118,7 +118,7 @@ function CreateAlertForm({
       setIsOpen(false);
       await onCreated();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Création impossible.');
+      setError(err instanceof ApiError ? err.message : t('opportunities.alerts.createError'));
     } finally {
       setIsSaving(false);
     }
@@ -127,25 +127,44 @@ function CreateAlertForm({
   if (!isOpen) {
     return (
       <Pressable onPress={() => setIsOpen(true)}>
-        <Text style={styles.addText}>+ Créer une alerte</Text>
+        <Text style={styles.addText}>{t('opportunities.alerts.createLink')}</Text>
       </Pressable>
     );
   }
 
   return (
     <View style={styles.form}>
-      <FormInput placeholder="Pays" value={country} onChangeText={setCountry} />
-      <FormInput placeholder="Ville" value={city} onChangeText={setCity} />
-      <FormInput placeholder="Secteur" value={sector} onChangeText={setSector} />
+      <FormInput
+        placeholder={t('opportunities.search.countryPlaceholder')}
+        value={country}
+        onChangeText={setCountry}
+      />
+      <FormInput
+        placeholder={t('opportunities.search.cityPlaceholder')}
+        value={city}
+        onChangeText={setCity}
+      />
+      <FormInput
+        placeholder={t('opportunities.search.sectorPlaceholder')}
+        value={sector}
+        onChangeText={setSector}
+      />
       <ChipSelect
-        options={[{ value: '__all__', label: 'Tous les types' }, ...OPPORTUNITY_TYPE_OPTIONS]}
+        options={[
+          { value: '__all__', label: t('opportunities.search.allTypes') },
+          ...OPPORTUNITY_TYPE_OPTIONS,
+        ]}
         value={type ?? '__all__'}
         onChange={(value) => setType(value === '__all__' ? null : (value as OpportunityType))}
       />
       <ErrorText>{error}</ErrorText>
-      <PrimaryButton title="Créer l'alerte" onPress={handleCreate} loading={isSaving} />
+      <PrimaryButton
+        title={t('opportunities.alerts.createButton')}
+        onPress={handleCreate}
+        loading={isSaving}
+      />
       <Pressable onPress={() => setIsOpen(false)}>
-        <Text style={styles.cancelText}>Annuler</Text>
+        <Text style={styles.cancelText}>{t('common.cancel')}</Text>
       </Pressable>
     </View>
   );
@@ -162,6 +181,7 @@ function AlertCard({
   onChanged: () => Promise<void>;
   onOpenOpportunity: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const [isRemoving, setIsRemoving] = useState(false);
   const [matches, setMatches] = useState<Opportunity[] | null>(null);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
@@ -203,15 +223,19 @@ function AlertCard({
   return (
     <Card style={styles.alertCard}>
       <View style={styles.alertHeader}>
-        <Text style={styles.alertCriteria}>{criteriaLabel || 'Toutes les offres'}</Text>
+        <Text style={styles.alertCriteria}>
+          {criteriaLabel || t('opportunities.alerts.allOffers')}
+        </Text>
         <Pressable onPress={handleRemove} disabled={isRemoving} hitSlop={8}>
-          <Text style={styles.removeText}>{isRemoving ? '…' : 'Supprimer'}</Text>
+          <Text style={styles.removeText}>{isRemoving ? '…' : t('common.remove')}</Text>
         </Pressable>
       </View>
 
       <Pressable onPress={handleToggleMatches}>
         <Text style={styles.matchesToggle}>
-          {matches === null ? 'Voir les offres correspondantes' : 'Masquer'}
+          {matches === null
+            ? t('opportunities.alerts.showMatches')
+            : t('opportunities.alerts.hideMatches')}
         </Text>
       </Pressable>
 
@@ -220,7 +244,7 @@ function AlertCard({
       {matches !== null && !isLoadingMatches && (
         <View style={styles.matchesList}>
           {matches.length === 0 ? (
-            <Text style={styles.emptyText}>Aucune correspondance pour l'instant.</Text>
+            <Text style={styles.emptyText}>{t('opportunities.alerts.noMatches')}</Text>
           ) : (
             matches.map((match) => (
               <Pressable

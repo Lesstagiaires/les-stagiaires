@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ChipSelect } from '../../../components/chip-select';
 import { colors, ErrorText, FormInput, PrimaryButton } from '../../../components/form';
 import {
@@ -21,18 +22,17 @@ import {
 } from '../../../lib/api';
 import { useAuth } from '../../../lib/auth-context';
 
-const CATEGORY_OPTIONS: { value: DigitalSafeDocumentCategory; label: string }[] = [
-  { value: 'IDENTITY', label: "Pièce d'identité" },
-  { value: 'DIPLOMA', label: 'Diplôme' },
-  { value: 'CERTIFICATE', label: 'Certificat' },
-  { value: 'INTERNSHIP_REPORT', label: 'Rapport de stage' },
-  { value: 'CONVENTION', label: 'Convention' },
-  { value: 'ADMISSION_LETTER', label: "Lettre d'admission" },
-  { value: 'OTHER', label: 'Autre' },
-];
-
-function categoryLabel(category: DigitalSafeDocumentCategory): string {
-  return CATEGORY_OPTIONS.find((option) => option.value === category)?.label ?? category;
+function useCategoryLabels(): Record<DigitalSafeDocumentCategory, string> {
+  const { t } = useTranslation();
+  return {
+    IDENTITY: t('digitalSafe.categories.IDENTITY'),
+    DIPLOMA: t('digitalSafe.categories.DIPLOMA'),
+    CERTIFICATE: t('digitalSafe.categories.CERTIFICATE'),
+    INTERNSHIP_REPORT: t('digitalSafe.categories.INTERNSHIP_REPORT'),
+    CONVENTION: t('digitalSafe.categories.CONVENTION'),
+    ADMISSION_LETTER: t('digitalSafe.categories.ADMISSION_LETTER'),
+    OTHER: t('digitalSafe.categories.OTHER'),
+  };
 }
 
 function formatSize(bytes: number): string {
@@ -43,6 +43,8 @@ function formatSize(bytes: number): string {
 
 export default function DigitalSafeListScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
+  const categoryLabels = useCategoryLabels();
   const { accessToken, logout } = useAuth();
   const [documents, setDocuments] = useState<DigitalSafeDocument[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -59,11 +61,11 @@ export default function DigitalSafeListScreen() {
         void logout();
         return;
       }
-      setLoadError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setLoadError(err instanceof ApiError ? err.message : t('digitalSafe.loadError'));
     } finally {
       setIsLoading(false);
     }
-  }, [accessToken, logout]);
+  }, [accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -81,7 +83,7 @@ export default function DigitalSafeListScreen() {
         ) : loadError ? (
           <ErrorText>{loadError}</ErrorText>
         ) : documents.length === 0 ? (
-          <Text style={styles.hint}>Aucun document pour l'instant.</Text>
+          <Text style={styles.hint}>{t('digitalSafe.empty')}</Text>
         ) : (
           documents.map((document) => (
             <Pressable
@@ -91,7 +93,7 @@ export default function DigitalSafeListScreen() {
             >
               <View style={styles.cardContent}>
                 <Text style={styles.cardTitle}>{document.title}</Text>
-                <Text style={styles.cardSubtitle}>{categoryLabel(document.category)}</Text>
+                <Text style={styles.cardSubtitle}>{categoryLabels[document.category]}</Text>
                 {document.latestVersion && (
                   <Text style={styles.cardMeta}>
                     {document.latestVersion.fileName} ·{' '}
@@ -115,6 +117,12 @@ function UploadForm({
   accessToken: string | null;
   onUploaded: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
+  const categoryLabels = useCategoryLabels();
+  const categoryOptions = Object.entries(categoryLabels).map(([value, label]) => ({
+    value: value as DigitalSafeDocumentCategory,
+    label,
+  }));
   const [isOpen, setIsOpen] = useState(false);
   const [category, setCategory] = useState<DigitalSafeDocumentCategory>('OTHER');
   const [title, setTitle] = useState('');
@@ -145,7 +153,7 @@ function UploadForm({
       setIsOpen(false);
       await onUploaded();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Envoi impossible.');
+      setError(err instanceof ApiError ? err.message : t('digitalSafe.uploadError'));
     } finally {
       setIsUploading(false);
     }
@@ -154,27 +162,35 @@ function UploadForm({
   if (!isOpen) {
     return (
       <Pressable onPress={() => setIsOpen(true)}>
-        <Text style={styles.addText}>+ Ajouter un document</Text>
+        <Text style={styles.addText}>{t('digitalSafe.addLink')}</Text>
       </Pressable>
     );
   }
 
   return (
     <View style={styles.form}>
-      <Text style={styles.formLabel}>Catégorie</Text>
+      <Text style={styles.formLabel}>{t('digitalSafe.categoryLabel')}</Text>
       <ChipSelect
-        options={CATEGORY_OPTIONS}
+        options={categoryOptions}
         value={category}
         onChange={(value) => setCategory(value as DigitalSafeDocumentCategory)}
       />
-      <FormInput placeholder="Titre du document" value={title} onChangeText={setTitle} />
+      <FormInput
+        placeholder={t('digitalSafe.titlePlaceholder')}
+        value={title}
+        onChangeText={setTitle}
+      />
       <PrimaryButton
-        title={pickedFile ? `Fichier : ${pickedFile.name}` : 'Choisir un fichier'}
+        title={
+          pickedFile
+            ? t('digitalSafe.fileSelected', { name: pickedFile.name })
+            : t('digitalSafe.chooseFile')
+        }
         onPress={handlePickFile}
       />
       <ErrorText>{error}</ErrorText>
       <PrimaryButton
-        title="Envoyer"
+        title={t('digitalSafe.send')}
         onPress={handleUpload}
         loading={isUploading}
         disabled={!title || !pickedFile}
@@ -186,7 +202,7 @@ function UploadForm({
           setError(null);
         }}
       >
-        <Text style={styles.cancelText}>Annuler</Text>
+        <Text style={styles.cancelText}>{t('common.cancel')}</Text>
       </Pressable>
     </View>
   );

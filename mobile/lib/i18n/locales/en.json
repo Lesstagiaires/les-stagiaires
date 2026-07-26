@@ -2,9 +2,18 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
+    "add": "Add",
+    "remove": "Remove",
+    "accept": "Accept",
+    "decline": "Decline",
+    "yes": "Yes",
+    "no": "No",
     "loading": "Loading…",
+    "ongoing": "ongoing",
     "genericError": "Something went wrong.",
-    "connectionError": "Couldn't load. Check your internet connection."
+    "connectionError": "Couldn't load. Check your internet connection.",
+    "actionError": "Couldn't complete this action.",
+    "addError": "Couldn't add."
   },
   "nav": {
     "home": "Home",
@@ -75,6 +84,251 @@
     "language": {
       "sectionTitle": "App language",
       "hint": "Choose the language used in the app."
+    },
+    "header": {
+      "fullNamePlaceholder": "Full name",
+      "headlinePlaceholder": "Title (e.g. Computer science student)",
+      "summaryPlaceholder": "Bio",
+      "saveError": "Couldn't save."
+    },
+    "roles": {
+      "title": "Hats",
+      "activeHint": "Active hat — tap to switch.",
+      "noRoles": "No hat yet.",
+      "addTitle": "Add a hat:",
+      "switchError": "Couldn't switch."
+    },
+    "establishments": {
+      "title": "Institution"
+    },
+    "education": {
+      "title": "Education",
+      "institutionPlaceholder": "Institution",
+      "degreePlaceholder": "Degree",
+      "fieldOfStudyPlaceholder": "Field of study",
+      "startDatePlaceholder": "Start date",
+      "endDatePlaceholder": "End date",
+      "addLink": "+ Add education"
+    },
+    "experience": {
+      "title": "Experience",
+      "titlePlaceholder": "Job title",
+      "organizationPlaceholder": "Organization",
+      "addLink": "+ Add experience"
+    },
+    "cvLanguages": {
+      "title": "Languages",
+      "languagePlaceholder": "Language (e.g. English)",
+      "addLink": "+ Add a language",
+      "levels": {
+        "BASIQUE": "Basic",
+        "INTERMEDIAIRE": "Intermediate",
+        "AVANCE": "Advanced",
+        "COURANT": "Fluent",
+        "NATIF": "Native"
+      }
+    },
+    "recommendations": {
+      "title": "Recommendations received",
+      "hint": "A recommendation stays hidden until you choose to show it on your profile yourself.",
+      "visible": "Visible on profile",
+      "hidden": "Hidden",
+      "show": "Show on profile",
+      "hide": "Hide"
+    }
+  },
+  "opportunities": {
+    "detailTitle": "Listing details",
+    "alertsTitle": "My alerts",
+    "search": {
+      "filters": "Filters",
+      "countryPlaceholder": "Country",
+      "cityPlaceholder": "City",
+      "sectorPlaceholder": "Sector",
+      "allTypes": "All types",
+      "searchButton": "Search",
+      "searchError": "Couldn't search.",
+      "empty": "No listing matches these criteria.",
+      "loadMore": "See more listings"
+    },
+    "detail": {
+      "notFound": "Listing unavailable.",
+      "verifiedOrg": "Verified organization",
+      "relocationRequired": "Relocation required",
+      "accommodationProvided": "Accommodation provided",
+      "descriptionTitle": "Description",
+      "mobilityBenefitsTitle": "Relocation benefits",
+      "apply": {
+        "button": "Apply",
+        "confirmTitle": "Confirm my application",
+        "confirmHint": "Your file (profile, CV, languages, experience) will be sent as-is to the organization.",
+        "relocateQuestion": "Are you willing to relocate?",
+        "familyQuestion": "Do you have family there?",
+        "submit": "Send my application",
+        "error": "Couldn't apply."
+      },
+      "report": {
+        "link": "Report this listing",
+        "descriptionPlaceholder": "Describe the issue (10 characters minimum)",
+        "submit": "Send report",
+        "confirmation": "Report sent, thank you.",
+        "error": "Couldn't send.",
+        "categories": {
+          "HARASSMENT": "Harassment",
+          "ABUSE": "Abuse",
+          "DANGER": "Danger",
+          "FRAUD": "Fraud",
+          "OTHER": "Other"
+        }
+      }
+    },
+    "alerts": {
+      "hint": "Create an alert to get notified of new listings matching your criteria.",
+      "createLink": "+ Create an alert",
+      "createButton": "Create alert",
+      "createError": "Couldn't create.",
+      "loadError": "Couldn't load.",
+      "noAlerts": "No alerts yet.",
+      "allOffers": "All listings",
+      "showMatches": "See matching listings",
+      "hideMatches": "Hide",
+      "noMatches": "No matches yet."
+    }
+  },
+  "applications": {
+    "detailTitle": "My application",
+    "list": {
+      "title": "My applications",
+      "loadError": "Couldn't load.",
+      "empty": "You haven't applied to any listing yet. Explore the Listings tab to get started.",
+      "spontaneous": "Spontaneous application"
+    },
+    "detail": {
+      "notFound": "Application unavailable.",
+      "documentRequest": {
+        "sectionTitle": "Additional document requested",
+        "provideButton": "Provide a document",
+        "submitError": "Couldn't send."
+      },
+      "interview": {
+        "sectionTitle": "Interview proposed",
+        "modeLabel": "Mode: {{mode}}",
+        "locationLabel": "Location: {{location}}",
+        "confirmButton": "Confirm interview",
+        "confirmError": "Couldn't confirm."
+      },
+      "admissionLetter": {
+        "sectionTitle": "Admission letter received",
+        "hint": "Congratulations! Accept your admission letter to continue.",
+        "acceptButton": "Accept admission letter",
+        "acceptError": "Couldn't accept."
+      },
+      "travelConsent": {
+        "sectionTitle": "Parental travel consent",
+        "hint": "An SMS with a 6-digit code was sent to your parent/guardian. Ask them for it and enter it below to confirm travel consent.",
+        "codePlaceholder": "6-digit code",
+        "confirmButton": "Confirm consent",
+        "error": "Invalid or expired code."
+      },
+      "signature": {
+        "sectionTitle": "Convention signature",
+        "youLabel": "You: ",
+        "companyLabel": "Company: ",
+        "signedBy": "signed by {{name}}",
+        "notSigned": "not signed",
+        "namePlaceholder": "Your full name",
+        "signButton": "Sign the convention",
+        "error": "Couldn't sign."
+      },
+      "report": {
+        "sectionTitle": "Internship report",
+        "submitted": "Report submitted.",
+        "submitButton": "Submit my internship report",
+        "error": "Couldn't send."
+      },
+      "documentPicker": {
+        "loadError": "Couldn't load.",
+        "empty": "No documents in your Digital Safe — add one from the Digital Safe tab."
+      },
+      "artifacts": {
+        "sectionTitle": "Documents",
+        "download": "Download",
+        "downloadError": "Couldn't download."
+      },
+      "historyTitle": "History",
+      "withdraw": {
+        "inProgress": "Withdrawing…",
+        "button": "Withdraw my application",
+        "confirmTitle": "Withdraw this application?",
+        "error": "Couldn't withdraw.",
+        "errorTitle": "Error"
+      }
+    }
+  },
+  "digitalSafe": {
+    "layoutTitle": "Digital Safe",
+    "documentTitle": "Document",
+    "loadError": "Couldn't load.",
+    "empty": "No documents yet.",
+    "addLink": "+ Add a document",
+    "categoryLabel": "Category",
+    "titlePlaceholder": "Document title",
+    "chooseFile": "Choose a file",
+    "fileSelected": "File: {{name}}",
+    "send": "Send",
+    "uploadError": "Couldn't send.",
+    "categories": {
+      "IDENTITY": "ID document",
+      "DIPLOMA": "Diploma",
+      "CERTIFICATE": "Certificate",
+      "INTERNSHIP_REPORT": "Internship report",
+      "CONVENTION": "Convention",
+      "ADMISSION_LETTER": "Admission letter",
+      "OTHER": "Other"
+    },
+    "detail": {
+      "notFound": "Document not found.",
+      "unavailable": "Document unavailable.",
+      "rename": {
+        "titlePlaceholder": "Title",
+        "button": "Rename",
+        "saveError": "Couldn't save."
+      },
+      "versions": {
+        "sectionTitle": "Versions",
+        "downloadLatest": "Download latest version",
+        "downloadError": "Couldn't download.",
+        "versionLabel": "Version {{number}} — {{fileName}}",
+        "addNew": "Add a new version",
+        "uploadError": "Couldn't send."
+      },
+      "shares": {
+        "sectionTitle": "Sharing",
+        "link": "Link",
+        "user": "User",
+        "expiresOn": "Expires on {{date}}",
+        "noExpiry": "No expiry",
+        "revoke": "Revoke",
+        "createLink": "Create a share link (QR Code)",
+        "createError": "Couldn't create share."
+      },
+      "accessLog": {
+        "sectionTitle": "Access log",
+        "empty": "No access recorded.",
+        "you": "You",
+        "actions": {
+          "VIEWED": "Viewed",
+          "DOWNLOADED": "Downloaded",
+          "SHARE_CREATED": "Share created",
+          "SHARE_REVOKED": "Share revoked"
+        }
+      },
+      "delete": {
+        "button": "Delete document",
+        "confirmTitle": "Delete this document?",
+        "error": "Couldn't delete.",
+        "errorTitle": "Error"
+      }
     }
   },
   "security": {

@@ -1,7 +1,10 @@
 import { Stack } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../../../components/theme';
 
 export default function OpportunitiesLayout() {
+  const { t } = useTranslation();
+
   return (
     <Stack
       screenOptions={{
@@ -10,8 +13,8 @@ export default function OpportunitiesLayout() {
       }}
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="[id]" options={{ title: "Détail de l'offre" }} />
-      <Stack.Screen name="alerts" options={{ title: 'Mes alertes' }} />
+      <Stack.Screen name="[id]" options={{ title: t('opportunities.detailTitle') }} />
+      <Stack.Screen name="alerts" options={{ title: t('opportunities.alertsTitle') }} />
     </Stack>
   );
 }

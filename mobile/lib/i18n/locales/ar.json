@@ -2,9 +2,18 @@
   "common": {
     "save": "حفظ",
     "cancel": "إلغاء",
+    "add": "إضافة",
+    "remove": "حذف",
+    "accept": "قبول",
+    "decline": "رفض",
+    "yes": "نعم",
+    "no": "لا",
     "loading": "جارٍ التحميل…",
+    "ongoing": "جارٍ",
     "genericError": "حدث خطأ ما.",
-    "connectionError": "تعذّر التحميل. تحقّق من اتصالك بالإنترنت."
+    "connectionError": "تعذّر التحميل. تحقّق من اتصالك بالإنترنت.",
+    "actionError": "تعذّر تنفيذ الإجراء.",
+    "addError": "تعذّرت الإضافة."
   },
   "nav": {
     "home": "الرئيسية",
@@ -75,6 +84,251 @@
     "language": {
       "sectionTitle": "لغة التطبيق",
       "hint": "اختر اللغة المستخدمة في التطبيق."
+    },
+    "header": {
+      "fullNamePlaceholder": "الاسم الكامل",
+      "headlinePlaceholder": "اللقب (مثال: طالب معلوماتية)",
+      "summaryPlaceholder": "نبذة تعريفية",
+      "saveError": "تعذّر الحفظ."
+    },
+    "roles": {
+      "title": "الصفات",
+      "activeHint": "الصفة النشطة — اضغط للتغيير.",
+      "noRoles": "لا توجد صفة بعد.",
+      "addTitle": "إضافة صفة:",
+      "switchError": "تعذّر التغيير."
+    },
+    "establishments": {
+      "title": "المؤسسة التعليمية"
+    },
+    "education": {
+      "title": "التكوين",
+      "institutionPlaceholder": "المؤسسة",
+      "degreePlaceholder": "الشهادة",
+      "fieldOfStudyPlaceholder": "مجال الدراسة",
+      "startDatePlaceholder": "تاريخ البداية",
+      "endDatePlaceholder": "تاريخ النهاية",
+      "addLink": "+ إضافة تكوين"
+    },
+    "experience": {
+      "title": "الخبرات",
+      "titlePlaceholder": "المسمى الوظيفي",
+      "organizationPlaceholder": "المؤسسة",
+      "addLink": "+ إضافة خبرة"
+    },
+    "cvLanguages": {
+      "title": "اللغات",
+      "languagePlaceholder": "اللغة (مثال: الإنجليزية)",
+      "addLink": "+ إضافة لغة",
+      "levels": {
+        "BASIQUE": "أساسي",
+        "INTERMEDIAIRE": "متوسط",
+        "AVANCE": "متقدم",
+        "COURANT": "طلاقة",
+        "NATIF": "لغة أم"
+      }
+    },
+    "recommendations": {
+      "title": "التوصيات الواردة",
+      "hint": "تبقى التوصية مخفية إلى أن تختار عرضها بنفسك على ملفك الشخصي.",
+      "visible": "ظاهرة على الملف الشخصي",
+      "hidden": "مخفية",
+      "show": "إظهار على الملف الشخصي",
+      "hide": "إخفاء"
+    }
+  },
+  "opportunities": {
+    "detailTitle": "تفاصيل العرض",
+    "alertsTitle": "تنبيهاتي",
+    "search": {
+      "filters": "عوامل التصفية",
+      "countryPlaceholder": "البلد",
+      "cityPlaceholder": "المدينة",
+      "sectorPlaceholder": "القطاع",
+      "allTypes": "جميع الأنواع",
+      "searchButton": "بحث",
+      "searchError": "تعذّر البحث.",
+      "empty": "لا يوجد عرض يطابق هذه المعايير.",
+      "loadMore": "عرض المزيد من العروض"
+    },
+    "detail": {
+      "notFound": "العرض غير متاح.",
+      "verifiedOrg": "مؤسسة موثّقة",
+      "relocationRequired": "يتطلّب الانتقال",
+      "accommodationProvided": "السكن متوفّر",
+      "descriptionTitle": "الوصف",
+      "mobilityBenefitsTitle": "مزايا مرتبطة بالتنقّل",
+      "apply": {
+        "button": "التقديم",
+        "confirmTitle": "تأكيد ترشحي",
+        "confirmHint": "سيُرسل ملفك (الملف الشخصي، السيرة الذاتية، اللغات، الخبرات) كما هو إلى المؤسسة.",
+        "relocateQuestion": "هل أنت مستعد(ة) للانتقال؟",
+        "familyQuestion": "هل لديك عائلة في المكان؟",
+        "submit": "إرسال ترشحي",
+        "error": "تعذّر التقديم."
+      },
+      "report": {
+        "link": "الإبلاغ عن هذا العرض",
+        "descriptionPlaceholder": "صف المشكلة (10 أحرف على الأقل)",
+        "submit": "إرسال البلاغ",
+        "confirmation": "تم إرسال البلاغ، شكرًا لك.",
+        "error": "تعذّر الإرسال.",
+        "categories": {
+          "HARASSMENT": "تحرّش",
+          "ABUSE": "إساءة",
+          "DANGER": "خطر",
+          "FRAUD": "احتيال",
+          "OTHER": "أخرى"
+        }
+      }
+    },
+    "alerts": {
+      "hint": "أنشئ تنبيهًا لتصلك إشعارات بالعروض الجديدة المطابقة لمعاييرك.",
+      "createLink": "+ إنشاء تنبيه",
+      "createButton": "إنشاء التنبيه",
+      "createError": "تعذّر الإنشاء.",
+      "loadError": "تعذّر التحميل.",
+      "noAlerts": "لا توجد تنبيهات بعد.",
+      "allOffers": "جميع العروض",
+      "showMatches": "عرض العروض المطابقة",
+      "hideMatches": "إخفاء",
+      "noMatches": "لا توجد مطابقات بعد."
+    }
+  },
+  "applications": {
+    "detailTitle": "ترشيحي",
+    "list": {
+      "title": "ترشيحاتي",
+      "loadError": "تعذّر التحميل.",
+      "empty": "لم تتقدّم بعد لأي عرض. استكشف تبويب العروض للبدء.",
+      "spontaneous": "ترشيح تلقائي"
+    },
+    "detail": {
+      "notFound": "الترشيح غير متاح.",
+      "documentRequest": {
+        "sectionTitle": "مستند إضافي مطلوب",
+        "provideButton": "تقديم مستند",
+        "submitError": "تعذّر الإرسال."
+      },
+      "interview": {
+        "sectionTitle": "مقابلة مقترحة",
+        "modeLabel": "الطريقة: {{mode}}",
+        "locationLabel": "المكان: {{location}}",
+        "confirmButton": "تأكيد المقابلة",
+        "confirmError": "تعذّر التأكيد."
+      },
+      "admissionLetter": {
+        "sectionTitle": "تم استلام رسالة القبول",
+        "hint": "تهانينا! اقبل رسالة القبول للمتابعة.",
+        "acceptButton": "قبول رسالة القبول",
+        "acceptError": "تعذّر القبول."
+      },
+      "travelConsent": {
+        "sectionTitle": "موافقة الوالدين على الانتقال",
+        "hint": "تم إرسال رسالة نصية إلى والدك/وليّ أمرك تحتوي على رمز من 6 أرقام. اطلبه منه وأدخله أدناه لتأكيد الموافقة على الانتقال.",
+        "codePlaceholder": "رمز من 6 أرقام",
+        "confirmButton": "تأكيد الموافقة",
+        "error": "رمز غير صالح أو منتهي الصلاحية."
+      },
+      "signature": {
+        "sectionTitle": "توقيع الاتفاقية",
+        "youLabel": "أنت: ",
+        "companyLabel": "الشركة: ",
+        "signedBy": "وقّعها {{name}}",
+        "notSigned": "غير موقّعة",
+        "namePlaceholder": "اسمك الكامل",
+        "signButton": "توقيع الاتفاقية",
+        "error": "تعذّر التوقيع."
+      },
+      "report": {
+        "sectionTitle": "تقرير التدريب",
+        "submitted": "تم إيداع التقرير.",
+        "submitButton": "إيداع تقرير تدريبي",
+        "error": "تعذّر الإرسال."
+      },
+      "documentPicker": {
+        "loadError": "تعذّر التحميل.",
+        "empty": "لا توجد مستندات في خزنتك الرقمية — أضف واحدًا من تبويب الخزنة الرقمية."
+      },
+      "artifacts": {
+        "sectionTitle": "المستندات",
+        "download": "تنزيل",
+        "downloadError": "تعذّر التنزيل."
+      },
+      "historyTitle": "السجل",
+      "withdraw": {
+        "inProgress": "جارٍ السحب…",
+        "button": "سحب ترشيحي",
+        "confirmTitle": "سحب هذا الترشيح؟",
+        "error": "تعذّر السحب.",
+        "errorTitle": "خطأ"
+      }
+    }
+  },
+  "digitalSafe": {
+    "layoutTitle": "الخزنة الرقمية",
+    "documentTitle": "مستند",
+    "loadError": "تعذّر التحميل.",
+    "empty": "لا توجد مستندات بعد.",
+    "addLink": "+ إضافة مستند",
+    "categoryLabel": "الفئة",
+    "titlePlaceholder": "عنوان المستند",
+    "chooseFile": "اختيار ملف",
+    "fileSelected": "الملف: {{name}}",
+    "send": "إرسال",
+    "uploadError": "تعذّر الإرسال.",
+    "categories": {
+      "IDENTITY": "وثيقة هوية",
+      "DIPLOMA": "شهادة دراسية",
+      "CERTIFICATE": "شهادة",
+      "INTERNSHIP_REPORT": "تقرير تدريب",
+      "CONVENTION": "اتفاقية",
+      "ADMISSION_LETTER": "رسالة قبول",
+      "OTHER": "أخرى"
+    },
+    "detail": {
+      "notFound": "المستند غير موجود.",
+      "unavailable": "المستند غير متاح.",
+      "rename": {
+        "titlePlaceholder": "العنوان",
+        "button": "إعادة التسمية",
+        "saveError": "تعذّر الحفظ."
+      },
+      "versions": {
+        "sectionTitle": "الإصدارات",
+        "downloadLatest": "تنزيل أحدث إصدار",
+        "downloadError": "تعذّر التنزيل.",
+        "versionLabel": "الإصدار {{number}} — {{fileName}}",
+        "addNew": "إضافة إصدار جديد",
+        "uploadError": "تعذّر الإرسال."
+      },
+      "shares": {
+        "sectionTitle": "المشاركة",
+        "link": "رابط",
+        "user": "مستخدم",
+        "expiresOn": "تنتهي في {{date}}",
+        "noExpiry": "بدون تاريخ انتهاء",
+        "revoke": "إلغاء",
+        "createLink": "إنشاء رابط مشاركة (رمز QR)",
+        "createError": "تعذّر إنشاء المشاركة."
+      },
+      "accessLog": {
+        "sectionTitle": "سجل الوصول",
+        "empty": "لا يوجد وصول مسجّل.",
+        "you": "أنت",
+        "actions": {
+          "VIEWED": "تمّت المعاينة",
+          "DOWNLOADED": "تمّ التنزيل",
+          "SHARE_CREATED": "تم إنشاء المشاركة",
+          "SHARE_REVOKED": "تم إلغاء المشاركة"
+        }
+      },
+      "delete": {
+        "button": "حذف المستند",
+        "confirmTitle": "حذف هذا المستند؟",
+        "error": "تعذّر الحذف.",
+        "errorTitle": "خطأ"
+      }
     }
   },
   "security": {

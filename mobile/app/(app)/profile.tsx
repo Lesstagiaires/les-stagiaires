@@ -33,14 +33,6 @@ import { SUPPORTED_LANGUAGES, setAppLanguage, type AppLanguage } from '../../lib
 import { useAuth } from '../../lib/auth-context';
 import { formatDisplayDate, toIsoDateString } from '../../lib/date';
 
-const LANGUAGE_LEVEL_OPTIONS: { value: LanguageLevel; label: string }[] = [
-  { value: 'BASIQUE', label: 'Basique' },
-  { value: 'INTERMEDIAIRE', label: 'Intermédiaire' },
-  { value: 'AVANCE', label: 'Avancé' },
-  { value: 'COURANT', label: 'Courant' },
-  { value: 'NATIF', label: 'Natif' },
-];
-
 export default function ProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
@@ -177,6 +169,7 @@ function ProfileHeaderForm({
   profile: Profile;
   onSaved: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [fullName, setFullName] = useState(profile.fullName ?? '');
   const [headline, setHeadline] = useState(profile.headline ?? '');
   const [summary, setSummary] = useState(profile.summary ?? '');
@@ -196,7 +189,7 @@ function ProfileHeaderForm({
       await api.updateMyProfile(accessToken, { fullName, headline, summary });
       await onSaved();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Enregistrement impossible.');
+      setError(err instanceof ApiError ? err.message : t('profile.header.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -204,14 +197,18 @@ function ProfileHeaderForm({
 
   return (
     <View style={styles.form}>
-      <FormInput placeholder="Nom complet" value={fullName} onChangeText={setFullName} />
       <FormInput
-        placeholder="Titre (ex : Étudiant en informatique)"
+        placeholder={t('profile.header.fullNamePlaceholder')}
+        value={fullName}
+        onChangeText={setFullName}
+      />
+      <FormInput
+        placeholder={t('profile.header.headlinePlaceholder')}
         value={headline}
         onChangeText={setHeadline}
       />
       <FormInput
-        placeholder="Présentation"
+        placeholder={t('profile.header.summaryPlaceholder')}
         value={summary}
         onChangeText={setSummary}
         multiline
@@ -219,7 +216,7 @@ function ProfileHeaderForm({
         style={styles.multiline}
       />
       <ErrorText>{error}</ErrorText>
-      <PrimaryButton title="Enregistrer" onPress={handleSave} loading={isSaving} />
+      <PrimaryButton title={t('common.save')} onPress={handleSave} loading={isSaving} />
     </View>
   );
 }
@@ -239,6 +236,7 @@ function RolesSection({
   catalog: RoleCatalogItem[];
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const heldRoleIds = new Set(heldRoles.map((entry) => entry.roleId));
@@ -251,7 +249,7 @@ function RolesSection({
       await api.switchActiveRole(accessToken, roleId);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Changement impossible.');
+      setError(err instanceof ApiError ? err.message : t('profile.roles.switchError'));
     } finally {
       setIsBusy(false);
     }
@@ -264,17 +262,17 @@ function RolesSection({
       await api.assignRole(accessToken, roleId);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Ajout impossible.');
+      setError(err instanceof ApiError ? err.message : t('common.addError'));
     } finally {
       setIsBusy(false);
     }
   }
 
   return (
-    <Section title="Casquettes">
+    <Section title={t('profile.roles.title')}>
       {heldRoles.length > 0 ? (
         <>
-          <Text style={styles.hint}>Casquette active — appuyez pour changer.</Text>
+          <Text style={styles.hint}>{t('profile.roles.activeHint')}</Text>
           <ChipSelect
             options={heldRoles.map((entry) => ({
               value: entry.roleId,
@@ -285,12 +283,12 @@ function RolesSection({
           />
         </>
       ) : (
-        <Text style={styles.hint}>Aucune casquette pour l'instant.</Text>
+        <Text style={styles.hint}>{t('profile.roles.noRoles')}</Text>
       )}
 
       {available.length > 0 && (
         <>
-          <Text style={styles.hint}>Ajouter une casquette :</Text>
+          <Text style={styles.hint}>{t('profile.roles.addTitle')}</Text>
           <ChipSelect
             options={available.map((role) => ({ value: role.id, label: role.name }))}
             value={null}
@@ -316,6 +314,7 @@ function EstablishmentsSection({
   enrollments: EstablishmentEnrollment[];
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -330,14 +329,14 @@ function EstablishmentsSection({
       }
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Action impossible.');
+      setError(err instanceof ApiError ? err.message : t('common.actionError'));
     } finally {
       setBusyId(null);
     }
   }
 
   return (
-    <Section title="Établissement">
+    <Section title={t('profile.establishments.title')}>
       {enrollments.map((enrollment) => (
         <View key={enrollment.id} style={styles.enrollmentItem}>
           <View style={styles.enrollmentHeader}>
@@ -351,7 +350,7 @@ function EstablishmentsSection({
             <View style={styles.enrollmentActions}>
               <View style={styles.enrollmentButton}>
                 <PrimaryButton
-                  title="Accepter"
+                  title={t('common.accept')}
                   onPress={() => respond(enrollment, true)}
                   loading={busyId === enrollment.id}
                   disabled={busyId !== null && busyId !== enrollment.id}
@@ -359,7 +358,7 @@ function EstablishmentsSection({
               </View>
               <View style={styles.enrollmentButton}>
                 <SecondaryButton
-                  title="Refuser"
+                  title={t('common.decline')}
                   onPress={() => respond(enrollment, false)}
                   loading={false}
                   disabled={busyId !== null}
@@ -385,6 +384,7 @@ function EducationSection({
   educations: Education[];
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isAdding, setIsAdding] = useState(false);
   const [institution, setInstitution] = useState('');
   const [degree, setDegree] = useState('');
@@ -418,7 +418,7 @@ function EducationSection({
       setIsAdding(false);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Ajout impossible.');
+      setError(err instanceof ApiError ? err.message : t('common.addError'));
     } finally {
       setIsSaving(false);
     }
@@ -437,7 +437,7 @@ function EducationSection({
   }
 
   return (
-    <Section title="Formations">
+    <Section title={t('profile.education.title')}>
       {educations.map((education) => (
         <View key={education.id} style={styles.listItem}>
           <View style={styles.listItemContent}>
@@ -448,7 +448,7 @@ function EducationSection({
             {!!(education.startDate || education.endDate) && (
               <Text style={styles.listItemDates}>
                 {formatDisplayDate(education.startDate)} —{' '}
-                {formatDisplayDate(education.endDate) || 'en cours'}
+                {formatDisplayDate(education.endDate) || t('common.ongoing')}
               </Text>
             )}
           </View>
@@ -456,7 +456,7 @@ function EducationSection({
             {removingId === education.id ? (
               <ActivityIndicator color={colors.error} />
             ) : (
-              <Text style={styles.removeText}>Supprimer</Text>
+              <Text style={styles.removeText}>{t('common.remove')}</Text>
             )}
           </Pressable>
         </View>
@@ -465,32 +465,44 @@ function EducationSection({
       {isAdding ? (
         <View style={styles.form}>
           <FormInput
-            placeholder="Établissement"
+            placeholder={t('profile.education.institutionPlaceholder')}
             value={institution}
             onChangeText={setInstitution}
           />
-          <FormInput placeholder="Diplôme" value={degree} onChangeText={setDegree} />
           <FormInput
-            placeholder="Domaine d'étude"
+            placeholder={t('profile.education.degreePlaceholder')}
+            value={degree}
+            onChangeText={setDegree}
+          />
+          <FormInput
+            placeholder={t('profile.education.fieldOfStudyPlaceholder')}
             value={fieldOfStudy}
             onChangeText={setFieldOfStudy}
           />
-          <DateInput placeholder="Date de début" value={startDate} onChange={setStartDate} />
-          <DateInput placeholder="Date de fin" value={endDate} onChange={setEndDate} />
+          <DateInput
+            placeholder={t('profile.education.startDatePlaceholder')}
+            value={startDate}
+            onChange={setStartDate}
+          />
+          <DateInput
+            placeholder={t('profile.education.endDatePlaceholder')}
+            value={endDate}
+            onChange={setEndDate}
+          />
           <ErrorText>{error}</ErrorText>
           <PrimaryButton
-            title="Ajouter"
+            title={t('common.add')}
             onPress={handleAdd}
             loading={isSaving}
             disabled={!institution}
           />
           <Pressable onPress={() => setIsAdding(false)}>
-            <Text style={styles.cancelText}>Annuler</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </Pressable>
         </View>
       ) : (
         <Pressable onPress={() => setIsAdding(true)}>
-          <Text style={styles.addText}>+ Ajouter une formation</Text>
+          <Text style={styles.addText}>{t('profile.education.addLink')}</Text>
         </Pressable>
       )}
     </Section>
@@ -508,6 +520,7 @@ function ExperienceSection({
   experiences: Experience[];
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isAdding, setIsAdding] = useState(false);
   const [organization, setOrganization] = useState('');
   const [title, setTitle] = useState('');
@@ -538,7 +551,7 @@ function ExperienceSection({
       setIsAdding(false);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Ajout impossible.');
+      setError(err instanceof ApiError ? err.message : t('common.addError'));
     } finally {
       setIsSaving(false);
     }
@@ -557,7 +570,7 @@ function ExperienceSection({
   }
 
   return (
-    <Section title="Expériences">
+    <Section title={t('profile.experience.title')}>
       {experiences.map((experience) => (
         <View key={experience.id} style={styles.listItem}>
           <View style={styles.listItemContent}>
@@ -566,7 +579,7 @@ function ExperienceSection({
             {!!(experience.startDate || experience.endDate) && (
               <Text style={styles.listItemDates}>
                 {formatDisplayDate(experience.startDate)} —{' '}
-                {formatDisplayDate(experience.endDate) || 'en cours'}
+                {formatDisplayDate(experience.endDate) || t('common.ongoing')}
               </Text>
             )}
           </View>
@@ -574,7 +587,7 @@ function ExperienceSection({
             {removingId === experience.id ? (
               <ActivityIndicator color={colors.error} />
             ) : (
-              <Text style={styles.removeText}>Supprimer</Text>
+              <Text style={styles.removeText}>{t('common.remove')}</Text>
             )}
           </Pressable>
         </View>
@@ -582,28 +595,40 @@ function ExperienceSection({
 
       {isAdding ? (
         <View style={styles.form}>
-          <FormInput placeholder="Intitulé du poste" value={title} onChangeText={setTitle} />
           <FormInput
-            placeholder="Organisation"
+            placeholder={t('profile.experience.titlePlaceholder')}
+            value={title}
+            onChangeText={setTitle}
+          />
+          <FormInput
+            placeholder={t('profile.experience.organizationPlaceholder')}
             value={organization}
             onChangeText={setOrganization}
           />
-          <DateInput placeholder="Date de début" value={startDate} onChange={setStartDate} />
-          <DateInput placeholder="Date de fin" value={endDate} onChange={setEndDate} />
+          <DateInput
+            placeholder={t('profile.education.startDatePlaceholder')}
+            value={startDate}
+            onChange={setStartDate}
+          />
+          <DateInput
+            placeholder={t('profile.education.endDatePlaceholder')}
+            value={endDate}
+            onChange={setEndDate}
+          />
           <ErrorText>{error}</ErrorText>
           <PrimaryButton
-            title="Ajouter"
+            title={t('common.add')}
             onPress={handleAdd}
             loading={isSaving}
             disabled={!organization || !title}
           />
           <Pressable onPress={() => setIsAdding(false)}>
-            <Text style={styles.cancelText}>Annuler</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </Pressable>
         </View>
       ) : (
         <Pressable onPress={() => setIsAdding(true)}>
-          <Text style={styles.addText}>+ Ajouter une expérience</Text>
+          <Text style={styles.addText}>{t('profile.experience.addLink')}</Text>
         </Pressable>
       )}
     </Section>
@@ -621,12 +646,21 @@ function LanguageSection({
   languages: Profile['languages'];
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isAdding, setIsAdding] = useState(false);
   const [language, setLanguage] = useState('');
   const [level, setLevel] = useState<LanguageLevel>('INTERMEDIAIRE');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removingLanguage, setRemovingLanguage] = useState<string | null>(null);
+
+  const levelOptions: { value: LanguageLevel; label: string }[] = [
+    { value: 'BASIQUE', label: t('profile.cvLanguages.levels.BASIQUE') },
+    { value: 'INTERMEDIAIRE', label: t('profile.cvLanguages.levels.INTERMEDIAIRE') },
+    { value: 'AVANCE', label: t('profile.cvLanguages.levels.AVANCE') },
+    { value: 'COURANT', label: t('profile.cvLanguages.levels.COURANT') },
+    { value: 'NATIF', label: t('profile.cvLanguages.levels.NATIF') },
+  ];
 
   async function handleAdd() {
     setError(null);
@@ -638,7 +672,7 @@ function LanguageSection({
       setIsAdding(false);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Ajout impossible.');
+      setError(err instanceof ApiError ? err.message : t('common.addError'));
     } finally {
       setIsSaving(false);
     }
@@ -657,20 +691,20 @@ function LanguageSection({
   }
 
   return (
-    <Section title="Langues">
+    <Section title={t('profile.cvLanguages.title')}>
       {languages.map((entry) => (
         <View key={entry.id} style={styles.listItem}>
           <View style={styles.listItemContent}>
             <Text style={styles.listItemTitle}>{entry.language}</Text>
             <Text style={styles.listItemSubtitle}>
-              {LANGUAGE_LEVEL_OPTIONS.find((option) => option.value === entry.level)?.label}
+              {levelOptions.find((option) => option.value === entry.level)?.label}
             </Text>
           </View>
           <Pressable onPress={() => handleRemove(entry.language)} hitSlop={8}>
             {removingLanguage === entry.language ? (
               <ActivityIndicator color={colors.error} />
             ) : (
-              <Text style={styles.removeText}>Supprimer</Text>
+              <Text style={styles.removeText}>{t('common.remove')}</Text>
             )}
           </Pressable>
         </View>
@@ -678,17 +712,21 @@ function LanguageSection({
 
       {isAdding ? (
         <View style={styles.form}>
-          <FormInput placeholder="Langue (ex : Anglais)" value={language} onChangeText={setLanguage} />
-          <ChipSelect options={LANGUAGE_LEVEL_OPTIONS} value={level} onChange={(v) => setLevel(v as LanguageLevel)} />
+          <FormInput
+            placeholder={t('profile.cvLanguages.languagePlaceholder')}
+            value={language}
+            onChangeText={setLanguage}
+          />
+          <ChipSelect options={levelOptions} value={level} onChange={(v) => setLevel(v as LanguageLevel)} />
           <ErrorText>{error}</ErrorText>
-          <PrimaryButton title="Ajouter" onPress={handleAdd} loading={isSaving} disabled={!language} />
+          <PrimaryButton title={t('common.add')} onPress={handleAdd} loading={isSaving} disabled={!language} />
           <Pressable onPress={() => setIsAdding(false)}>
-            <Text style={styles.cancelText}>Annuler</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </Pressable>
         </View>
       ) : (
         <Pressable onPress={() => setIsAdding(true)}>
-          <Text style={styles.addText}>+ Ajouter une langue</Text>
+          <Text style={styles.addText}>{t('profile.cvLanguages.addLink')}</Text>
         </Pressable>
       )}
     </Section>
@@ -708,6 +746,7 @@ function RecommendationsSection({
   recommendations: Recommendation[];
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -722,23 +761,24 @@ function RecommendationsSection({
       }
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Action impossible.');
+      setError(err instanceof ApiError ? err.message : t('common.actionError'));
     } finally {
       setBusyId(null);
     }
   }
 
   return (
-    <Section title="Recommandations reçues">
-      <Text style={styles.hint}>
-        Une recommandation reste masquée tant que vous ne l'affichez pas vous-même sur
-        votre profil.
-      </Text>
+    <Section title={t('profile.recommendations.title')}>
+      <Text style={styles.hint}>{t('profile.recommendations.hint')}</Text>
       {recommendations.map((recommendation) => (
         <Card key={recommendation.id} style={styles.recommendationCard}>
           <View style={styles.enrollmentHeader}>
             <Badge
-              label={recommendation.visible ? 'Visible sur le profil' : 'Masquée'}
+              label={
+                recommendation.visible
+                  ? t('profile.recommendations.visible')
+                  : t('profile.recommendations.hidden')
+              }
               tone={recommendation.visible ? 'success' : 'neutral'}
             />
           </View>
@@ -752,7 +792,9 @@ function RecommendationsSection({
               <ActivityIndicator color={colors.primary} />
             ) : (
               <Text style={styles.addText}>
-                {recommendation.visible ? 'Masquer' : 'Afficher sur le profil'}
+                {recommendation.visible
+                  ? t('profile.recommendations.hide')
+                  : t('profile.recommendations.show')}
               </Text>
             )}
           </Pressable>

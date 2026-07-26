@@ -13,6 +13,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, ErrorText, FormInput, PrimaryButton } from '../../../components/form';
 import { Section } from '../../../components/section';
 import {
@@ -27,16 +28,10 @@ import {
 import { useAuth } from '../../../lib/auth-context';
 import { saveFile } from '../../../lib/save-file';
 
-const ACTION_LABELS: Record<string, string> = {
-  VIEWED: 'Consulté',
-  DOWNLOADED: 'Téléchargé',
-  SHARE_CREATED: 'Partage créé',
-  SHARE_REVOKED: 'Partage révoqué',
-};
-
 export default function DocumentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
 
   const [document, setDocument] = useState<DigitalSafeDocument | null>(null);
@@ -57,7 +52,7 @@ export default function DocumentDetailScreen() {
       ]);
       const found = documents.find((doc) => doc.id === id) ?? null;
       if (!found) {
-        setLoadError('Document introuvable.');
+        setLoadError(t('digitalSafe.detail.notFound'));
       } else {
         setDocument(found);
         setLoadError(null);
@@ -70,11 +65,11 @@ export default function DocumentDetailScreen() {
         void logout();
         return;
       }
-      setLoadError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setLoadError(err instanceof ApiError ? err.message : t('digitalSafe.loadError'));
     } finally {
       setIsLoading(false);
     }
-  }, [accessToken, id, logout]);
+  }, [accessToken, id, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -96,7 +91,7 @@ export default function DocumentDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>{loadError ?? 'Document indisponible.'}</ErrorText>
+          <ErrorText>{loadError ?? t('digitalSafe.detail.unavailable')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -136,22 +131,26 @@ export default function DocumentDetailScreen() {
                 router.back();
               } catch (err) {
                 Alert.alert(
-                  'Erreur',
-                  err instanceof ApiError ? err.message : 'Suppression impossible.',
+                  t('digitalSafe.detail.delete.errorTitle'),
+                  err instanceof ApiError ? err.message : t('digitalSafe.detail.delete.error'),
                 );
               }
             };
             if (Platform.OS === 'web') {
-              if (window.confirm('Supprimer ce document ?')) void confirmAndDelete();
+              if (window.confirm(t('digitalSafe.detail.delete.confirmTitle'))) void confirmAndDelete();
             } else {
-              Alert.alert('Supprimer ce document ?', undefined, [
-                { text: 'Annuler', style: 'cancel' },
-                { text: 'Supprimer', style: 'destructive', onPress: () => void confirmAndDelete() },
+              Alert.alert(t('digitalSafe.detail.delete.confirmTitle'), undefined, [
+                { text: t('common.cancel'), style: 'cancel' },
+                {
+                  text: t('digitalSafe.detail.delete.button'),
+                  style: 'destructive',
+                  onPress: () => void confirmAndDelete(),
+                },
               ]);
             }
           }}
         >
-          <Text style={styles.deleteText}>Supprimer le document</Text>
+          <Text style={styles.deleteText}>{t('digitalSafe.detail.delete.button')}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -167,6 +166,7 @@ function RenameForm({
   document: DigitalSafeDocument;
   onRenamed: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState(document.title);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -178,7 +178,7 @@ function RenameForm({
       await api.renameDocument(accessToken, document.id, title);
       await onRenamed();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Enregistrement impossible.');
+      setError(err instanceof ApiError ? err.message : t('digitalSafe.detail.rename.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -186,10 +186,14 @@ function RenameForm({
 
   return (
     <View style={styles.form}>
-      <FormInput placeholder="Titre" value={title} onChangeText={setTitle} />
+      <FormInput
+        placeholder={t('digitalSafe.detail.rename.titlePlaceholder')}
+        value={title}
+        onChangeText={setTitle}
+      />
       <ErrorText>{error}</ErrorText>
       <PrimaryButton
-        title="Renommer"
+        title={t('digitalSafe.detail.rename.button')}
         onPress={handleSave}
         loading={isSaving}
         disabled={!title || title === document.title}
@@ -209,6 +213,7 @@ function VersionsSection({
   versions: DocumentVersion[];
   onChanged: () => Promise<void>;
 }) {
+  const { t, i18n } = useTranslation();
   const [isUploadingVersion, setIsUploadingVersion] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -229,7 +234,7 @@ function VersionsSection({
       await api.addDocumentVersion(accessToken, documentId, part);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Envoi impossible.');
+      setError(err instanceof ApiError ? err.message : t('digitalSafe.detail.versions.uploadError'));
     } finally {
       setIsUploadingVersion(false);
     }
@@ -242,16 +247,16 @@ function VersionsSection({
       const { blob, fileName } = await api.downloadDocument(accessToken, documentId);
       await saveFile(blob, fileName);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Téléchargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('digitalSafe.detail.versions.downloadError'));
     } finally {
       setDownloadingId(null);
     }
   }
 
   return (
-    <Section title="Versions">
+    <Section title={t('digitalSafe.detail.versions.sectionTitle')}>
       <PrimaryButton
-        title="Télécharger la dernière version"
+        title={t('digitalSafe.detail.versions.downloadLatest')}
         onPress={handleDownload}
         loading={downloadingId === 'latest'}
       />
@@ -259,17 +264,20 @@ function VersionsSection({
         <View key={version.id} style={styles.listItem}>
           <View style={styles.listItemContent}>
             <Text style={styles.listItemTitle}>
-              Version {version.versionNumber} — {version.fileName}
+              {t('digitalSafe.detail.versions.versionLabel', {
+                number: version.versionNumber,
+                fileName: version.fileName,
+              })}
             </Text>
             <Text style={styles.listItemSubtitle}>
-              {new Date(version.createdAt).toLocaleDateString('fr-FR')}
+              {new Date(version.createdAt).toLocaleDateString(i18n.language)}
             </Text>
           </View>
         </View>
       ))}
       <ErrorText>{error}</ErrorText>
       <PrimaryButton
-        title="Ajouter une nouvelle version"
+        title={t('digitalSafe.detail.versions.addNew')}
         onPress={handleAddVersion}
         loading={isUploadingVersion}
       />
@@ -288,6 +296,7 @@ function SharesSection({
   shares: DigitalSafeShare[];
   onChanged: () => Promise<void>;
 }) {
+  const { t, i18n } = useTranslation();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newShare, setNewShare] = useState<DigitalSafeShare | null>(null);
@@ -301,7 +310,7 @@ function SharesSection({
       setNewShare(share);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Création du partage impossible.');
+      setError(err instanceof ApiError ? err.message : t('digitalSafe.detail.shares.createError'));
     } finally {
       setIsCreating(false);
     }
@@ -321,7 +330,7 @@ function SharesSection({
   }
 
   return (
-    <Section title="Partage">
+    <Section title={t('digitalSafe.detail.shares.sectionTitle')}>
       {newShare?.qrCodeDataUrl && (
         <View style={styles.qrWrapper}>
           <Image source={{ uri: newShare.qrCodeDataUrl }} style={styles.qrImage} />
@@ -337,19 +346,23 @@ function SharesSection({
           <View key={share.id} style={styles.listItem}>
             <View style={styles.listItemContent}>
               <Text style={styles.listItemTitle}>
-                {share.targetType === 'LINK' ? 'Lien' : 'Utilisateur'}
+                {share.targetType === 'LINK'
+                  ? t('digitalSafe.detail.shares.link')
+                  : t('digitalSafe.detail.shares.user')}
               </Text>
               <Text style={styles.listItemSubtitle}>
                 {share.expiresAt
-                  ? `Expire le ${new Date(share.expiresAt).toLocaleDateString('fr-FR')}`
-                  : 'Sans expiration'}
+                  ? t('digitalSafe.detail.shares.expiresOn', {
+                      date: new Date(share.expiresAt).toLocaleDateString(i18n.language),
+                    })
+                  : t('digitalSafe.detail.shares.noExpiry')}
               </Text>
             </View>
             <Pressable onPress={() => handleRevoke(share.id)} hitSlop={8}>
               {revokingId === share.id ? (
                 <ActivityIndicator color={colors.error} />
               ) : (
-                <Text style={styles.removeText}>Révoquer</Text>
+                <Text style={styles.removeText}>{t('digitalSafe.detail.shares.revoke')}</Text>
               )}
             </Pressable>
           </View>
@@ -357,7 +370,7 @@ function SharesSection({
 
       <ErrorText>{error}</ErrorText>
       <PrimaryButton
-        title="Créer un lien de partage (QR Code)"
+        title={t('digitalSafe.detail.shares.createLink')}
         onPress={handleCreateLink}
         loading={isCreating}
       />
@@ -366,20 +379,27 @@ function SharesSection({
 }
 
 function AccessLogSection({ entries }: { entries: AccessLogEntry[] }) {
+  const { t, i18n } = useTranslation();
+  const actionLabels: Record<string, string> = {
+    VIEWED: t('digitalSafe.detail.accessLog.actions.VIEWED'),
+    DOWNLOADED: t('digitalSafe.detail.accessLog.actions.DOWNLOADED'),
+    SHARE_CREATED: t('digitalSafe.detail.accessLog.actions.SHARE_CREATED'),
+    SHARE_REVOKED: t('digitalSafe.detail.accessLog.actions.SHARE_REVOKED'),
+  };
   return (
-    <Section title="Journal d'accès">
+    <Section title={t('digitalSafe.detail.accessLog.sectionTitle')}>
       {entries.length === 0 ? (
-        <Text style={styles.hint}>Aucun accès enregistré.</Text>
+        <Text style={styles.hint}>{t('digitalSafe.detail.accessLog.empty')}</Text>
       ) : (
         entries.map((entry) => (
           <View key={entry.id} style={styles.listItem}>
             <View style={styles.listItemContent}>
               <Text style={styles.listItemTitle}>
-                {ACTION_LABELS[entry.action] ?? entry.action}
+                {actionLabels[entry.action] ?? entry.action}
               </Text>
               <Text style={styles.listItemSubtitle}>
-                {entry.actor ? entry.actor.lsId : 'Vous'} ·{' '}
-                {new Date(entry.createdAt).toLocaleString('fr-FR')}
+                {entry.actor ? entry.actor.lsId : t('digitalSafe.detail.accessLog.you')} ·{' '}
+                {new Date(entry.createdAt).toLocaleString(i18n.language)}
               </Text>
             </View>
           </View>

@@ -2,9 +2,18 @@
   "common": {
     "save": "Guardar",
     "cancel": "Cancelar",
+    "add": "Añadir",
+    "remove": "Eliminar",
+    "accept": "Aceptar",
+    "decline": "Rechazar",
+    "yes": "Sí",
+    "no": "No",
     "loading": "Cargando…",
+    "ongoing": "en curso",
     "genericError": "Se ha producido un error.",
-    "connectionError": "No se pudo cargar. Verifique su conexión a internet."
+    "connectionError": "No se pudo cargar. Verifique su conexión a internet.",
+    "actionError": "No se pudo completar la acción.",
+    "addError": "No se pudo añadir."
   },
   "nav": {
     "home": "Inicio",
@@ -75,6 +84,251 @@
     "language": {
       "sectionTitle": "Idioma de la aplicación",
       "hint": "Elige el idioma utilizado en la aplicación."
+    },
+    "header": {
+      "fullNamePlaceholder": "Nombre completo",
+      "headlinePlaceholder": "Título (ej: Estudiante de informática)",
+      "summaryPlaceholder": "Presentación",
+      "saveError": "No se pudo guardar."
+    },
+    "roles": {
+      "title": "Gorras",
+      "activeHint": "Gorra activa — toca para cambiar.",
+      "noRoles": "Aún no tienes ninguna gorra.",
+      "addTitle": "Añadir una gorra:",
+      "switchError": "No se pudo cambiar."
+    },
+    "establishments": {
+      "title": "Institución"
+    },
+    "education": {
+      "title": "Formación",
+      "institutionPlaceholder": "Institución",
+      "degreePlaceholder": "Título",
+      "fieldOfStudyPlaceholder": "Área de estudio",
+      "startDatePlaceholder": "Fecha de inicio",
+      "endDatePlaceholder": "Fecha de fin",
+      "addLink": "+ Añadir una formación"
+    },
+    "experience": {
+      "title": "Experiencias",
+      "titlePlaceholder": "Puesto",
+      "organizationPlaceholder": "Organización",
+      "addLink": "+ Añadir una experiencia"
+    },
+    "cvLanguages": {
+      "title": "Idiomas",
+      "languagePlaceholder": "Idioma (ej: Inglés)",
+      "addLink": "+ Añadir un idioma",
+      "levels": {
+        "BASIQUE": "Básico",
+        "INTERMEDIAIRE": "Intermedio",
+        "AVANCE": "Avanzado",
+        "COURANT": "Fluido",
+        "NATIF": "Nativo"
+      }
+    },
+    "recommendations": {
+      "title": "Recomendaciones recibidas",
+      "hint": "Una recomendación permanece oculta hasta que tú mismo decidas mostrarla en tu perfil.",
+      "visible": "Visible en el perfil",
+      "hidden": "Oculta",
+      "show": "Mostrar en el perfil",
+      "hide": "Ocultar"
+    }
+  },
+  "opportunities": {
+    "detailTitle": "Detalle de la oferta",
+    "alertsTitle": "Mis alertas",
+    "search": {
+      "filters": "Filtros",
+      "countryPlaceholder": "País",
+      "cityPlaceholder": "Ciudad",
+      "sectorPlaceholder": "Sector",
+      "allTypes": "Todos los tipos",
+      "searchButton": "Buscar",
+      "searchError": "No se pudo buscar.",
+      "empty": "Ninguna oferta corresponde a estos criterios.",
+      "loadMore": "Ver más ofertas"
+    },
+    "detail": {
+      "notFound": "Oferta no disponible.",
+      "verifiedOrg": "Organización verificada",
+      "relocationRequired": "Reubicación requerida",
+      "accommodationProvided": "Alojamiento incluido",
+      "descriptionTitle": "Descripción",
+      "mobilityBenefitsTitle": "Beneficios de movilidad",
+      "apply": {
+        "button": "Postularme",
+        "confirmTitle": "Confirmar mi candidatura",
+        "confirmHint": "Tu expediente (perfil, CV, idiomas, experiencias) se enviará tal cual a la organización.",
+        "relocateQuestion": "¿Estás dispuesto/a a mudarte?",
+        "familyQuestion": "¿Tienes familia en el lugar?",
+        "submit": "Enviar mi candidatura",
+        "error": "No se pudo postular."
+      },
+      "report": {
+        "link": "Denunciar esta oferta",
+        "descriptionPlaceholder": "Describe el problema (10 caracteres mínimo)",
+        "submit": "Enviar denuncia",
+        "confirmation": "Denuncia enviada, gracias.",
+        "error": "No se pudo enviar.",
+        "categories": {
+          "HARASSMENT": "Acoso",
+          "ABUSE": "Abuso",
+          "DANGER": "Peligro",
+          "FRAUD": "Fraude",
+          "OTHER": "Otro"
+        }
+      }
+    },
+    "alerts": {
+      "hint": "Crea una alerta para recibir notificaciones de nuevas ofertas que coincidan con tus criterios.",
+      "createLink": "+ Crear una alerta",
+      "createButton": "Crear alerta",
+      "createError": "No se pudo crear.",
+      "loadError": "No se pudo cargar.",
+      "noAlerts": "Aún no hay alertas.",
+      "allOffers": "Todas las ofertas",
+      "showMatches": "Ver ofertas correspondientes",
+      "hideMatches": "Ocultar",
+      "noMatches": "Aún no hay coincidencias."
+    }
+  },
+  "applications": {
+    "detailTitle": "Mi candidatura",
+    "list": {
+      "title": "Mis candidaturas",
+      "loadError": "No se pudo cargar.",
+      "empty": "Aún no has postulado a ninguna oferta. Explora la pestaña Ofertas para empezar.",
+      "spontaneous": "Candidatura espontánea"
+    },
+    "detail": {
+      "notFound": "Candidatura no disponible.",
+      "documentRequest": {
+        "sectionTitle": "Documento complementario solicitado",
+        "provideButton": "Proporcionar un documento",
+        "submitError": "No se pudo enviar."
+      },
+      "interview": {
+        "sectionTitle": "Entrevista propuesta",
+        "modeLabel": "Modalidad: {{mode}}",
+        "locationLabel": "Lugar: {{location}}",
+        "confirmButton": "Confirmar la entrevista",
+        "confirmError": "No se pudo confirmar."
+      },
+      "admissionLetter": {
+        "sectionTitle": "Carta de admisión recibida",
+        "hint": "¡Felicidades! Acepta tu carta de admisión para continuar.",
+        "acceptButton": "Aceptar la carta de admisión",
+        "acceptError": "No se pudo aceptar."
+      },
+      "travelConsent": {
+        "sectionTitle": "Consentimiento parental de desplazamiento",
+        "hint": "Se envió un SMS a tu padre/tutor con un código de 6 dígitos. Pídeselo e introdúcelo abajo para confirmar el consentimiento de desplazamiento.",
+        "codePlaceholder": "Código de 6 dígitos",
+        "confirmButton": "Confirmar el consentimiento",
+        "error": "Código inválido o caducado."
+      },
+      "signature": {
+        "sectionTitle": "Firma del convenio",
+        "youLabel": "Tú: ",
+        "companyLabel": "Empresa: ",
+        "signedBy": "firmado por {{name}}",
+        "notSigned": "no firmado",
+        "namePlaceholder": "Tu nombre completo",
+        "signButton": "Firmar el convenio",
+        "error": "No se pudo firmar."
+      },
+      "report": {
+        "sectionTitle": "Informe de prácticas",
+        "submitted": "Informe enviado.",
+        "submitButton": "Enviar mi informe de prácticas",
+        "error": "No se pudo enviar."
+      },
+      "documentPicker": {
+        "loadError": "No se pudo cargar.",
+        "empty": "No hay documentos en tu caja fuerte digital — añade uno desde la pestaña Caja fuerte digital."
+      },
+      "artifacts": {
+        "sectionTitle": "Documentos",
+        "download": "Descargar",
+        "downloadError": "No se pudo descargar."
+      },
+      "historyTitle": "Historial",
+      "withdraw": {
+        "inProgress": "Retirando…",
+        "button": "Retirar mi candidatura",
+        "confirmTitle": "¿Retirar esta candidatura?",
+        "error": "No se pudo retirar.",
+        "errorTitle": "Error"
+      }
+    }
+  },
+  "digitalSafe": {
+    "layoutTitle": "Caja fuerte digital",
+    "documentTitle": "Documento",
+    "loadError": "No se pudo cargar.",
+    "empty": "Aún no hay documentos.",
+    "addLink": "+ Añadir un documento",
+    "categoryLabel": "Categoría",
+    "titlePlaceholder": "Título del documento",
+    "chooseFile": "Elegir un archivo",
+    "fileSelected": "Archivo: {{name}}",
+    "send": "Enviar",
+    "uploadError": "No se pudo enviar.",
+    "categories": {
+      "IDENTITY": "Documento de identidad",
+      "DIPLOMA": "Diploma",
+      "CERTIFICATE": "Certificado",
+      "INTERNSHIP_REPORT": "Informe de prácticas",
+      "CONVENTION": "Convenio",
+      "ADMISSION_LETTER": "Carta de admisión",
+      "OTHER": "Otro"
+    },
+    "detail": {
+      "notFound": "Documento no encontrado.",
+      "unavailable": "Documento no disponible.",
+      "rename": {
+        "titlePlaceholder": "Título",
+        "button": "Renombrar",
+        "saveError": "No se pudo guardar."
+      },
+      "versions": {
+        "sectionTitle": "Versiones",
+        "downloadLatest": "Descargar la última versión",
+        "downloadError": "No se pudo descargar.",
+        "versionLabel": "Versión {{number}} — {{fileName}}",
+        "addNew": "Añadir una nueva versión",
+        "uploadError": "No se pudo enviar."
+      },
+      "shares": {
+        "sectionTitle": "Compartir",
+        "link": "Enlace",
+        "user": "Usuario",
+        "expiresOn": "Caduca el {{date}}",
+        "noExpiry": "Sin caducidad",
+        "revoke": "Revocar",
+        "createLink": "Crear un enlace para compartir (código QR)",
+        "createError": "No se pudo crear el enlace."
+      },
+      "accessLog": {
+        "sectionTitle": "Registro de accesos",
+        "empty": "Ningún acceso registrado.",
+        "you": "Tú",
+        "actions": {
+          "VIEWED": "Consultado",
+          "DOWNLOADED": "Descargado",
+          "SHARE_CREATED": "Enlace creado",
+          "SHARE_REVOKED": "Enlace revocado"
+        }
+      },
+      "delete": {
+        "button": "Eliminar el documento",
+        "confirmTitle": "¿Eliminar este documento?",
+        "error": "No se pudo eliminar.",
+        "errorTitle": "Error"
+      }
     }
   },
   "security": {

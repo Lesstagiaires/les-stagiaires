@@ -10,6 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/badge';
 import { ChipSelect } from '../../../components/chip-select';
 import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../../components/form';
@@ -24,17 +25,10 @@ import {
 import { OPPORTUNITY_TYPE_LABELS, WORK_MODE_LABELS } from '../../../lib/opportunity-labels';
 import { useAuth } from '../../../lib/auth-context';
 
-const REPORT_CATEGORY_OPTIONS: { value: ReportCategory; label: string }[] = [
-  { value: 'HARASSMENT', label: 'Harcèlement' },
-  { value: 'ABUSE', label: 'Abus' },
-  { value: 'DANGER', label: 'Danger' },
-  { value: 'FRAUD', label: 'Fraude' },
-  { value: 'OTHER', label: 'Autre' },
-];
-
 export default function OpportunityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
 
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
@@ -58,7 +52,7 @@ export default function OpportunityDetailScreen() {
         void logout();
         return;
       }
-      setLoadError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setLoadError(err instanceof ApiError ? err.message : t('common.connectionError'));
     } finally {
       setIsLoading(false);
     }
@@ -98,7 +92,7 @@ export default function OpportunityDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>{loadError ?? 'Offre indisponible.'}</ErrorText>
+          <ErrorText>{loadError ?? t('opportunities.detail.notFound')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -122,7 +116,7 @@ export default function OpportunityDetailScreen() {
         <Text style={styles.organization}>
           {opportunity.organization.name}
           {opportunity.organization.verificationStatus === 'VERIFIED' && (
-            <Text style={styles.verified}>  ✓ Organisation vérifiée</Text>
+            <Text style={styles.verified}>  ✓ {t('opportunities.detail.verifiedOrg')}</Text>
           )}
         </Text>
 
@@ -131,19 +125,19 @@ export default function OpportunityDetailScreen() {
           <InfoRow icon="briefcase-outline" label={WORK_MODE_LABELS[opportunity.workMode]} />
           <InfoRow icon="grid-outline" label={opportunity.sector} />
           {opportunity.relocationRequired && (
-            <InfoRow icon="airplane-outline" label="Déplacement requis" />
+            <InfoRow icon="airplane-outline" label={t('opportunities.detail.relocationRequired')} />
           )}
           {opportunity.accommodationProvided && (
-            <InfoRow icon="home-outline" label="Hébergement fourni" />
+            <InfoRow icon="home-outline" label={t('opportunities.detail.accommodationProvided')} />
           )}
         </Card>
 
-        <Text style={styles.sectionTitle}>Description</Text>
+        <Text style={styles.sectionTitle}>{t('opportunities.detail.descriptionTitle')}</Text>
         <Text style={styles.description}>{opportunity.description}</Text>
 
         {!!opportunity.mobilityBenefits && (
           <>
-            <Text style={styles.sectionTitle}>Avantages liés à la mobilité</Text>
+            <Text style={styles.sectionTitle}>{t('opportunities.detail.mobilityBenefitsTitle')}</Text>
             <Text style={styles.description}>{opportunity.mobilityBenefits}</Text>
           </>
         )}
@@ -178,6 +172,7 @@ function ApplySection({
   opportunity: Opportunity;
   onApplied: (applicationId: string) => void;
 }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [willingToRelocate, setWillingToRelocate] = useState<boolean | null>(null);
   const [hasFamilyInDestination, setHasFamilyInDestination] = useState<boolean | null>(null);
@@ -197,43 +192,42 @@ function ApplySection({
       });
       onApplied(application.id);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Candidature impossible.');
+      setError(err instanceof ApiError ? err.message : t('opportunities.detail.apply.error'));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   if (!isOpen) {
-    return <PrimaryButton title="Postuler" onPress={() => setIsOpen(true)} />;
+    return (
+      <PrimaryButton title={t('opportunities.detail.apply.button')} onPress={() => setIsOpen(true)} />
+    );
   }
 
   const canSubmit = !opportunity.relocationRequired || willingToRelocate !== null;
+  const yesNoOptions = [
+    { value: 'yes', label: t('common.yes') },
+    { value: 'no', label: t('common.no') },
+  ];
 
   return (
     <View style={styles.applyForm}>
-      <Text style={styles.sectionTitle}>Confirmer ma candidature</Text>
-      <Text style={styles.description}>
-        Votre dossier (profil, CV, langues, expériences) sera envoyé tel quel à
-        l'organisation.
-      </Text>
+      <Text style={styles.sectionTitle}>{t('opportunities.detail.apply.confirmTitle')}</Text>
+      <Text style={styles.description}>{t('opportunities.detail.apply.confirmHint')}</Text>
 
       {opportunity.relocationRequired && (
         <>
-          <Text style={typography.bodyBold}>Êtes-vous prêt(e) à déménager ?</Text>
+          <Text style={typography.bodyBold}>
+            {t('opportunities.detail.apply.relocateQuestion')}
+          </Text>
           <ChipSelect
-            options={[
-              { value: 'yes', label: 'Oui' },
-              { value: 'no', label: 'Non' },
-            ]}
+            options={yesNoOptions}
             value={willingToRelocate === null ? null : willingToRelocate ? 'yes' : 'no'}
             onChange={(value) => setWillingToRelocate(value === 'yes')}
           />
-          <Text style={typography.bodyBold}>Avez-vous de la famille sur place ?</Text>
+          <Text style={typography.bodyBold}>{t('opportunities.detail.apply.familyQuestion')}</Text>
           <ChipSelect
-            options={[
-              { value: 'yes', label: 'Oui' },
-              { value: 'no', label: 'Non' },
-            ]}
+            options={yesNoOptions}
             value={
               hasFamilyInDestination === null ? null : hasFamilyInDestination ? 'yes' : 'no'
             }
@@ -244,13 +238,13 @@ function ApplySection({
 
       <ErrorText>{error}</ErrorText>
       <PrimaryButton
-        title="Envoyer ma candidature"
+        title={t('opportunities.detail.apply.submit')}
         onPress={handleSubmit}
         loading={isSubmitting}
         disabled={!canSubmit}
       />
       <Pressable onPress={() => setIsOpen(false)}>
-        <Text style={styles.cancelText}>Annuler</Text>
+        <Text style={styles.cancelText}>{t('common.cancel')}</Text>
       </Pressable>
     </View>
   );
@@ -263,12 +257,21 @@ function ReportSection({
   accessToken: string;
   opportunityId: string;
 }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [category, setCategory] = useState<ReportCategory>('OTHER');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const categoryOptions: { value: ReportCategory; label: string }[] = [
+    { value: 'HARASSMENT', label: t('opportunities.detail.report.categories.HARASSMENT') },
+    { value: 'ABUSE', label: t('opportunities.detail.report.categories.ABUSE') },
+    { value: 'DANGER', label: t('opportunities.detail.report.categories.DANGER') },
+    { value: 'FRAUD', label: t('opportunities.detail.report.categories.FRAUD') },
+    { value: 'OTHER', label: t('opportunities.detail.report.categories.OTHER') },
+  ];
 
   async function handleSubmit() {
     setError(null);
@@ -278,34 +281,36 @@ function ReportSection({
       setIsSubmitted(true);
       setIsOpen(false);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Envoi impossible.');
+      setError(err instanceof ApiError ? err.message : t('opportunities.detail.report.error'));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   if (isSubmitted) {
-    return <Text style={styles.reportConfirmation}>Signalement envoyé, merci.</Text>;
+    return (
+      <Text style={styles.reportConfirmation}>{t('opportunities.detail.report.confirmation')}</Text>
+    );
   }
 
   if (!isOpen) {
     return (
       <Pressable onPress={() => setIsOpen(true)}>
-        <Text style={styles.reportLink}>Signaler cette offre</Text>
+        <Text style={styles.reportLink}>{t('opportunities.detail.report.link')}</Text>
       </Pressable>
     );
   }
 
   return (
     <View style={styles.reportForm}>
-      <Text style={styles.sectionTitle}>Signaler cette offre</Text>
+      <Text style={styles.sectionTitle}>{t('opportunities.detail.report.link')}</Text>
       <ChipSelect
-        options={REPORT_CATEGORY_OPTIONS}
+        options={categoryOptions}
         value={category}
         onChange={(value) => setCategory(value as ReportCategory)}
       />
       <FormInput
-        placeholder="Décrivez le problème (10 caractères minimum)"
+        placeholder={t('opportunities.detail.report.descriptionPlaceholder')}
         value={description}
         onChangeText={setDescription}
         multiline
@@ -314,13 +319,13 @@ function ReportSection({
       />
       <ErrorText>{error}</ErrorText>
       <SecondaryButton
-        title="Envoyer le signalement"
+        title={t('opportunities.detail.report.submit')}
         onPress={handleSubmit}
         loading={isSubmitting}
         disabled={description.trim().length < 10}
       />
       <Pressable onPress={() => setIsOpen(false)}>
-        <Text style={styles.cancelText}>Annuler</Text>
+        <Text style={styles.cancelText}>{t('common.cancel')}</Text>
       </Pressable>
     </View>
   );

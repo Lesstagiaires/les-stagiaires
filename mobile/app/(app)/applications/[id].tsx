@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/badge';
 import { Card } from '../../../components/card';
 import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../../components/form';
@@ -33,6 +34,7 @@ import { saveFile } from '../../../lib/save-file';
 
 export default function ApplicationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
 
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
@@ -49,11 +51,11 @@ export default function ApplicationDetailScreen() {
         void logout();
         return;
       }
-      setLoadError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setLoadError(err instanceof ApiError ? err.message : t('common.connectionError'));
     } finally {
       setIsLoading(false);
     }
-  }, [id, accessToken, logout]);
+  }, [id, accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -75,7 +77,7 @@ export default function ApplicationDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>{loadError ?? 'Candidature indisponible.'}</ErrorText>
+          <ErrorText>{loadError ?? t('applications.detail.notFound')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -103,7 +105,7 @@ export default function ApplicationDetailScreen() {
           <Text style={styles.reference}>{application.reference}</Text>
         </View>
         <Text style={styles.title}>
-          {application.opportunity?.title ?? 'Candidature spontanée'}
+          {application.opportunity?.title ?? t('applications.list.spontaneous')}
         </Text>
         <Text style={styles.organization}>{application.organization.name}</Text>
 
@@ -172,9 +174,10 @@ function DocumentRequestsSection({
   requests: ApplicationDetail['documentRequests'];
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   if (requests.length === 0) return null;
   return (
-    <Section title="Document complémentaire demandé">
+    <Section title={t('applications.detail.documentRequest.sectionTitle')}>
       {requests.map((request) => (
         <FulfillRequestRow
           key={request.id}
@@ -202,6 +205,7 @@ function FulfillRequestRow({
   description: string;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isPicking, setIsPicking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -212,7 +216,7 @@ function FulfillRequestRow({
       setIsPicking(false);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Envoi impossible.');
+      setError(err instanceof ApiError ? err.message : t('applications.detail.documentRequest.submitError'));
     }
   }
 
@@ -226,7 +230,10 @@ function FulfillRequestRow({
           onCancel={() => setIsPicking(false)}
         />
       ) : (
-        <SecondaryButton title="Fournir un document" onPress={() => setIsPicking(true)} />
+        <SecondaryButton
+          title={t('applications.detail.documentRequest.provideButton')}
+          onPress={() => setIsPicking(true)}
+        />
       )}
       <ErrorText>{error}</ErrorText>
     </Card>
@@ -246,6 +253,7 @@ function InterviewSection({
   application: ApplicationDetail;
   onChanged: () => Promise<void>;
 }) {
+  const { t, i18n } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -256,27 +264,37 @@ function InterviewSection({
       await api.confirmInterview(accessToken, applicationId);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Confirmation impossible.');
+      setError(err instanceof ApiError ? err.message : t('applications.detail.interview.confirmError'));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <Section title="Entretien proposé">
+    <Section title={t('applications.detail.interview.sectionTitle')}>
       {!!application.interviewProposedAt && (
         <Text style={typography.body}>
-          {new Date(application.interviewProposedAt).toLocaleString('fr-FR')}
+          {new Date(application.interviewProposedAt).toLocaleString(i18n.language)}
         </Text>
       )}
       {!!application.interviewMode && (
-        <Text style={typography.caption}>Mode : {application.interviewMode}</Text>
+        <Text style={typography.caption}>
+          {t('applications.detail.interview.modeLabel', { mode: application.interviewMode })}
+        </Text>
       )}
       {!!application.interviewLocation && (
-        <Text style={typography.caption}>Lieu : {application.interviewLocation}</Text>
+        <Text style={typography.caption}>
+          {t('applications.detail.interview.locationLabel', {
+            location: application.interviewLocation,
+          })}
+        </Text>
       )}
       <ErrorText>{error}</ErrorText>
-      <PrimaryButton title="Confirmer l'entretien" onPress={handleConfirm} loading={isSubmitting} />
+      <PrimaryButton
+        title={t('applications.detail.interview.confirmButton')}
+        onPress={handleConfirm}
+        loading={isSubmitting}
+      />
     </Section>
   );
 }
@@ -292,6 +310,7 @@ function AdmissionLetterSection({
   applicationId: string;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -302,20 +321,18 @@ function AdmissionLetterSection({
       await api.acceptAdmissionLetter(accessToken, applicationId);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Acceptation impossible.');
+      setError(err instanceof ApiError ? err.message : t('applications.detail.admissionLetter.acceptError'));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <Section title="Lettre d'admission reçue">
-      <Text style={typography.body}>
-        Félicitations ! Acceptez votre lettre d'admission pour poursuivre.
-      </Text>
+    <Section title={t('applications.detail.admissionLetter.sectionTitle')}>
+      <Text style={typography.body}>{t('applications.detail.admissionLetter.hint')}</Text>
       <ErrorText>{error}</ErrorText>
       <PrimaryButton
-        title="Accepter la lettre d'admission"
+        title={t('applications.detail.admissionLetter.acceptButton')}
         onPress={handleAccept}
         loading={isSubmitting}
       />
@@ -332,6 +349,7 @@ function TravelConsentSection({
   application: ApplicationDetail;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [code, setCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -346,20 +364,17 @@ function TravelConsentSection({
       await api.confirmTravelConsent(travelConsentId, code);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Code invalide ou expiré.');
+      setError(err instanceof ApiError ? err.message : t('applications.detail.travelConsent.error'));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <Section title="Accord parental de déplacement">
-      <Text style={typography.body}>
-        Un SMS a été envoyé à votre parent/tuteur avec un code à 6 chiffres. Demandez-le
-        lui et saisissez-le ci-dessous pour confirmer l'accord de déplacement.
-      </Text>
+    <Section title={t('applications.detail.travelConsent.sectionTitle')}>
+      <Text style={typography.body}>{t('applications.detail.travelConsent.hint')}</Text>
       <FormInput
-        placeholder="Code à 6 chiffres"
+        placeholder={t('applications.detail.travelConsent.codePlaceholder')}
         value={code}
         onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, 6))}
         keyboardType="number-pad"
@@ -367,7 +382,7 @@ function TravelConsentSection({
       />
       <ErrorText>{error}</ErrorText>
       <PrimaryButton
-        title="Confirmer l'accord"
+        title={t('applications.detail.travelConsent.confirmButton')}
         onPress={handleConfirm}
         loading={isSubmitting}
         disabled={!travelConsentId || code.length !== 6}
@@ -389,11 +404,13 @@ function SignatureSection({
   application: ApplicationDetail;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const alreadySigned = !!application.candidateSignedAt;
+  const notSigned = t('applications.detail.signature.notSigned');
 
   async function handleSign() {
     setError(null);
@@ -402,29 +419,38 @@ function SignatureSection({
       await api.signApplication(accessToken, applicationId, name);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Signature impossible.');
+      setError(err instanceof ApiError ? err.message : t('applications.detail.signature.error'));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <Section title="Signature de la convention">
+    <Section title={t('applications.detail.signature.sectionTitle')}>
       <Text style={typography.caption}>
-        Vous : {alreadySigned ? `signé par ${application.candidateSignedName}` : 'non signé'}
+        {t('applications.detail.signature.youLabel')}
+        {alreadySigned
+          ? t('applications.detail.signature.signedBy', { name: application.candidateSignedName })
+          : notSigned}
       </Text>
       <Text style={typography.caption}>
-        Entreprise :{' '}
+        {t('applications.detail.signature.companyLabel')}
         {application.organizationSignedAt
-          ? `signé par ${application.organizationSignedName}`
-          : 'non signé'}
+          ? t('applications.detail.signature.signedBy', {
+              name: application.organizationSignedName,
+            })
+          : notSigned}
       </Text>
       {!alreadySigned && (
         <>
-          <FormInput placeholder="Votre nom complet" value={name} onChangeText={setName} />
+          <FormInput
+            placeholder={t('applications.detail.signature.namePlaceholder')}
+            value={name}
+            onChangeText={setName}
+          />
           <ErrorText>{error}</ErrorText>
           <PrimaryButton
-            title="Signer la convention"
+            title={t('applications.detail.signature.signButton')}
             onPress={handleSign}
             loading={isSubmitting}
             disabled={!name.trim()}
@@ -444,6 +470,7 @@ function ReportSection({
   accessToken: string;
   applicationId: string;
 }) {
+  const { t } = useTranslation();
   const [isPicking, setIsPicking] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -455,14 +482,14 @@ function ReportSection({
       setIsPicking(false);
       setIsSubmitted(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Envoi impossible.');
+      setError(err instanceof ApiError ? err.message : t('applications.detail.report.error'));
     }
   }
 
   return (
-    <Section title="Rapport de stage">
+    <Section title={t('applications.detail.report.sectionTitle')}>
       {isSubmitted ? (
-        <Text style={typography.body}>Rapport déposé.</Text>
+        <Text style={typography.body}>{t('applications.detail.report.submitted')}</Text>
       ) : isPicking ? (
         <DigitalSafeDocumentPicker
           accessToken={accessToken}
@@ -471,7 +498,7 @@ function ReportSection({
         />
       ) : (
         <SecondaryButton
-          title="Déposer mon rapport de stage"
+          title={t('applications.detail.report.submitButton')}
           onPress={() => setIsPicking(true)}
         />
       )}
@@ -491,6 +518,7 @@ function DigitalSafeDocumentPicker({
   onSelect: (documentId: string) => void;
   onCancel: () => void;
 }) {
+  const { t } = useTranslation();
   const [documents, setDocuments] = useState<DigitalSafeDocument[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -499,17 +527,17 @@ function DigitalSafeDocumentPicker({
       api
         .listDocuments(accessToken)
         .then(setDocuments)
-        .catch((err) => setError(err instanceof ApiError ? err.message : 'Chargement impossible.'));
-    }, [accessToken]),
+        .catch((err) =>
+          setError(err instanceof ApiError ? err.message : t('applications.detail.documentPicker.loadError')),
+        );
+    }, [accessToken, t]),
   );
 
   if (error) return <ErrorText>{error}</ErrorText>;
   if (!documents) return <ActivityIndicator color={colors.primary} />;
   if (documents.length === 0) {
     return (
-      <Text style={typography.caption}>
-        Aucun document dans votre coffre-fort — ajoutez-en un depuis l'onglet Coffre-fort.
-      </Text>
+      <Text style={typography.caption}>{t('applications.detail.documentPicker.empty')}</Text>
     );
   }
 
@@ -526,7 +554,7 @@ function DigitalSafeDocumentPicker({
         </Pressable>
       ))}
       <Pressable onPress={onCancel}>
-        <Text style={styles.cancelText}>Annuler</Text>
+        <Text style={styles.cancelText}>{t('common.cancel')}</Text>
       </Pressable>
     </View>
   );
@@ -543,6 +571,7 @@ function ArtifactsSection({
   applicationId: string;
   artifacts: ApplicationDetail['artifacts'];
 }) {
+  const { t } = useTranslation();
   const [downloadingKind, setDownloadingKind] = useState<ApplicationArtifactKind | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -553,14 +582,14 @@ function ArtifactsSection({
       const { blob, fileName } = await api.downloadArtifact(accessToken, applicationId, kind);
       await saveFile(blob, fileName);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Téléchargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('applications.detail.artifacts.downloadError'));
     } finally {
       setDownloadingKind(null);
     }
   }
 
   return (
-    <Section title="Documents">
+    <Section title={t('applications.detail.artifacts.sectionTitle')}>
       {artifacts.map((artifact) => (
         <View key={artifact.id} style={styles.artifactRow}>
           <Text style={typography.body}>{ARTIFACT_KIND_LABELS[artifact.kind]}</Text>
@@ -568,7 +597,7 @@ function ArtifactsSection({
             {downloadingKind === artifact.kind ? (
               <ActivityIndicator color={colors.primary} />
             ) : (
-              <Text style={styles.downloadText}>Télécharger</Text>
+              <Text style={styles.downloadText}>{t('applications.detail.artifacts.download')}</Text>
             )}
           </Pressable>
         </View>
@@ -581,13 +610,14 @@ function ArtifactsSection({
 // --- Historique -------------------------------------------------------------------------------
 
 function HistorySection({ history }: { history: ApplicationDetail['history'] }) {
+  const { t, i18n } = useTranslation();
   return (
-    <Section title="Historique">
+    <Section title={t('applications.detail.historyTitle')}>
       {history.map((event) => (
         <View key={event.id} style={styles.historyRow}>
           <Text style={typography.bodyBold}>{APPLICATION_STATUS_LABELS[event.toStatus]}</Text>
           <Text style={typography.caption}>
-            {new Date(event.createdAt).toLocaleString('fr-FR')}
+            {new Date(event.createdAt).toLocaleString(i18n.language)}
           </Text>
           {!!event.note && <Text style={typography.caption}>{event.note}</Text>}
         </View>
@@ -607,6 +637,7 @@ function WithdrawButton({
   applicationId: string;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function performWithdraw() {
@@ -615,7 +646,10 @@ function WithdrawButton({
       await api.withdrawApplication(accessToken, applicationId);
       await onChanged();
     } catch (err) {
-      Alert.alert('Erreur', err instanceof ApiError ? err.message : 'Retrait impossible.');
+      Alert.alert(
+        t('applications.detail.withdraw.errorTitle'),
+        err instanceof ApiError ? err.message : t('applications.detail.withdraw.error'),
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -623,19 +657,25 @@ function WithdrawButton({
 
   function handlePress() {
     if (Platform.OS === 'web') {
-      if (window.confirm('Retirer cette candidature ?')) void performWithdraw();
+      if (window.confirm(t('applications.detail.withdraw.confirmTitle'))) void performWithdraw();
       return;
     }
-    Alert.alert('Retirer cette candidature ?', undefined, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Retirer', style: 'destructive', onPress: () => void performWithdraw() },
+    Alert.alert(t('applications.detail.withdraw.confirmTitle'), undefined, [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('applications.detail.withdraw.button'),
+        style: 'destructive',
+        onPress: () => void performWithdraw(),
+      },
     ]);
   }
 
   return (
     <Pressable style={styles.withdrawButton} onPress={handlePress} disabled={isSubmitting}>
       <Text style={styles.withdrawText}>
-        {isSubmitting ? 'Retrait en cours…' : 'Retirer ma candidature'}
+        {isSubmitting
+          ? t('applications.detail.withdraw.inProgress')
+          : t('applications.detail.withdraw.button')}
       </Text>
     </Pressable>
   );

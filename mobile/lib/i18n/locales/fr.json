@@ -2,9 +2,18 @@
   "common": {
     "save": "Enregistrer",
     "cancel": "Annuler",
+    "add": "Ajouter",
+    "remove": "Supprimer",
+    "accept": "Accepter",
+    "decline": "Refuser",
+    "yes": "Oui",
+    "no": "Non",
     "loading": "Chargement…",
+    "ongoing": "en cours",
     "genericError": "Une erreur est survenue.",
-    "connectionError": "Chargement impossible. Vérifiez votre connexion internet."
+    "connectionError": "Chargement impossible. Vérifiez votre connexion internet.",
+    "actionError": "Action impossible.",
+    "addError": "Ajout impossible."
   },
   "nav": {
     "home": "Accueil",
@@ -75,6 +84,251 @@
     "language": {
       "sectionTitle": "Langue de l'application",
       "hint": "Choisissez la langue utilisée dans l'application."
+    },
+    "header": {
+      "fullNamePlaceholder": "Nom complet",
+      "headlinePlaceholder": "Titre (ex : Étudiant en informatique)",
+      "summaryPlaceholder": "Présentation",
+      "saveError": "Enregistrement impossible."
+    },
+    "roles": {
+      "title": "Casquettes",
+      "activeHint": "Casquette active — appuyez pour changer.",
+      "noRoles": "Aucune casquette pour l'instant.",
+      "addTitle": "Ajouter une casquette :",
+      "switchError": "Changement impossible."
+    },
+    "establishments": {
+      "title": "Établissement"
+    },
+    "education": {
+      "title": "Formations",
+      "institutionPlaceholder": "Établissement",
+      "degreePlaceholder": "Diplôme",
+      "fieldOfStudyPlaceholder": "Domaine d'étude",
+      "startDatePlaceholder": "Date de début",
+      "endDatePlaceholder": "Date de fin",
+      "addLink": "+ Ajouter une formation"
+    },
+    "experience": {
+      "title": "Expériences",
+      "titlePlaceholder": "Intitulé du poste",
+      "organizationPlaceholder": "Organisation",
+      "addLink": "+ Ajouter une expérience"
+    },
+    "cvLanguages": {
+      "title": "Langues",
+      "languagePlaceholder": "Langue (ex : Anglais)",
+      "addLink": "+ Ajouter une langue",
+      "levels": {
+        "BASIQUE": "Basique",
+        "INTERMEDIAIRE": "Intermédiaire",
+        "AVANCE": "Avancé",
+        "COURANT": "Courant",
+        "NATIF": "Natif"
+      }
+    },
+    "recommendations": {
+      "title": "Recommandations reçues",
+      "hint": "Une recommandation reste masquée tant que vous ne l'affichez pas vous-même sur votre profil.",
+      "visible": "Visible sur le profil",
+      "hidden": "Masquée",
+      "show": "Afficher sur le profil",
+      "hide": "Masquer"
+    }
+  },
+  "opportunities": {
+    "detailTitle": "Détail de l'offre",
+    "alertsTitle": "Mes alertes",
+    "search": {
+      "filters": "Filtres",
+      "countryPlaceholder": "Pays",
+      "cityPlaceholder": "Ville",
+      "sectorPlaceholder": "Secteur",
+      "allTypes": "Tous les types",
+      "searchButton": "Rechercher",
+      "searchError": "Recherche impossible.",
+      "empty": "Aucune offre ne correspond à ces critères.",
+      "loadMore": "Voir plus d'offres"
+    },
+    "detail": {
+      "notFound": "Offre indisponible.",
+      "verifiedOrg": "Organisation vérifiée",
+      "relocationRequired": "Déplacement requis",
+      "accommodationProvided": "Hébergement fourni",
+      "descriptionTitle": "Description",
+      "mobilityBenefitsTitle": "Avantages liés à la mobilité",
+      "apply": {
+        "button": "Postuler",
+        "confirmTitle": "Confirmer ma candidature",
+        "confirmHint": "Votre dossier (profil, CV, langues, expériences) sera envoyé tel quel à l'organisation.",
+        "relocateQuestion": "Êtes-vous prêt(e) à déménager ?",
+        "familyQuestion": "Avez-vous de la famille sur place ?",
+        "submit": "Envoyer ma candidature",
+        "error": "Candidature impossible."
+      },
+      "report": {
+        "link": "Signaler cette offre",
+        "descriptionPlaceholder": "Décrivez le problème (10 caractères minimum)",
+        "submit": "Envoyer le signalement",
+        "confirmation": "Signalement envoyé, merci.",
+        "error": "Envoi impossible.",
+        "categories": {
+          "HARASSMENT": "Harcèlement",
+          "ABUSE": "Abus",
+          "DANGER": "Danger",
+          "FRAUD": "Fraude",
+          "OTHER": "Autre"
+        }
+      }
+    },
+    "alerts": {
+      "hint": "Créez une alerte pour être notifié des nouvelles offres correspondant à vos critères.",
+      "createLink": "+ Créer une alerte",
+      "createButton": "Créer l'alerte",
+      "createError": "Création impossible.",
+      "loadError": "Chargement impossible.",
+      "noAlerts": "Aucune alerte pour l'instant.",
+      "allOffers": "Toutes les offres",
+      "showMatches": "Voir les offres correspondantes",
+      "hideMatches": "Masquer",
+      "noMatches": "Aucune correspondance pour l'instant."
+    }
+  },
+  "applications": {
+    "detailTitle": "Ma candidature",
+    "list": {
+      "title": "Mes candidatures",
+      "loadError": "Chargement impossible.",
+      "empty": "Vous n'avez encore postulé à aucune offre. Explorez l'onglet Offres pour commencer.",
+      "spontaneous": "Candidature spontanée"
+    },
+    "detail": {
+      "notFound": "Candidature indisponible.",
+      "documentRequest": {
+        "sectionTitle": "Document complémentaire demandé",
+        "provideButton": "Fournir un document",
+        "submitError": "Envoi impossible."
+      },
+      "interview": {
+        "sectionTitle": "Entretien proposé",
+        "modeLabel": "Mode : {{mode}}",
+        "locationLabel": "Lieu : {{location}}",
+        "confirmButton": "Confirmer l'entretien",
+        "confirmError": "Confirmation impossible."
+      },
+      "admissionLetter": {
+        "sectionTitle": "Lettre d'admission reçue",
+        "hint": "Félicitations ! Acceptez votre lettre d'admission pour poursuivre.",
+        "acceptButton": "Accepter la lettre d'admission",
+        "acceptError": "Acceptation impossible."
+      },
+      "travelConsent": {
+        "sectionTitle": "Accord parental de déplacement",
+        "hint": "Un SMS a été envoyé à votre parent/tuteur avec un code à 6 chiffres. Demandez-le lui et saisissez-le ci-dessous pour confirmer l'accord de déplacement.",
+        "codePlaceholder": "Code à 6 chiffres",
+        "confirmButton": "Confirmer l'accord",
+        "error": "Code invalide ou expiré."
+      },
+      "signature": {
+        "sectionTitle": "Signature de la convention",
+        "youLabel": "Vous : ",
+        "companyLabel": "Entreprise : ",
+        "signedBy": "signé par {{name}}",
+        "notSigned": "non signé",
+        "namePlaceholder": "Votre nom complet",
+        "signButton": "Signer la convention",
+        "error": "Signature impossible."
+      },
+      "report": {
+        "sectionTitle": "Rapport de stage",
+        "submitted": "Rapport déposé.",
+        "submitButton": "Déposer mon rapport de stage",
+        "error": "Envoi impossible."
+      },
+      "documentPicker": {
+        "loadError": "Chargement impossible.",
+        "empty": "Aucun document dans votre coffre-fort — ajoutez-en un depuis l'onglet Coffre-fort."
+      },
+      "artifacts": {
+        "sectionTitle": "Documents",
+        "download": "Télécharger",
+        "downloadError": "Téléchargement impossible."
+      },
+      "historyTitle": "Historique",
+      "withdraw": {
+        "inProgress": "Retrait en cours…",
+        "button": "Retirer ma candidature",
+        "confirmTitle": "Retirer cette candidature ?",
+        "error": "Retrait impossible.",
+        "errorTitle": "Erreur"
+      }
+    }
+  },
+  "digitalSafe": {
+    "layoutTitle": "Coffre-fort numérique",
+    "documentTitle": "Document",
+    "loadError": "Chargement impossible.",
+    "empty": "Aucun document pour l'instant.",
+    "addLink": "+ Ajouter un document",
+    "categoryLabel": "Catégorie",
+    "titlePlaceholder": "Titre du document",
+    "chooseFile": "Choisir un fichier",
+    "fileSelected": "Fichier : {{name}}",
+    "send": "Envoyer",
+    "uploadError": "Envoi impossible.",
+    "categories": {
+      "IDENTITY": "Pièce d'identité",
+      "DIPLOMA": "Diplôme",
+      "CERTIFICATE": "Certificat",
+      "INTERNSHIP_REPORT": "Rapport de stage",
+      "CONVENTION": "Convention",
+      "ADMISSION_LETTER": "Lettre d'admission",
+      "OTHER": "Autre"
+    },
+    "detail": {
+      "notFound": "Document introuvable.",
+      "unavailable": "Document indisponible.",
+      "rename": {
+        "titlePlaceholder": "Titre",
+        "button": "Renommer",
+        "saveError": "Enregistrement impossible."
+      },
+      "versions": {
+        "sectionTitle": "Versions",
+        "downloadLatest": "Télécharger la dernière version",
+        "downloadError": "Téléchargement impossible.",
+        "versionLabel": "Version {{number}} — {{fileName}}",
+        "addNew": "Ajouter une nouvelle version",
+        "uploadError": "Envoi impossible."
+      },
+      "shares": {
+        "sectionTitle": "Partage",
+        "link": "Lien",
+        "user": "Utilisateur",
+        "expiresOn": "Expire le {{date}}",
+        "noExpiry": "Sans expiration",
+        "revoke": "Révoquer",
+        "createLink": "Créer un lien de partage (QR Code)",
+        "createError": "Création du partage impossible."
+      },
+      "accessLog": {
+        "sectionTitle": "Journal d'accès",
+        "empty": "Aucun accès enregistré.",
+        "you": "Vous",
+        "actions": {
+          "VIEWED": "Consulté",
+          "DOWNLOADED": "Téléchargé",
+          "SHARE_CREATED": "Partage créé",
+          "SHARE_REVOKED": "Partage révoqué"
+        }
+      },
+      "delete": {
+        "button": "Supprimer le document",
+        "confirmTitle": "Supprimer ce document ?",
+        "error": "Suppression impossible.",
+        "errorTitle": "Erreur"
+      }
     }
   },
   "security": {

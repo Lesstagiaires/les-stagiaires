@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/badge';
 import { PressableCard } from '../../../components/card';
 import { ErrorText } from '../../../components/form';
@@ -18,6 +19,7 @@ import { useAuth } from '../../../lib/auth-context';
 
 export default function ApplicationsListScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,26 +36,23 @@ export default function ApplicationsListScreen() {
             void logout();
             return;
           }
-          setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+          setError(err instanceof ApiError ? err.message : t('applications.list.loadError'));
         })
         .finally(() => setIsLoading(false));
-    }, [accessToken, logout]),
+    }, [accessToken, logout, t]),
   );
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Mes candidatures</Text>
+        <Text style={styles.title}>{t('applications.list.title')}</Text>
 
         {isLoading ? (
           <ActivityIndicator color={colors.primary} style={styles.loader} />
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : applications.length === 0 ? (
-          <Text style={styles.emptyText}>
-            Vous n'avez encore postulé à aucune offre. Explorez l'onglet Offres pour
-            commencer.
-          </Text>
+          <Text style={styles.emptyText}>{t('applications.list.empty')}</Text>
         ) : (
           applications.map((application) => (
             <PressableCard
@@ -69,7 +68,7 @@ export default function ApplicationsListScreen() {
                 <Text style={styles.reference}>{application.reference}</Text>
               </View>
               <Text style={styles.opportunityTitle} numberOfLines={1}>
-                {application.opportunity?.title ?? 'Candidature spontanée'}
+                {application.opportunity?.title ?? t('applications.list.spontaneous')}
               </Text>
               <Text style={styles.organization} numberOfLines={1}>
                 {application.organization.name}
