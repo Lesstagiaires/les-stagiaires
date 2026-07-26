@@ -56,6 +56,7 @@ Chaque donnée ou document manipulé par le système doit être rattaché à l'u
 - Accès parental strictement cadré aux droits prévus dans le BRD (module Parents/Représentants légaux) — jamais un accès total non justifié.
 - Collecte de données strictement limitée à ce qui est nécessaire ; aucun champ optionnel « au cas où » sur un profil mineur.
 - Un mécanisme de signalement (harcèlement, abus, danger) doit être accessible dès le MVP, même sous une forme simple.
+- Une attestation de réussite émise par un établissement ne devient visible sur le profil qu'après un consentement actif et distinct — celui du titulaire s'il est majeur, celui du parent/tuteur s'il est mineur (même mécanisme de SMS de consentement actif que pour l'inscription). Un établissement ne peut jamais publier une attestation unilatéralement.
 
 **Règle pour Claude Code** : traiter le statut « mineur » comme un attribut qui modifie le comportement de plusieurs modules à la fois (profil, opportunités, communication) — pas comme une case à cocher isolée dans le formulaire d'inscription.
 
@@ -65,6 +66,8 @@ Chaque donnée ou document manipulé par le système doit être rattaché à l'u
 - Ne jamais désactiver une vérification de sécurité « temporairement pour tester » sans un ticket explicite de réactivation.
 - Ne jamais exposer un champ de la catégorie « Confidentiel » ou « Très sensible » dans une réponse API sans vérification explicite du rôle de l'appelant.
 - Ne jamais stocker de document utilisateur (pièce d'identité, diplôme, convention) hors du Digital Safe chiffré, y compris dans des fichiers de test ou de démonstration.
+- Ne jamais demander, collecter ou stocker le mot de passe ou le code PIN Mobile Money d'un utilisateur dans l'application. La confirmation d'un paiement (ex. abonnement PROTECT/PRO) doit toujours passer par le canal officiel et sécurisé de l'opérateur (USSD, application officielle, ou passerelle de paiement certifiée) — l'application ne reçoit qu'une confirmation de statut, jamais l'identifiant de paiement lui-même.
+- possibilité de proposer un abonnement payant à un compte identifié comme mineur s'il s'agit de PROTECT PRO Uniquement ou si le mineur le souhaite , diriger la demande auprès de son tuteur légal ou parents. Mais s'il s'agit d'un abonnement quelconque provenant d'un établissement ou entreprise, le mineur doit toujours solliciter l'accord du parent.
 
 ## 7. Ce que Claude Code ne remplace pas
 

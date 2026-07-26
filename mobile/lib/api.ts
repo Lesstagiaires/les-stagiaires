@@ -171,6 +171,18 @@ export interface Experience {
   description: string | null;
 }
 
+// Consentement actif requis avant publication (CLAUDE.md §5) : `visible` reste à false
+// tant que le titulaire (ou son parent/tuteur s'il est mineur) ne l'a pas explicitement
+// affichée — jamais publiée unilatéralement par l'organisation émettrice.
+export interface Recommendation {
+  id: string;
+  receiverId: string;
+  giverId: string;
+  message: string;
+  visible: boolean;
+  createdAt: string;
+}
+
 export interface ProfileLanguageEntry {
   id: string;
   language: string;
@@ -1254,6 +1266,23 @@ export const api = {
     request<{ id: string }>(`/applications/${applicationId}/recommend`, {
       method: 'POST',
       body: { message },
+      accessToken,
+    }),
+
+  // --- Recommandations reçues (FR-PRO-011) — consentement actif avant publication ---------
+
+  listRecommendations: (accessToken: string, userId: string) =>
+    request<Recommendation[]>(`/profiles/${userId}/recommendations`, { accessToken }),
+
+  showRecommendation: (accessToken: string, recommendationId: string) =>
+    request<Recommendation>(`/profiles/me/recommendations/${recommendationId}/show`, {
+      method: 'PATCH',
+      accessToken,
+    }),
+
+  hideRecommendation: (accessToken: string, recommendationId: string) =>
+    request<Recommendation>(`/profiles/me/recommendations/${recommendationId}/hide`, {
+      method: 'PATCH',
       accessToken,
     }),
 

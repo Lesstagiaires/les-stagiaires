@@ -414,8 +414,10 @@ model Recommendation {
   receiverId String
   giverId    String
   message    String
-  // Masquable par le titulaire sans suppression définitive — reste dans l'historique.
-  visible    Boolean  @default(true)
+  // Consentement actif requis avant publication (CLAUDE.md §5) : invisible tant que le
+  // titulaire ne l'a pas explicitement rendue visible — jamais publiée unilatéralement
+  // par l'organisation émettrice. Masquable ensuite sans suppression définitive.
+  visible    Boolean  @default(false)
   createdAt  DateTime @default(now())
 
   receiver User @relation("RecommendationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
