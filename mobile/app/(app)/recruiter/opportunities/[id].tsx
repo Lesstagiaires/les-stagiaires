@@ -1,6 +1,7 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../../components/badge';
 import { Card } from '../../../../components/card';
 import { ChipSelect } from '../../../../components/chip-select';
@@ -21,13 +22,9 @@ const WORK_MODE_OPTIONS: { value: WorkMode; label: string }[] = [
   { value: 'HYBRID', label: 'Hybride' },
 ];
 
-const YES_NO_OPTIONS = [
-  { value: 'yes', label: 'Oui' },
-  { value: 'no', label: 'Non' },
-];
-
 export default function ManageOpportunityScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,11 +40,11 @@ export default function ManageOpportunityScreen() {
         void logout();
         return;
       }
-      setLoadError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setLoadError(err instanceof ApiError ? err.message : t('recruiter.manageOpportunity.loadError'));
     } finally {
       setIsLoading(false);
     }
-  }, [id, accessToken, logout]);
+  }, [id, accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,7 +66,7 @@ export default function ManageOpportunityScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>{loadError ?? 'Offre indisponible.'}</ErrorText>
+          <ErrorText>{loadError ?? t('recruiter.manageOpportunity.unavailable')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -108,6 +105,7 @@ function LifecycleActions({
   opportunity: Opportunity;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -118,7 +116,7 @@ function LifecycleActions({
       await call();
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Action impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.manageOpportunity.actionError'));
     } finally {
       setBusyAction(null);
     }
@@ -128,35 +126,35 @@ function LifecycleActions({
   if (opportunity.status === 'DRAFT') {
     actions.push({
       key: 'publish',
-      title: 'Publier',
+      title: t('recruiter.manageOpportunity.actions.publish'),
       onPress: () => run('publish', () => api.publishOpportunity(accessToken, opportunity.id)),
     });
   }
   if (opportunity.status === 'ACTIVE') {
     actions.push({
       key: 'pause',
-      title: 'Mettre en pause',
+      title: t('recruiter.manageOpportunity.actions.pause'),
       onPress: () => run('pause', () => api.pauseOpportunity(accessToken, opportunity.id)),
     });
   }
   if (opportunity.status === 'PAUSED') {
     actions.push({
       key: 'resume',
-      title: 'Reprendre',
+      title: t('recruiter.manageOpportunity.actions.resume'),
       onPress: () => run('resume', () => api.resumeOpportunity(accessToken, opportunity.id)),
     });
   }
   if (opportunity.status === 'ACTIVE' || opportunity.status === 'PAUSED') {
     actions.push({
       key: 'fill',
-      title: 'Marquer comme pourvue',
+      title: t('recruiter.manageOpportunity.actions.fill'),
       onPress: () => run('fill', () => api.fillOpportunity(accessToken, opportunity.id)),
     });
   }
   if (['DRAFT', 'PENDING_REVIEW', 'ACTIVE', 'PAUSED'].includes(opportunity.status)) {
     actions.push({
       key: 'cancel',
-      title: 'Annuler',
+      title: t('recruiter.manageOpportunity.actions.cancel'),
       onPress: () => run('cancel', () => api.cancelOpportunity(accessToken, opportunity.id)),
     });
   }
@@ -180,26 +178,40 @@ function LifecycleActions({
 }
 
 function ReadOnlySummary({ opportunity }: { opportunity: Opportunity }) {
+  const { t } = useTranslation();
   return (
-    <Section title="Détails">
+    <Section title={t('recruiter.manageOpportunity.detailsTitle')}>
       <Text style={typography.body}>{opportunity.description}</Text>
-      <Text style={typography.caption}>Secteur : {opportunity.sector}</Text>
       <Text style={typography.caption}>
-        Lieu : {opportunity.city}, {opportunity.country}
+        {t('recruiter.manageOpportunity.sectorLabel', { sector: opportunity.sector })}
+      </Text>
+      <Text style={typography.caption}>
+        {t('recruiter.manageOpportunity.locationLabel', {
+          city: opportunity.city,
+          country: opportunity.country,
+        })}
       </Text>
       {!!opportunity.workMode && (
         <Text style={typography.caption}>
-          Mode : {WORK_MODE_OPTIONS.find((o) => o.value === opportunity.workMode)?.label}
+          {t('recruiter.manageOpportunity.modeLabel', {
+            mode: WORK_MODE_OPTIONS.find((o) => o.value === opportunity.workMode)?.label,
+          })}
         </Text>
       )}
       <Text style={typography.caption}>
-        Relocalisation requise : {opportunity.relocationRequired ? 'Oui' : 'Non'}
+        {t('recruiter.manageOpportunity.relocationLabel', {
+          value: opportunity.relocationRequired ? t('common.yes') : t('common.no'),
+        })}
       </Text>
       <Text style={typography.caption}>
-        Hébergement fourni : {opportunity.accommodationProvided ? 'Oui' : 'Non'}
+        {t('recruiter.manageOpportunity.accommodationLabel', {
+          value: opportunity.accommodationProvided ? t('common.yes') : t('common.no'),
+        })}
       </Text>
       {!!opportunity.mobilityBenefits && (
-        <Text style={typography.caption}>Avantages : {opportunity.mobilityBenefits}</Text>
+        <Text style={typography.caption}>
+          {t('recruiter.manageOpportunity.benefitsLabel', { benefits: opportunity.mobilityBenefits })}
+        </Text>
       )}
     </Section>
   );
@@ -214,6 +226,7 @@ function EditForm({
   opportunity: Opportunity;
   onSaved: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [title, setTitle] = useState(opportunity.title);
   const [description, setDescription] = useState(opportunity.description);
   const [type, setType] = useState<OpportunityType>(opportunity.type);
@@ -228,6 +241,10 @@ function EditForm({
   const [mobilityBenefits, setMobilityBenefits] = useState(opportunity.mobilityBenefits ?? '');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const yesNoOptions = [
+    { value: 'yes', label: t('common.yes') },
+    { value: 'no', label: t('common.no') },
+  ];
 
   useEffect(() => {
     setTitle(opportunity.title);
@@ -260,44 +277,60 @@ function EditForm({
       });
       await onSaved();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Enregistrement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.manageOpportunity.saveError'));
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <Section title="Modifier le brouillon">
-      <FormInput placeholder="Titre" value={title} onChangeText={setTitle} />
+    <Section title={t('recruiter.manageOpportunity.editTitle')}>
       <FormInput
-        placeholder="Description"
+        placeholder={t('recruiter.manageOpportunity.titlePlaceholder')}
+        value={title}
+        onChangeText={setTitle}
+      />
+      <FormInput
+        placeholder={t('recruiter.opportunityForm.descriptionPlaceholder')}
         value={description}
         onChangeText={setDescription}
         multiline
         numberOfLines={5}
         style={styles.multiline}
       />
-      <Text style={typography.label}>TYPE</Text>
+      <Text style={typography.label}>{t('recruiter.opportunityForm.typeLabel')}</Text>
       <ChipSelect options={OPPORTUNITY_TYPE_OPTIONS} value={type} onChange={(v) => setType(v as OpportunityType)} />
-      <FormInput placeholder="Secteur" value={sector} onChangeText={setSector} />
-      <FormInput placeholder="Pays" value={country} onChangeText={setCountry} />
-      <FormInput placeholder="Ville" value={city} onChangeText={setCity} />
-      <Text style={typography.label}>MODE DE TRAVAIL</Text>
+      <FormInput
+        placeholder={t('recruiter.opportunityForm.sectorPlaceholder')}
+        value={sector}
+        onChangeText={setSector}
+      />
+      <FormInput
+        placeholder={t('recruiter.opportunityForm.countryPlaceholder')}
+        value={country}
+        onChangeText={setCountry}
+      />
+      <FormInput
+        placeholder={t('recruiter.opportunityForm.cityPlaceholder')}
+        value={city}
+        onChangeText={setCity}
+      />
+      <Text style={typography.label}>{t('recruiter.opportunityForm.workModeLabel')}</Text>
       <ChipSelect options={WORK_MODE_OPTIONS} value={workMode} onChange={(v) => setWorkMode(v as WorkMode)} />
-      <Text style={typography.label}>RELOCALISATION REQUISE</Text>
+      <Text style={typography.label}>{t('recruiter.opportunityForm.relocationLabel')}</Text>
       <ChipSelect
-        options={YES_NO_OPTIONS}
+        options={yesNoOptions}
         value={relocationRequired ? 'yes' : 'no'}
         onChange={(v) => setRelocationRequired(v === 'yes')}
       />
-      <Text style={typography.label}>HÉBERGEMENT FOURNI</Text>
+      <Text style={typography.label}>{t('recruiter.opportunityForm.accommodationLabel')}</Text>
       <ChipSelect
-        options={YES_NO_OPTIONS}
+        options={yesNoOptions}
         value={accommodationProvided ? 'yes' : 'no'}
         onChange={(v) => setAccommodationProvided(v === 'yes')}
       />
       <FormInput
-        placeholder="Avantages liés à la mobilité (optionnel)"
+        placeholder={t('recruiter.opportunityForm.mobilityBenefitsPlaceholder')}
         value={mobilityBenefits}
         onChangeText={setMobilityBenefits}
         multiline
@@ -305,7 +338,7 @@ function EditForm({
         style={styles.multiline}
       />
       <ErrorText>{error}</ErrorText>
-      <PrimaryButton title="Enregistrer" onPress={handleSave} loading={isSaving} />
+      <PrimaryButton title={t('common.save')} onPress={handleSave} loading={isSaving} />
     </Section>
   );
 }

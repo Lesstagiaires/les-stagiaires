@@ -331,6 +331,133 @@
       }
     }
   },
+  "recruiter": {
+    "layout": {
+      "organization": "Mi organización",
+      "team": "Equipo",
+      "needs": "Necesidades especiales",
+      "learners": "Aprendices",
+      "campaigns": "Campañas",
+      "learnerApplications": "Convenios",
+      "reports": "Informes de prácticas",
+      "dashboard": "Panel de control",
+      "partners": "Empresas asociadas",
+      "myOpportunities": "Mis ofertas",
+      "newOpportunity": "Nueva oferta",
+      "manageOpportunity": "Gestionar la oferta",
+      "receivedApplications": "Candidaturas recibidas",
+      "applicationDetail": "Candidatura"
+    },
+    "home": {
+      "title": "Reclutador",
+      "loadError": "No se pudo cargar.",
+      "noOrgNotice": "Crear una organización requiere la gorra de Empresa o Institución.",
+      "addRoleButton": "Añadir esta gorra a mi perfil",
+      "myOpportunitiesHint": "Crea y gestiona tus ofertas publicadas.",
+      "receivedApplicationsHint": "Procesa las candidaturas a tus ofertas.",
+      "invitationsTitle": "Invitaciones recibidas",
+      "roleProposed": "Rol propuesto: {{role}}",
+      "actionError": "No se pudo completar la acción.",
+      "newOrgButton": "+ Nueva organización",
+      "newOrgTitle": "Nueva organización",
+      "orgNamePlaceholder": "Nombre de la organización",
+      "sectorPlaceholder": "Sector (opcional)",
+      "countryPlaceholder": "País",
+      "cityPlaceholder": "Ciudad",
+      "createButton": "Crear",
+      "createError": "No se pudo crear."
+    },
+    "organization": {
+      "notFound": "Organización no encontrada.",
+      "unavailable": "Organización no disponible.",
+      "loadError": "No se pudo cargar.",
+      "notVerifiedNotice": "Mientras esta organización no esté verificada por el equipo de LES STAGIAIRES, tus ofertas no podrán publicarse ni reabrirse.",
+      "teamHint": "Invita y gestiona a los colaboradores.",
+      "needsHint": "Estacional, voluntariado, temporal.",
+      "learnersHint": "Vincula y verifica a tus aprendices.",
+      "campaignsHint": "Periodos de prácticas de la institución.",
+      "learnerApplicationsHint": "Seguimiento de las candidaturas de los aprendices.",
+      "reportsHint": "Corrección y validación.",
+      "dashboardHint": "Tasa de inserción de los aprendices.",
+      "partnersHint": "Directorio de organizaciones de acogida.",
+      "page": {
+        "sectionTitle": "Página pública",
+        "descriptionPlaceholder": "Presentación de la organización",
+        "websitePlaceholder": "Sitio web (https://…)",
+        "logoPlaceholder": "URL del logo (https://…)",
+        "saveError": "No se pudo guardar."
+      }
+    },
+    "team": {
+      "unavailable": "Organización no disponible.",
+      "loadError": "No se pudo cargar.",
+      "emptyMembers": "Aún no hay miembros.",
+      "revoking": "Revocando…",
+      "revoke": "Revocar acceso",
+      "revokeError": "No se pudo revocar.",
+      "inviteSectionTitle": "Invitar a un colaborador",
+      "inviteHint": "Esta persona ya debe tener una cuenta de LES STAGIAIRES con este número.",
+      "phonePlaceholder": "Teléfono (ej: +237670000000)",
+      "sendInvite": "Enviar invitación",
+      "inviteError": "No se pudo invitar."
+    },
+    "needs": {
+      "unavailable": "Organización no disponible.",
+      "loadError": "No se pudo cargar.",
+      "hint": "Las ofertas estacionales, de voluntariado o temporales requieren la aprobación del equipo de LES STAGIAIRES antes de su publicación.",
+      "empty": "Aún no hay solicitudes.",
+      "responseLabel": "Respuesta: {{note}}",
+      "newRequestTitle": "Nueva solicitud",
+      "quantityPlaceholder": "Cantidad",
+      "descriptionPlaceholder": "Describe tu necesidad",
+      "submit": "Enviar solicitud",
+      "submitError": "No se pudo enviar."
+    },
+    "opportunityForm": {
+      "loadError": "No se pudo cargar.",
+      "organizationLabel": "ORGANIZACIÓN",
+      "titlePlaceholder": "Título de la oferta",
+      "descriptionPlaceholder": "Descripción",
+      "typeLabel": "TIPO",
+      "gatedTypeHint": "Este tipo requiere una solicitud de necesidad especial aprobada antes de publicar (ver \"Necesidades especiales\" en la ficha de la organización).",
+      "sectorPlaceholder": "Sector",
+      "countryPlaceholder": "País",
+      "cityPlaceholder": "Ciudad",
+      "workModeLabel": "MODALIDAD DE TRABAJO",
+      "relocationLabel": "REUBICACIÓN REQUERIDA",
+      "accommodationLabel": "ALOJAMIENTO INCLUIDO",
+      "mobilityBenefitsPlaceholder": "Beneficios de movilidad (opcional)",
+      "submit": "Crear como borrador",
+      "createError": "No se pudo crear."
+    },
+    "myOpportunities": {
+      "loadError": "No se pudo cargar.",
+      "newLink": "+ Nueva oferta",
+      "empty": "Aún no hay ofertas."
+    },
+    "manageOpportunity": {
+      "unavailable": "Oferta no disponible.",
+      "loadError": "No se pudo cargar.",
+      "actionError": "No se pudo completar la acción.",
+      "actions": {
+        "publish": "Publicar",
+        "pause": "Pausar",
+        "resume": "Reanudar",
+        "fill": "Marcar como cubierta",
+        "cancel": "Cancelar"
+      },
+      "detailsTitle": "Detalles",
+      "sectorLabel": "Sector: {{sector}}",
+      "locationLabel": "Lugar: {{city}}, {{country}}",
+      "modeLabel": "Modalidad: {{mode}}",
+      "relocationLabel": "Reubicación requerida: {{value}}",
+      "accommodationLabel": "Alojamiento incluido: {{value}}",
+      "benefitsLabel": "Beneficios: {{benefits}}",
+      "editTitle": "Editar borrador",
+      "titlePlaceholder": "Título",
+      "saveError": "No se pudo guardar."
+    }
+  },
   "security": {
     "title": "Seguridad",
     "twoFactorTitle": "Autenticación de dos factores",

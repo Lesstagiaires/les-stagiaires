@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/badge';
 import { Card, PressableCard } from '../../../components/card';
 import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../../components/form';
@@ -28,6 +29,7 @@ import { useAuth } from '../../../lib/auth-context';
 
 export default function RecruiterHomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
   const [organizations, setOrganizations] = useState<Organization[] | null>(null);
   const [invitations, setInvitations] = useState<OrganizationInvitation[]>([]);
@@ -51,9 +53,9 @@ export default function RecruiterHomeScreen() {
         void logout();
         return;
       }
-      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.home.loadError'));
     }
-  }, [accessToken, logout]);
+  }, [accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -78,7 +80,7 @@ export default function RecruiterHomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.screenTitle}>Espace recruteur</Text>
+        <Text style={styles.screenTitle}>{t('recruiter.home.title')}</Text>
 
         {invitations.length > 0 && (
           <InvitationsSection accessToken={accessToken} invitations={invitations} onChanged={reload} />
@@ -86,12 +88,9 @@ export default function RecruiterHomeScreen() {
 
         {organizations.length === 0 && invitations.length === 0 && !isOrgEligible && (
           <View style={styles.emptyState}>
-            <Text style={typography.body}>
-              La création d'une organisation nécessite la casquette Entreprise ou
-              Établissement.
-            </Text>
+            <Text style={typography.body}>{t('recruiter.home.noOrgNotice')}</Text>
             <PrimaryButton
-              title="Ajouter cette casquette dans mon profil"
+              title={t('recruiter.home.addRoleButton')}
               onPress={() => router.push('/profile')}
             />
           </View>
@@ -129,15 +128,15 @@ export default function RecruiterHomeScreen() {
               style={styles.quickLinkCard}
               onPress={() => router.push('/recruiter/opportunities')}
             >
-              <Text style={styles.quickLinkTitle}>Mes offres</Text>
-              <Text style={typography.caption}>Créer et gérer vos offres publiées.</Text>
+              <Text style={styles.quickLinkTitle}>{t('recruiter.layout.myOpportunities')}</Text>
+              <Text style={typography.caption}>{t('recruiter.home.myOpportunitiesHint')}</Text>
             </PressableCard>
             <PressableCard
               style={styles.quickLinkCard}
               onPress={() => router.push('/recruiter/applications')}
             >
-              <Text style={styles.quickLinkTitle}>Candidatures reçues</Text>
-              <Text style={typography.caption}>Traiter les candidatures à vos offres.</Text>
+              <Text style={styles.quickLinkTitle}>{t('recruiter.layout.receivedApplications')}</Text>
+              <Text style={typography.caption}>{t('recruiter.home.receivedApplicationsHint')}</Text>
             </PressableCard>
           </View>
         )}
@@ -159,6 +158,7 @@ function InvitationsSection({
   invitations: OrganizationInvitation[];
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -173,7 +173,7 @@ function InvitationsSection({
       }
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Action impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.home.actionError'));
     } finally {
       setBusyId(null);
     }
@@ -181,17 +181,17 @@ function InvitationsSection({
 
   return (
     <View style={styles.invitationsList}>
-      <Text style={typography.h3}>Invitations reçues</Text>
+      <Text style={typography.h3}>{t('recruiter.home.invitationsTitle')}</Text>
       {invitations.map((invitation) => (
         <Card key={invitation.id} style={styles.invitationCard}>
           <Text style={typography.bodyBold}>{invitation.organization.name}</Text>
           <Text style={typography.caption}>
-            Rôle proposé : {MEMBER_ROLE_LABELS[invitation.role]}
+            {t('recruiter.home.roleProposed', { role: MEMBER_ROLE_LABELS[invitation.role] })}
           </Text>
           <View style={styles.invitationActions}>
             <View style={styles.invitationButton}>
               <PrimaryButton
-                title="Accepter"
+                title={t('common.accept')}
                 onPress={() => respond(invitation, true)}
                 loading={busyId === invitation.id}
                 disabled={busyId !== null && busyId !== invitation.id}
@@ -199,7 +199,7 @@ function InvitationsSection({
             </View>
             <View style={styles.invitationButton}>
               <SecondaryButton
-                title="Refuser"
+                title={t('common.decline')}
                 onPress={() => respond(invitation, false)}
                 loading={false}
                 disabled={busyId !== null}
@@ -220,6 +220,7 @@ function CreateOrganizationSection({
   accessToken: string;
   onCreated: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
   const [sector, setSector] = useState('');
@@ -245,7 +246,7 @@ function CreateOrganizationSection({
       setIsOpen(false);
       await onCreated();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Création impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.home.createError'));
     } finally {
       setIsSaving(false);
     }
@@ -253,26 +254,42 @@ function CreateOrganizationSection({
 
   if (!isOpen) {
     return (
-      <PrimaryButton title="+ Nouvelle organisation" onPress={() => setIsOpen(true)} />
+      <PrimaryButton title={t('recruiter.home.newOrgButton')} onPress={() => setIsOpen(true)} />
     );
   }
 
   return (
     <View style={styles.form}>
-      <Text style={typography.h3}>Nouvelle organisation</Text>
-      <FormInput placeholder="Nom de l'organisation" value={name} onChangeText={setName} />
-      <FormInput placeholder="Secteur (optionnel)" value={sector} onChangeText={setSector} />
-      <FormInput placeholder="Pays" value={country} onChangeText={setCountry} />
-      <FormInput placeholder="Ville" value={city} onChangeText={setCity} />
+      <Text style={typography.h3}>{t('recruiter.home.newOrgTitle')}</Text>
+      <FormInput
+        placeholder={t('recruiter.home.orgNamePlaceholder')}
+        value={name}
+        onChangeText={setName}
+      />
+      <FormInput
+        placeholder={t('recruiter.home.sectorPlaceholder')}
+        value={sector}
+        onChangeText={setSector}
+      />
+      <FormInput
+        placeholder={t('recruiter.home.countryPlaceholder')}
+        value={country}
+        onChangeText={setCountry}
+      />
+      <FormInput
+        placeholder={t('recruiter.home.cityPlaceholder')}
+        value={city}
+        onChangeText={setCity}
+      />
       <ErrorText>{error}</ErrorText>
       <PrimaryButton
-        title="Créer"
+        title={t('recruiter.home.createButton')}
         onPress={handleCreate}
         loading={isSaving}
         disabled={!name.trim() || !country.trim() || !city.trim()}
       />
       <Text style={styles.cancelText} onPress={() => setIsOpen(false)}>
-        Annuler
+        {t('common.cancel')}
       </Text>
     </View>
   );

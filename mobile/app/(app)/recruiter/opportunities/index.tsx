@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../../components/badge';
 import { PressableCard } from '../../../../components/card';
 import { ErrorText, PrimaryButton } from '../../../../components/form';
@@ -15,6 +16,7 @@ import { useAuth } from '../../../../lib/auth-context';
 
 export default function MyOpportunitiesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
   const [opportunities, setOpportunities] = useState<Opportunity[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,9 +31,9 @@ export default function MyOpportunitiesScreen() {
         void logout();
         return;
       }
-      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.myOpportunities.loadError'));
     }
-  }, [accessToken, logout]);
+  }, [accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -42,10 +44,10 @@ export default function MyOpportunitiesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Mes offres</Text>
+        <Text style={styles.title}>{t('recruiter.layout.myOpportunities')}</Text>
 
         <PrimaryButton
-          title="+ Nouvelle offre"
+          title={t('recruiter.myOpportunities.newLink')}
           onPress={() => router.push('/recruiter/opportunities/new')}
         />
 
@@ -54,7 +56,7 @@ export default function MyOpportunitiesScreen() {
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : opportunities.length === 0 ? (
-          <Text style={styles.emptyText}>Aucune offre pour l'instant.</Text>
+          <Text style={styles.emptyText}>{t('recruiter.myOpportunities.empty')}</Text>
         ) : (
           <View style={styles.list}>
             {opportunities.map((opportunity) => (

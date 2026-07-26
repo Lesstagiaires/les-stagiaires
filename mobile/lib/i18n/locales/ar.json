@@ -331,6 +331,133 @@
       }
     }
   },
+  "recruiter": {
+    "layout": {
+      "organization": "مؤسستي",
+      "team": "الفريق",
+      "needs": "احتياجات خاصة",
+      "learners": "المتدربون",
+      "campaigns": "الحملات",
+      "learnerApplications": "الاتفاقيات",
+      "reports": "تقارير التدريب",
+      "dashboard": "لوحة التحكم",
+      "partners": "الشركات الشريكة",
+      "myOpportunities": "عروضي",
+      "newOpportunity": "عرض جديد",
+      "manageOpportunity": "إدارة العرض",
+      "receivedApplications": "الترشيحات الواردة",
+      "applicationDetail": "الترشيح"
+    },
+    "home": {
+      "title": "فضاء التوظيف",
+      "loadError": "تعذّر التحميل.",
+      "noOrgNotice": "يتطلّب إنشاء مؤسسة صفة شركة أو مؤسسة تعليمية.",
+      "addRoleButton": "إضافة هذه الصفة إلى ملفي الشخصي",
+      "myOpportunitiesHint": "إنشاء وإدارة عروضك المنشورة.",
+      "receivedApplicationsHint": "معالجة الترشيحات لعروضك.",
+      "invitationsTitle": "الدعوات الواردة",
+      "roleProposed": "الدور المقترح: {{role}}",
+      "actionError": "تعذّر تنفيذ الإجراء.",
+      "newOrgButton": "+ مؤسسة جديدة",
+      "newOrgTitle": "مؤسسة جديدة",
+      "orgNamePlaceholder": "اسم المؤسسة",
+      "sectorPlaceholder": "القطاع (اختياري)",
+      "countryPlaceholder": "البلد",
+      "cityPlaceholder": "المدينة",
+      "createButton": "إنشاء",
+      "createError": "تعذّر الإنشاء."
+    },
+    "organization": {
+      "notFound": "المؤسسة غير موجودة.",
+      "unavailable": "المؤسسة غير متاحة.",
+      "loadError": "تعذّر التحميل.",
+      "notVerifiedNotice": "ما دامت هذه المؤسسة غير موثّقة من قِبل فريق LES STAGIAIRES، لا يمكن نشر عروضك أو إعادة فتحها.",
+      "teamHint": "دعوة وإدارة المتعاونين.",
+      "needsHint": "موسمي، تطوّعي، مؤقّت.",
+      "learnersHint": "ربط والتحقّق من متدربيك.",
+      "campaignsHint": "فترات تدريب المؤسسة التعليمية.",
+      "learnerApplicationsHint": "متابعة ترشيحات المتدربين.",
+      "reportsHint": "التصحيح والمصادقة.",
+      "dashboardHint": "معدّل إدماج المتدربين.",
+      "partnersHint": "دليل مؤسسات الاستقبال.",
+      "page": {
+        "sectionTitle": "الصفحة العامة",
+        "descriptionPlaceholder": "تعريف المؤسسة",
+        "websitePlaceholder": "الموقع الإلكتروني (https://…)",
+        "logoPlaceholder": "رابط الشعار (https://…)",
+        "saveError": "تعذّر الحفظ."
+      }
+    },
+    "team": {
+      "unavailable": "المؤسسة غير متاحة.",
+      "loadError": "تعذّر التحميل.",
+      "emptyMembers": "لا يوجد أعضاء بعد.",
+      "revoking": "جارٍ الإلغاء…",
+      "revoke": "إلغاء الوصول",
+      "revokeError": "تعذّر الإلغاء.",
+      "inviteSectionTitle": "دعوة متعاون",
+      "inviteHint": "يجب أن يمتلك هذا الشخص بالفعل حسابًا في LES STAGIAIRES بهذا الرقم.",
+      "phonePlaceholder": "الهاتف (مثال: ‎+237670000000)",
+      "sendInvite": "إرسال الدعوة",
+      "inviteError": "تعذّرت الدعوة."
+    },
+    "needs": {
+      "unavailable": "المؤسسة غير متاحة.",
+      "loadError": "تعذّر التحميل.",
+      "hint": "تتطلّب العروض الموسمية أو التطوّعية أو المؤقّتة موافقة فريق LES STAGIAIRES قبل النشر.",
+      "empty": "لا توجد طلبات بعد.",
+      "responseLabel": "الرد: {{note}}",
+      "newRequestTitle": "طلب جديد",
+      "quantityPlaceholder": "الكمية",
+      "descriptionPlaceholder": "صف احتياجك",
+      "submit": "إرسال الطلب",
+      "submitError": "تعذّر الإرسال."
+    },
+    "opportunityForm": {
+      "loadError": "تعذّر التحميل.",
+      "organizationLabel": "المؤسسة",
+      "titlePlaceholder": "عنوان العرض",
+      "descriptionPlaceholder": "الوصف",
+      "typeLabel": "النوع",
+      "gatedTypeHint": "يتطلّب هذا النوع موافقة مسبقة على طلب احتياج خاص قبل النشر (انظر \"احتياجات خاصة\" في صفحة المؤسسة).",
+      "sectorPlaceholder": "القطاع",
+      "countryPlaceholder": "البلد",
+      "cityPlaceholder": "المدينة",
+      "workModeLabel": "طريقة العمل",
+      "relocationLabel": "الانتقال مطلوب",
+      "accommodationLabel": "السكن متوفّر",
+      "mobilityBenefitsPlaceholder": "مزايا مرتبطة بالتنقّل (اختياري)",
+      "submit": "إنشاء كمسودة",
+      "createError": "تعذّر الإنشاء."
+    },
+    "myOpportunities": {
+      "loadError": "تعذّر التحميل.",
+      "newLink": "+ عرض جديد",
+      "empty": "لا توجد عروض بعد."
+    },
+    "manageOpportunity": {
+      "unavailable": "العرض غير متاح.",
+      "loadError": "تعذّر التحميل.",
+      "actionError": "تعذّر تنفيذ الإجراء.",
+      "actions": {
+        "publish": "نشر",
+        "pause": "إيقاف مؤقّت",
+        "resume": "استئناف",
+        "fill": "وضع علامة كمُشغل",
+        "cancel": "إلغاء"
+      },
+      "detailsTitle": "التفاصيل",
+      "sectorLabel": "القطاع: {{sector}}",
+      "locationLabel": "المكان: {{city}}, {{country}}",
+      "modeLabel": "الطريقة: {{mode}}",
+      "relocationLabel": "الانتقال مطلوب: {{value}}",
+      "accommodationLabel": "السكن متوفّر: {{value}}",
+      "benefitsLabel": "المزايا: {{benefits}}",
+      "editTitle": "تعديل المسودة",
+      "titlePlaceholder": "العنوان",
+      "saveError": "تعذّر الحفظ."
+    }
+  },
   "security": {
     "title": "الأمان",
     "twoFactorTitle": "المصادقة الثنائية",

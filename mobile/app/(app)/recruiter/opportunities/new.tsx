@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ChipSelect } from '../../../../components/chip-select';
 import { ErrorText, FormInput, PrimaryButton } from '../../../../components/form';
 import { colors, spacing, typography } from '../../../../components/theme';
@@ -14,14 +15,14 @@ const WORK_MODE_OPTIONS: { value: WorkMode; label: string }[] = [
   { value: 'HYBRID', label: 'Hybride' },
 ];
 
-const YES_NO_OPTIONS = [
-  { value: 'yes', label: 'Oui' },
-  { value: 'no', label: 'Non' },
-];
-
 export default function NewOpportunityScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
+  const yesNoOptions = [
+    { value: 'yes', label: t('common.yes') },
+    { value: 'no', label: t('common.no') },
+  ];
   const [organizations, setOrganizations] = useState<Organization[] | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
 
@@ -53,9 +54,9 @@ export default function NewOpportunityScreen() {
             void logout();
             return;
           }
-          setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+          setError(err instanceof ApiError ? err.message : t('recruiter.opportunityForm.loadError'));
         });
-    }, [accessToken, logout]),
+    }, [accessToken, logout, t]),
   );
 
   const canSubmit =
@@ -88,7 +89,7 @@ export default function NewOpportunityScreen() {
       });
       router.replace(`/recruiter/opportunities/${created.id}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Création impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.opportunityForm.createError'));
     } finally {
       setIsSaving(false);
     }
@@ -107,11 +108,11 @@ export default function NewOpportunityScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Nouvelle offre</Text>
+        <Text style={styles.title}>{t('recruiter.layout.newOpportunity')}</Text>
 
         {organizations.length > 1 && (
           <View style={styles.field}>
-            <Text style={typography.label}>ORGANISATION</Text>
+            <Text style={typography.label}>{t('recruiter.opportunityForm.organizationLabel')}</Text>
             <ChipSelect
               options={organizations.map((org) => ({ value: org.id, label: org.name }))}
               value={organizationId}
@@ -120,9 +121,13 @@ export default function NewOpportunityScreen() {
           </View>
         )}
 
-        <FormInput placeholder="Titre de l'offre" value={title} onChangeText={setTitle} />
         <FormInput
-          placeholder="Description"
+          placeholder={t('recruiter.opportunityForm.titlePlaceholder')}
+          value={title}
+          onChangeText={setTitle}
+        />
+        <FormInput
+          placeholder={t('recruiter.opportunityForm.descriptionPlaceholder')}
           value={description}
           onChangeText={setDescription}
           multiline
@@ -131,45 +136,54 @@ export default function NewOpportunityScreen() {
         />
 
         <View style={styles.field}>
-          <Text style={typography.label}>TYPE</Text>
+          <Text style={typography.label}>{t('recruiter.opportunityForm.typeLabel')}</Text>
           <ChipSelect options={OPPORTUNITY_TYPE_OPTIONS} value={type} onChange={(v) => setType(v as OpportunityType)} />
           {(type === 'SEASONAL' || type === 'VOLUNTEER' || type === 'TEMPORARY') && (
-            <Text style={typography.caption}>
-              Ce type nécessite une demande de besoin spécial approuvée avant publication
-              (voir "Besoins spéciaux" sur la fiche de l'organisation).
-            </Text>
+            <Text style={typography.caption}>{t('recruiter.opportunityForm.gatedTypeHint')}</Text>
           )}
         </View>
 
-        <FormInput placeholder="Secteur" value={sector} onChangeText={setSector} />
-        <FormInput placeholder="Pays" value={country} onChangeText={setCountry} />
-        <FormInput placeholder="Ville" value={city} onChangeText={setCity} />
+        <FormInput
+          placeholder={t('recruiter.opportunityForm.sectorPlaceholder')}
+          value={sector}
+          onChangeText={setSector}
+        />
+        <FormInput
+          placeholder={t('recruiter.opportunityForm.countryPlaceholder')}
+          value={country}
+          onChangeText={setCountry}
+        />
+        <FormInput
+          placeholder={t('recruiter.opportunityForm.cityPlaceholder')}
+          value={city}
+          onChangeText={setCity}
+        />
 
         <View style={styles.field}>
-          <Text style={typography.label}>MODE DE TRAVAIL</Text>
+          <Text style={typography.label}>{t('recruiter.opportunityForm.workModeLabel')}</Text>
           <ChipSelect options={WORK_MODE_OPTIONS} value={workMode} onChange={(v) => setWorkMode(v as WorkMode)} />
         </View>
 
         <View style={styles.field}>
-          <Text style={typography.label}>RELOCALISATION REQUISE</Text>
+          <Text style={typography.label}>{t('recruiter.opportunityForm.relocationLabel')}</Text>
           <ChipSelect
-            options={YES_NO_OPTIONS}
+            options={yesNoOptions}
             value={relocationRequired === null ? null : relocationRequired ? 'yes' : 'no'}
             onChange={(v) => setRelocationRequired(v === 'yes')}
           />
         </View>
 
         <View style={styles.field}>
-          <Text style={typography.label}>HÉBERGEMENT FOURNI</Text>
+          <Text style={typography.label}>{t('recruiter.opportunityForm.accommodationLabel')}</Text>
           <ChipSelect
-            options={YES_NO_OPTIONS}
+            options={yesNoOptions}
             value={accommodationProvided === null ? null : accommodationProvided ? 'yes' : 'no'}
             onChange={(v) => setAccommodationProvided(v === 'yes')}
           />
         </View>
 
         <FormInput
-          placeholder="Avantages liés à la mobilité (optionnel)"
+          placeholder={t('recruiter.opportunityForm.mobilityBenefitsPlaceholder')}
           value={mobilityBenefits}
           onChangeText={setMobilityBenefits}
           multiline
@@ -179,7 +193,7 @@ export default function NewOpportunityScreen() {
 
         <ErrorText>{error}</ErrorText>
         <PrimaryButton
-          title="Créer en brouillon"
+          title={t('recruiter.opportunityForm.submit')}
           onPress={handleCreate}
           loading={isSaving}
           disabled={!canSubmit}

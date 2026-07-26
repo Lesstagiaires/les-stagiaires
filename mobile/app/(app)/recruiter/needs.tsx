@@ -1,6 +1,7 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/badge';
 import { Card } from '../../../components/card';
 import { ChipSelect } from '../../../components/chip-select';
@@ -18,6 +19,7 @@ import { useAuth } from '../../../lib/auth-context';
 
 export default function NeedRequestsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
   const [requests, setRequests] = useState<OrganizationNeedRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,9 +34,9 @@ export default function NeedRequestsScreen() {
         void logout();
         return;
       }
-      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.needs.loadError'));
     }
-  }, [id, accessToken, logout]);
+  }, [id, accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -46,7 +48,7 @@ export default function NeedRequestsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>Organisation indisponible.</ErrorText>
+          <ErrorText>{t('recruiter.needs.unavailable')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -55,18 +57,15 @@ export default function NeedRequestsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Besoins spéciaux</Text>
-        <Text style={typography.caption}>
-          Les offres saisonnières, bénévoles ou temporaires nécessitent l'approbation de
-          l'équipe LES STAGIAIRES avant publication.
-        </Text>
+        <Text style={styles.title}>{t('recruiter.layout.needs')}</Text>
+        <Text style={typography.caption}>{t('recruiter.needs.hint')}</Text>
 
         {requests === null ? (
           <ActivityIndicator color={colors.primary} style={styles.loader} />
         ) : (
           <View style={styles.list}>
             {requests.length === 0 ? (
-              <Text style={styles.emptyText}>Aucune demande pour l'instant.</Text>
+              <Text style={styles.emptyText}>{t('recruiter.needs.empty')}</Text>
             ) : (
               requests.map((request) => (
                 <Card key={request.id} style={styles.requestCard}>
@@ -81,7 +80,9 @@ export default function NeedRequestsScreen() {
                   </View>
                   <Text style={typography.body}>{request.description}</Text>
                   {!!request.adminNote && (
-                    <Text style={typography.caption}>Réponse : {request.adminNote}</Text>
+                    <Text style={typography.caption}>
+                      {t('recruiter.needs.responseLabel', { note: request.adminNote })}
+                    </Text>
                   )}
                 </Card>
               ))
@@ -106,6 +107,7 @@ function CreateNeedRequestSection({
   organizationId: string;
   onCreated: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [type, setType] = useState<NeedRequestType | null>(null);
   const [quantity, setQuantity] = useState('');
   const [description, setDescription] = useState('');
@@ -130,23 +132,23 @@ function CreateNeedRequestSection({
       setDescription('');
       await onCreated();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Envoi impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.needs.submitError'));
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <Section title="Nouvelle demande">
+    <Section title={t('recruiter.needs.newRequestTitle')}>
       <ChipSelect options={NEED_REQUEST_TYPE_OPTIONS} value={type} onChange={(v) => setType(v as NeedRequestType)} />
       <FormInput
-        placeholder="Quantité"
+        placeholder={t('recruiter.needs.quantityPlaceholder')}
         value={quantity}
         onChangeText={setQuantity}
         keyboardType="number-pad"
       />
       <FormInput
-        placeholder="Décrivez votre besoin"
+        placeholder={t('recruiter.needs.descriptionPlaceholder')}
         value={description}
         onChangeText={setDescription}
         multiline
@@ -154,7 +156,12 @@ function CreateNeedRequestSection({
         style={styles.multiline}
       />
       <ErrorText>{error}</ErrorText>
-      <PrimaryButton title="Envoyer la demande" onPress={handleSubmit} loading={isSaving} disabled={!canSubmit} />
+      <PrimaryButton
+        title={t('recruiter.needs.submit')}
+        onPress={handleSubmit}
+        loading={isSaving}
+        disabled={!canSubmit}
+      />
     </Section>
   );
 }

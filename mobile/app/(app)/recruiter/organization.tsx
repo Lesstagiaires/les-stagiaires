@@ -1,6 +1,7 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/badge';
 import { Card, PressableCard } from '../../../components/card';
 import { ErrorText, FormInput, PrimaryButton } from '../../../components/form';
@@ -16,6 +17,7 @@ import { useAuth } from '../../../lib/auth-context';
 export default function OrganizationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,17 +29,17 @@ export default function OrganizationScreen() {
       const organizations = await api.listMyOrganizations(accessToken);
       const found = organizations.find((entry) => entry.id === id) ?? null;
       setOrganization(found);
-      setLoadError(found ? null : 'Organisation introuvable.');
+      setLoadError(found ? null : t('recruiter.organization.notFound'));
     } catch (err) {
       if (err instanceof ApiError && err.statusCode === 401) {
         void logout();
         return;
       }
-      setLoadError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setLoadError(err instanceof ApiError ? err.message : t('recruiter.organization.loadError'));
     } finally {
       setIsLoading(false);
     }
-  }, [accessToken, id, logout]);
+  }, [accessToken, id, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -59,7 +61,7 @@ export default function OrganizationScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>{loadError ?? 'Organisation indisponible.'}</ErrorText>
+          <ErrorText>{loadError ?? t('recruiter.organization.unavailable')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -83,10 +85,7 @@ export default function OrganizationScreen() {
 
         {organization.verificationStatus !== 'VERIFIED' && (
           <Card style={styles.noticeCard}>
-            <Text style={typography.body}>
-              Tant que cette organisation n'est pas vérifiée par l'équipe LES STAGIAIRES,
-              vos offres ne peuvent pas être publiées ni reprises.
-            </Text>
+            <Text style={typography.body}>{t('recruiter.organization.notVerifiedNotice')}</Text>
           </Card>
         )}
 
@@ -95,15 +94,15 @@ export default function OrganizationScreen() {
             style={styles.quickLinkCard}
             onPress={() => router.push(`/recruiter/team?id=${organization.id}`)}
           >
-            <Text style={styles.quickLinkTitle}>Équipe</Text>
-            <Text style={typography.caption}>Inviter et gérer les collaborateurs.</Text>
+            <Text style={styles.quickLinkTitle}>{t('recruiter.layout.team')}</Text>
+            <Text style={typography.caption}>{t('recruiter.organization.teamHint')}</Text>
           </PressableCard>
           <PressableCard
             style={styles.quickLinkCard}
             onPress={() => router.push(`/recruiter/needs?id=${organization.id}`)}
           >
-            <Text style={styles.quickLinkTitle}>Besoins spéciaux</Text>
-            <Text style={typography.caption}>Saisonnier, bénévolat, temporaire.</Text>
+            <Text style={styles.quickLinkTitle}>{t('recruiter.layout.needs')}</Text>
+            <Text style={typography.caption}>{t('recruiter.organization.needsHint')}</Text>
           </PressableCard>
         </View>
 
@@ -114,15 +113,15 @@ export default function OrganizationScreen() {
                 style={styles.quickLinkCard}
                 onPress={() => router.push(`/recruiter/learners?id=${organization.id}`)}
               >
-                <Text style={styles.quickLinkTitle}>Apprenants</Text>
-                <Text style={typography.caption}>Rattacher et vérifier vos apprenants.</Text>
+                <Text style={styles.quickLinkTitle}>{t('recruiter.layout.learners')}</Text>
+                <Text style={typography.caption}>{t('recruiter.organization.learnersHint')}</Text>
               </PressableCard>
               <PressableCard
                 style={styles.quickLinkCard}
                 onPress={() => router.push(`/recruiter/campaigns?id=${organization.id}`)}
               >
-                <Text style={styles.quickLinkTitle}>Campagnes</Text>
-                <Text style={typography.caption}>Périodes de stage de l'établissement.</Text>
+                <Text style={styles.quickLinkTitle}>{t('recruiter.layout.campaigns')}</Text>
+                <Text style={typography.caption}>{t('recruiter.organization.campaignsHint')}</Text>
               </PressableCard>
             </View>
             <View style={styles.quickLinks}>
@@ -130,15 +129,17 @@ export default function OrganizationScreen() {
                 style={styles.quickLinkCard}
                 onPress={() => router.push(`/recruiter/learner-applications?id=${organization.id}`)}
               >
-                <Text style={styles.quickLinkTitle}>Conventions</Text>
-                <Text style={typography.caption}>Suivi des candidatures des apprenants.</Text>
+                <Text style={styles.quickLinkTitle}>{t('recruiter.layout.learnerApplications')}</Text>
+                <Text style={typography.caption}>
+                  {t('recruiter.organization.learnerApplicationsHint')}
+                </Text>
               </PressableCard>
               <PressableCard
                 style={styles.quickLinkCard}
                 onPress={() => router.push(`/recruiter/reports?id=${organization.id}`)}
               >
-                <Text style={styles.quickLinkTitle}>Rapports de stage</Text>
-                <Text style={typography.caption}>Correction et validation.</Text>
+                <Text style={styles.quickLinkTitle}>{t('recruiter.layout.reports')}</Text>
+                <Text style={typography.caption}>{t('recruiter.organization.reportsHint')}</Text>
               </PressableCard>
             </View>
             <View style={styles.quickLinks}>
@@ -146,15 +147,15 @@ export default function OrganizationScreen() {
                 style={styles.quickLinkCard}
                 onPress={() => router.push(`/recruiter/dashboard?id=${organization.id}`)}
               >
-                <Text style={styles.quickLinkTitle}>Tableau de bord</Text>
-                <Text style={typography.caption}>Taux d'insertion des apprenants.</Text>
+                <Text style={styles.quickLinkTitle}>{t('recruiter.layout.dashboard')}</Text>
+                <Text style={typography.caption}>{t('recruiter.organization.dashboardHint')}</Text>
               </PressableCard>
               <PressableCard
                 style={styles.quickLinkCard}
                 onPress={() => router.push(`/recruiter/partners?id=${organization.id}`)}
               >
-                <Text style={styles.quickLinkTitle}>Entreprises partenaires</Text>
-                <Text style={typography.caption}>Répertoire des organisations d'accueil.</Text>
+                <Text style={styles.quickLinkTitle}>{t('recruiter.layout.partners')}</Text>
+                <Text style={typography.caption}>{t('recruiter.organization.partnersHint')}</Text>
               </PressableCard>
             </View>
           </>
@@ -175,6 +176,7 @@ function PageForm({
   organization: Organization;
   onSaved: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [description, setDescription] = useState(organization.description ?? '');
   const [website, setWebsite] = useState(organization.website ?? '');
   const [logoUrl, setLogoUrl] = useState(organization.logoUrl ?? '');
@@ -198,26 +200,34 @@ function PageForm({
       });
       await onSaved();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Enregistrement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.organization.page.saveError'));
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <Section title="Page publique">
+    <Section title={t('recruiter.organization.page.sectionTitle')}>
       <FormInput
-        placeholder="Présentation de l'organisation"
+        placeholder={t('recruiter.organization.page.descriptionPlaceholder')}
         value={description}
         onChangeText={setDescription}
         multiline
         numberOfLines={4}
         style={styles.multiline}
       />
-      <FormInput placeholder="Site web (https://…)" value={website} onChangeText={setWebsite} />
-      <FormInput placeholder="URL du logo (https://…)" value={logoUrl} onChangeText={setLogoUrl} />
+      <FormInput
+        placeholder={t('recruiter.organization.page.websitePlaceholder')}
+        value={website}
+        onChangeText={setWebsite}
+      />
+      <FormInput
+        placeholder={t('recruiter.organization.page.logoPlaceholder')}
+        value={logoUrl}
+        onChangeText={setLogoUrl}
+      />
       <ErrorText>{error}</ErrorText>
-      <PrimaryButton title="Enregistrer" onPress={handleSave} loading={isSaving} />
+      <PrimaryButton title={t('common.save')} onPress={handleSave} loading={isSaving} />
     </Section>
   );
 }

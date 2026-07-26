@@ -331,6 +331,133 @@
       }
     }
   },
+  "recruiter": {
+    "layout": {
+      "organization": "My organization",
+      "team": "Team",
+      "needs": "Special needs",
+      "learners": "Learners",
+      "campaigns": "Campaigns",
+      "learnerApplications": "Conventions",
+      "reports": "Internship reports",
+      "dashboard": "Dashboard",
+      "partners": "Partner companies",
+      "myOpportunities": "My listings",
+      "newOpportunity": "New listing",
+      "manageOpportunity": "Manage listing",
+      "receivedApplications": "Received applications",
+      "applicationDetail": "Application"
+    },
+    "home": {
+      "title": "Recruiter",
+      "loadError": "Couldn't load.",
+      "noOrgNotice": "Creating an organization requires the Company or Institution hat.",
+      "addRoleButton": "Add this hat to my profile",
+      "myOpportunitiesHint": "Create and manage your published listings.",
+      "receivedApplicationsHint": "Process applications to your listings.",
+      "invitationsTitle": "Invitations received",
+      "roleProposed": "Proposed role: {{role}}",
+      "actionError": "Couldn't complete this action.",
+      "newOrgButton": "+ New organization",
+      "newOrgTitle": "New organization",
+      "orgNamePlaceholder": "Organization name",
+      "sectorPlaceholder": "Sector (optional)",
+      "countryPlaceholder": "Country",
+      "cityPlaceholder": "City",
+      "createButton": "Create",
+      "createError": "Couldn't create."
+    },
+    "organization": {
+      "notFound": "Organization not found.",
+      "unavailable": "Organization unavailable.",
+      "loadError": "Couldn't load.",
+      "notVerifiedNotice": "As long as this organization isn't verified by the LES STAGIAIRES team, your listings can't be published or reopened.",
+      "teamHint": "Invite and manage team members.",
+      "needsHint": "Seasonal, volunteer, temporary.",
+      "learnersHint": "Attach and verify your learners.",
+      "campaignsHint": "Internship periods for the institution.",
+      "learnerApplicationsHint": "Track learner applications.",
+      "reportsHint": "Review and validate.",
+      "dashboardHint": "Learner placement rate.",
+      "partnersHint": "Directory of host organizations.",
+      "page": {
+        "sectionTitle": "Public page",
+        "descriptionPlaceholder": "Organization description",
+        "websitePlaceholder": "Website (https://…)",
+        "logoPlaceholder": "Logo URL (https://…)",
+        "saveError": "Couldn't save."
+      }
+    },
+    "team": {
+      "unavailable": "Organization unavailable.",
+      "loadError": "Couldn't load.",
+      "emptyMembers": "No members yet.",
+      "revoking": "Revoking…",
+      "revoke": "Revoke access",
+      "revokeError": "Couldn't revoke.",
+      "inviteSectionTitle": "Invite a team member",
+      "inviteHint": "This person must already have a LES STAGIAIRES account with this number.",
+      "phonePlaceholder": "Phone (e.g. +237670000000)",
+      "sendInvite": "Send invitation",
+      "inviteError": "Couldn't invite."
+    },
+    "needs": {
+      "unavailable": "Organization unavailable.",
+      "loadError": "Couldn't load.",
+      "hint": "Seasonal, volunteer, or temporary listings require approval from the LES STAGIAIRES team before publishing.",
+      "empty": "No requests yet.",
+      "responseLabel": "Response: {{note}}",
+      "newRequestTitle": "New request",
+      "quantityPlaceholder": "Quantity",
+      "descriptionPlaceholder": "Describe your need",
+      "submit": "Send request",
+      "submitError": "Couldn't send."
+    },
+    "opportunityForm": {
+      "loadError": "Couldn't load.",
+      "organizationLabel": "ORGANIZATION",
+      "titlePlaceholder": "Listing title",
+      "descriptionPlaceholder": "Description",
+      "typeLabel": "TYPE",
+      "gatedTypeHint": "This type requires an approved special-needs request before publishing (see \"Special needs\" on the organization's page).",
+      "sectorPlaceholder": "Sector",
+      "countryPlaceholder": "Country",
+      "cityPlaceholder": "City",
+      "workModeLabel": "WORK MODE",
+      "relocationLabel": "RELOCATION REQUIRED",
+      "accommodationLabel": "ACCOMMODATION PROVIDED",
+      "mobilityBenefitsPlaceholder": "Relocation benefits (optional)",
+      "submit": "Create as draft",
+      "createError": "Couldn't create."
+    },
+    "myOpportunities": {
+      "loadError": "Couldn't load.",
+      "newLink": "+ New listing",
+      "empty": "No listings yet."
+    },
+    "manageOpportunity": {
+      "unavailable": "Listing unavailable.",
+      "loadError": "Couldn't load.",
+      "actionError": "Couldn't complete this action.",
+      "actions": {
+        "publish": "Publish",
+        "pause": "Pause",
+        "resume": "Resume",
+        "fill": "Mark as filled",
+        "cancel": "Cancel"
+      },
+      "detailsTitle": "Details",
+      "sectorLabel": "Sector: {{sector}}",
+      "locationLabel": "Location: {{city}}, {{country}}",
+      "modeLabel": "Mode: {{mode}}",
+      "relocationLabel": "Relocation required: {{value}}",
+      "accommodationLabel": "Accommodation provided: {{value}}",
+      "benefitsLabel": "Benefits: {{benefits}}",
+      "editTitle": "Edit draft",
+      "titlePlaceholder": "Title",
+      "saveError": "Couldn't save."
+    }
+  },
   "security": {
     "title": "Security",
     "twoFactorTitle": "Two-factor authentication",

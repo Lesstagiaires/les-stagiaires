@@ -331,6 +331,133 @@
       }
     }
   },
+  "recruiter": {
+    "layout": {
+      "organization": "Mon organisation",
+      "team": "Équipe",
+      "needs": "Besoins spéciaux",
+      "learners": "Apprenants",
+      "campaigns": "Campagnes",
+      "learnerApplications": "Conventions",
+      "reports": "Rapports de stage",
+      "dashboard": "Tableau de bord",
+      "partners": "Entreprises partenaires",
+      "myOpportunities": "Mes offres",
+      "newOpportunity": "Nouvelle offre",
+      "manageOpportunity": "Gérer l'offre",
+      "receivedApplications": "Candidatures reçues",
+      "applicationDetail": "Candidature"
+    },
+    "home": {
+      "title": "Espace recruteur",
+      "loadError": "Chargement impossible.",
+      "noOrgNotice": "La création d'une organisation nécessite la casquette Entreprise ou Établissement.",
+      "addRoleButton": "Ajouter cette casquette dans mon profil",
+      "myOpportunitiesHint": "Créer et gérer vos offres publiées.",
+      "receivedApplicationsHint": "Traiter les candidatures à vos offres.",
+      "invitationsTitle": "Invitations reçues",
+      "roleProposed": "Rôle proposé : {{role}}",
+      "actionError": "Action impossible.",
+      "newOrgButton": "+ Nouvelle organisation",
+      "newOrgTitle": "Nouvelle organisation",
+      "orgNamePlaceholder": "Nom de l'organisation",
+      "sectorPlaceholder": "Secteur (optionnel)",
+      "countryPlaceholder": "Pays",
+      "cityPlaceholder": "Ville",
+      "createButton": "Créer",
+      "createError": "Création impossible."
+    },
+    "organization": {
+      "notFound": "Organisation introuvable.",
+      "unavailable": "Organisation indisponible.",
+      "loadError": "Chargement impossible.",
+      "notVerifiedNotice": "Tant que cette organisation n'est pas vérifiée par l'équipe LES STAGIAIRES, vos offres ne peuvent pas être publiées ni reprises.",
+      "teamHint": "Inviter et gérer les collaborateurs.",
+      "needsHint": "Saisonnier, bénévolat, temporaire.",
+      "learnersHint": "Rattacher et vérifier vos apprenants.",
+      "campaignsHint": "Périodes de stage de l'établissement.",
+      "learnerApplicationsHint": "Suivi des candidatures des apprenants.",
+      "reportsHint": "Correction et validation.",
+      "dashboardHint": "Taux d'insertion des apprenants.",
+      "partnersHint": "Répertoire des organisations d'accueil.",
+      "page": {
+        "sectionTitle": "Page publique",
+        "descriptionPlaceholder": "Présentation de l'organisation",
+        "websitePlaceholder": "Site web (https://…)",
+        "logoPlaceholder": "URL du logo (https://…)",
+        "saveError": "Enregistrement impossible."
+      }
+    },
+    "team": {
+      "unavailable": "Organisation indisponible.",
+      "loadError": "Chargement impossible.",
+      "emptyMembers": "Aucun membre pour l'instant.",
+      "revoking": "Révocation…",
+      "revoke": "Révoquer l'accès",
+      "revokeError": "Révocation impossible.",
+      "inviteSectionTitle": "Inviter un collaborateur",
+      "inviteHint": "La personne doit déjà avoir un compte LES STAGIAIRES avec ce numéro.",
+      "phonePlaceholder": "Téléphone (ex : +237670000000)",
+      "sendInvite": "Envoyer l'invitation",
+      "inviteError": "Invitation impossible."
+    },
+    "needs": {
+      "unavailable": "Organisation indisponible.",
+      "loadError": "Chargement impossible.",
+      "hint": "Les offres saisonnières, bénévoles ou temporaires nécessitent l'approbation de l'équipe LES STAGIAIRES avant publication.",
+      "empty": "Aucune demande pour l'instant.",
+      "responseLabel": "Réponse : {{note}}",
+      "newRequestTitle": "Nouvelle demande",
+      "quantityPlaceholder": "Quantité",
+      "descriptionPlaceholder": "Décrivez votre besoin",
+      "submit": "Envoyer la demande",
+      "submitError": "Envoi impossible."
+    },
+    "opportunityForm": {
+      "loadError": "Chargement impossible.",
+      "organizationLabel": "ORGANISATION",
+      "titlePlaceholder": "Titre de l'offre",
+      "descriptionPlaceholder": "Description",
+      "typeLabel": "TYPE",
+      "gatedTypeHint": "Ce type nécessite une demande de besoin spécial approuvée avant publication (voir \"Besoins spéciaux\" sur la fiche de l'organisation).",
+      "sectorPlaceholder": "Secteur",
+      "countryPlaceholder": "Pays",
+      "cityPlaceholder": "Ville",
+      "workModeLabel": "MODE DE TRAVAIL",
+      "relocationLabel": "RELOCALISATION REQUISE",
+      "accommodationLabel": "HÉBERGEMENT FOURNI",
+      "mobilityBenefitsPlaceholder": "Avantages liés à la mobilité (optionnel)",
+      "submit": "Créer en brouillon",
+      "createError": "Création impossible."
+    },
+    "myOpportunities": {
+      "loadError": "Chargement impossible.",
+      "newLink": "+ Nouvelle offre",
+      "empty": "Aucune offre pour l'instant."
+    },
+    "manageOpportunity": {
+      "unavailable": "Offre indisponible.",
+      "loadError": "Chargement impossible.",
+      "actionError": "Action impossible.",
+      "actions": {
+        "publish": "Publier",
+        "pause": "Mettre en pause",
+        "resume": "Reprendre",
+        "fill": "Marquer comme pourvue",
+        "cancel": "Annuler"
+      },
+      "detailsTitle": "Détails",
+      "sectorLabel": "Secteur : {{sector}}",
+      "locationLabel": "Lieu : {{city}}, {{country}}",
+      "modeLabel": "Mode : {{mode}}",
+      "relocationLabel": "Relocalisation requise : {{value}}",
+      "accommodationLabel": "Hébergement fourni : {{value}}",
+      "benefitsLabel": "Avantages : {{benefits}}",
+      "editTitle": "Modifier le brouillon",
+      "titlePlaceholder": "Titre",
+      "saveError": "Enregistrement impossible."
+    }
+  },
   "security": {
     "title": "Sécurité",
     "twoFactorTitle": "Double authentification",
