@@ -71,6 +71,7 @@ model User {
   roles               UserRole[]
   otpCodes            OtpCode[]
   refreshTokens       RefreshToken[]
+  sessions            Session[]
   parentLinksAsChild  ParentalLink[] @relation("ChildLinks")
   parentLinksAsParent ParentalLink[] @relation("ParentLinks")
   auditLogs           AuditLog[]
@@ -197,7 +198,33 @@ model RefreshToken {
   revokedAt DateTime?
   createdAt DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Optionnel : les jetons émis avant l'introduction du modèle Session restent valides
+  // jusqu'à leur expiration naturelle, sans rattachement à un appareil listé (CLAUDE.md §2).
+  sessionId String?
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session Session? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+}
+
+// FR-AUTH / CLAUDE.md §2 : liste des appareils connectés, révocable individuellement et
+// immédiatement (JwtStrategy revérifie revokedAt à chaque requête authentifiée — jamais
+// une simple attente de l'expiration du jeton d'accès). Une ligne par appareil/session,
+// stable à travers les rotations du refresh token qui lui est rattaché.
+model Session {
+  id          String    @id @default(cuid())
+  userId      String
+  deviceLabel String
+  userAgent   String?
+  ipAddress   String?
+  createdAt   DateTime  @default(now())
+  lastUsedAt  DateTime  @default(now())
+  revokedAt   DateTime?
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens RefreshToken[]
 
   @@index([userId])
 }

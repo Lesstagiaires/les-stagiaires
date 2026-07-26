@@ -38,6 +38,22 @@ export class RolesGuard implements CanActivate {
         role: { name: { in: requiredRoles } },
       },
     });
-    return !!activeRole;
+    if (!activeRole) return false;
+
+    // CLAUDE.md §2 : double authentification obligatoire pour tout compte admin ayant
+    // accès à des données confidentielles/très sensibles — appliqué ici plutôt qu'au
+    // login pour éviter un blocage sans issue (aucune interface admin dédiée n'existe
+    // encore pour activer la 2FA avant de se connecter). Un compte ADMIN peut donc se
+    // connecter normalement, mais ne peut exercer aucune action réservée à ce rôle tant
+    // que la 2FA n'est pas active sur son compte.
+    if (requiredRoles.includes('ADMIN')) {
+      const account = await this.prisma.user.findUnique({
+        where: { id: user.sub },
+        select: { twoFactorEnabled: true },
+      });
+      if (!account?.twoFactorEnabled) return false;
+    }
+
+    return true;
   }
 }

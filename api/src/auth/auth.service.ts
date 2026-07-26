@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -13,8 +14,13 @@ import { AccountStatus, OtpPurpose } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { generateLsIdCandidate } from '../common/ls-id/ls-id.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { SMS_PROVIDER } from '../sms/sms-provider.interface';
+import type { SmsProvider } from '../sms/sms-provider.interface';
+import { deriveDeviceLabel } from './device-label.util';
+import { DisableTwoFactorDto } from './dto/disable-two-factor.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
+import { VerifyLoginTwoFactorDto } from './dto/verify-login-two-factor.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -34,6 +40,7 @@ export class AuthService {
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
     private readonly parentalConsent: ParentalConsentService,
+    @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
   ) {}
 
   // --- FR-AUTH-001 / 002 / 003 : inscription, OTP, LS-ID ---------------------------------
@@ -102,7 +109,11 @@ export class AuthService {
     };
   }
 
-  async verifyRegistrationOtp(dto: VerifyOtpDto) {
+  async verifyRegistrationOtp(
+    dto: VerifyOtpDto,
+    userAgent: string | undefined,
+    ip: string | undefined,
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { phone: dto.phone },
     });
@@ -133,7 +144,13 @@ export class AuthService {
       newStatus,
     });
 
-    const { accessToken, refreshToken } = await this.issueTokens(user.id);
+    // Premier appareil du compte — jamais de notification "nouvel appareil" ici, le
+    // parcours d'inscription vient déjà de faire ses preuves via l'OTP.
+    const { accessToken, refreshToken } = await this.createSessionAndIssueTokens(
+      user.id,
+      userAgent,
+      ip,
+    );
 
     return {
       lsId,
@@ -173,7 +190,11 @@ export class AuthService {
 
   // --- FR-AUTH login / session ------------------------------------------------------------
 
-  async login(dto: LoginDto) {
+  async login(
+    dto: LoginDto,
+    userAgent: string | undefined,
+    ip: string | undefined,
+  ) {
     const user = await this.prisma.user.findFirst({
       where: { OR: [{ phone: dto.identifier }, { email: dto.identifier }] },
     });
@@ -214,7 +235,127 @@ export class AuthService {
     });
     await this.audit.record('LOGIN_SUCCESS', user.id);
 
-    return this.issueTokens(user.id);
+    // CLAUDE.md §2 : double authentification — le mot de passe seul ne suffit pas à
+    // ouvrir la session tant que le second facteur n'est pas vérifié. Aucun jeton
+    // d'accès/rafraîchissement n'est émis à ce stade.
+    if (user.twoFactorEnabled) {
+      if (!user.phone) {
+        throw new InternalServerErrorException(
+          'Double authentification activée sans numéro de téléphone associé.',
+        );
+      }
+      await this.otp.generateAndSend(user.id, user.phone, OtpPurpose.LOGIN_2FA);
+      const challengeToken = await this.tokens.signTwoFactorChallenge(user.id);
+      await this.audit.record('LOGIN_2FA_CHALLENGE_SENT', user.id);
+      return { requiresTwoFactor: true as const, challengeToken };
+    }
+
+    return {
+      requiresTwoFactor: false as const,
+      ...(await this.createSessionAndIssueTokens(user.id, userAgent, ip)),
+    };
+  }
+
+  // --- Double authentification par SMS (CLAUDE.md §2) --------------------------------------
+
+  async verifyLoginTwoFactor(
+    dto: VerifyLoginTwoFactorDto,
+    userAgent: string | undefined,
+    ip: string | undefined,
+  ) {
+    let userId: string;
+    try {
+      userId = this.tokens.verifyTwoFactorChallenge(dto.challengeToken);
+    } catch {
+      throw new UnauthorizedException('Jeton de vérification invalide ou expiré.');
+    }
+
+    const isValid = await this.otp.verify(userId, dto.code, OtpPurpose.LOGIN_2FA);
+    if (!isValid) throw new UnauthorizedException('Code invalide ou expiré.');
+
+    await this.audit.record('LOGIN_2FA_VERIFIED', userId);
+    return this.createSessionAndIssueTokens(userId, userAgent, ip);
+  }
+
+  async getTwoFactorStatus(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { twoFactorEnabled: true },
+    });
+    return { enabled: user.twoFactorEnabled };
+  }
+
+  async enableTwoFactor(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    if (!user.phone) {
+      throw new BadRequestException(
+        'Un numéro de téléphone est requis pour activer la double authentification.',
+      );
+    }
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorEnabled: true },
+    });
+    await this.audit.record('TWO_FACTOR_ENABLED', userId);
+    return { message: 'Double authentification activée.' };
+  }
+
+  async disableTwoFactor(userId: string, dto: DisableTwoFactorDto) {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    const passwordOk = await argon2.verify(user.password, dto.password);
+    if (!passwordOk) {
+      throw new UnauthorizedException('Mot de passe incorrect.');
+    }
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { twoFactorEnabled: false },
+    });
+    await this.audit.record('TWO_FACTOR_DISABLED', userId);
+    return { message: 'Double authentification désactivée.' };
+  }
+
+  // --- Appareils connectés (CLAUDE.md §2) ---------------------------------------------------
+
+  async listSessions(userId: string) {
+    return this.tokens.listSessions(userId);
+  }
+
+  async revokeSession(userId: string, sessionId: string) {
+    const revoked = await this.tokens.revokeSession(userId, sessionId);
+    if (!revoked) {
+      throw new NotFoundException('Session introuvable pour ce compte.');
+    }
+    await this.audit.record('SESSION_REVOKED', userId, { sessionId });
+    return { message: 'Appareil déconnecté.' };
+  }
+
+  private async createSessionAndIssueTokens(
+    userId: string,
+    userAgent: string | undefined,
+    ip: string | undefined,
+  ) {
+    const deviceLabel = deriveDeviceLabel(userAgent);
+
+    const hasAnySession = await this.prisma.session.findFirst({
+      where: { userId },
+    });
+    const isNewDevice =
+      !!hasAnySession && !(await this.tokens.hasSeenDevice(userId, deviceLabel));
+
+    const session = await this.tokens.createSession(userId, deviceLabel, userAgent, ip);
+
+    if (isNewDevice) {
+      const user = await this.prisma.user.findUnique({ where: { id: userId } });
+      if (user?.phone) {
+        await this.sms.send(
+          user.phone,
+          `LES STAGIAIRES — nouvelle connexion depuis un appareil non reconnu (${deviceLabel}). Si ce n'est pas vous, changez votre mot de passe et révoquez cet appareil dans vos paramètres.`,
+        );
+      }
+      await this.audit.record('NEW_DEVICE_LOGIN', userId, { deviceLabel });
+    }
+
+    return this.issueTokens(userId, session.id);
   }
 
   private async registerFailedAttempt(userId: string): Promise<void> {
@@ -244,13 +385,14 @@ export class AuthService {
     }
   }
 
-  private async issueTokens(userId: string) {
+  private async issueTokens(userId: string, sessionId: string) {
     const roles = await this.getActiveRoleNames(userId);
     const accessToken = await this.tokens.signAccessToken({
       sub: userId,
       roles,
+      sessionId,
     });
-    const refreshToken = await this.tokens.issueRefreshToken(userId);
+    const refreshToken = await this.tokens.issueRefreshToken(userId, sessionId);
     return { accessToken, refreshToken };
   }
 
@@ -271,6 +413,7 @@ export class AuthService {
     const accessToken = await this.tokens.signAccessToken({
       sub: rotated.userId,
       roles,
+      sessionId: rotated.sessionId ?? undefined,
     });
     return { accessToken, refreshToken: rotated.newToken };
   }

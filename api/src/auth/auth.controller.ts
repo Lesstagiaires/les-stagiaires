@@ -7,12 +7,15 @@ import {
   HttpStatus,
   Param,
   Post,
+  Req,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { Public } from './decorators/public.decorator';
 import { ConfirmConsentDto } from './dto/confirm-consent.dto';
+import { DisableTwoFactorDto } from './dto/disable-two-factor.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LinkParentDto } from './dto/link-parent.dto';
 import { LoginDto } from './dto/login.dto';
@@ -20,6 +23,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SwitchRoleDto } from './dto/switch-role.dto';
+import { VerifyLoginTwoFactorDto } from './dto/verify-login-two-factor.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ParentalConsentService } from './parental-consent.service';
 import type { AccessTokenPayload } from './token.service';
@@ -41,16 +45,63 @@ export class AuthController {
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('verify-otp')
-  verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.auth.verifyRegistrationOtp(dto);
+  verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request) {
+    return this.auth.verifyRegistrationOtp(dto, req.headers['user-agent'], req.ip);
   }
 
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  login(@Body() dto: LoginDto) {
-    return this.auth.login(dto);
+  login(@Body() dto: LoginDto, @Req() req: Request) {
+    return this.auth.login(dto, req.headers['user-agent'], req.ip);
+  }
+
+  // Public : le mot de passe vient d'être vérifié (jeton de défi de courte durée émis
+  // par login()), mais aucune session n'existe encore tant que le code n'est pas confirmé
+  // (CLAUDE.md §2).
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('2fa/verify-login')
+  verifyLoginTwoFactor(@Body() dto: VerifyLoginTwoFactorDto, @Req() req: Request) {
+    return this.auth.verifyLoginTwoFactor(dto, req.headers['user-agent'], req.ip);
+  }
+
+  @Get('2fa/status')
+  getTwoFactorStatus(@CurrentUser() user: AccessTokenPayload) {
+    return this.auth.getTwoFactorStatus(user.sub);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('2fa/enable')
+  enableTwoFactor(@CurrentUser() user: AccessTokenPayload) {
+    return this.auth.enableTwoFactor(user.sub);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('2fa/disable')
+  disableTwoFactor(
+    @CurrentUser() user: AccessTokenPayload,
+    @Body() dto: DisableTwoFactorDto,
+  ) {
+    return this.auth.disableTwoFactor(user.sub, dto);
+  }
+
+  // --- Appareils connectés (CLAUDE.md §2) ---------------------------------------------------
+
+  @Get('sessions')
+  listSessions(@CurrentUser() user: AccessTokenPayload) {
+    return this.auth.listSessions(user.sub);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Delete('sessions/:id')
+  revokeSession(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+  ) {
+    return this.auth.revokeSession(user.sub, id);
   }
 
   @Public()

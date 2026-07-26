@@ -42,6 +42,10 @@ export default function AppLayout() {
         name="profile"
         options={{ title: 'Profil', tabBarIcon: TabIcon('person-outline') }}
       />
+      <Tabs.Screen
+        name="security"
+        options={{ href: null, headerShown: true, title: 'Sécurité' }}
+      />
     </Tabs>
   );
 }

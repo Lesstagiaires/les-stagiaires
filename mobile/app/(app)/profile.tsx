@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -39,6 +40,7 @@ const LANGUAGE_LEVEL_OPTIONS: { value: LanguageLevel; label: string }[] = [
 ];
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { accessToken, logout } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [catalog, setCatalog] = useState<RoleCatalogItem[]>([]);
@@ -150,6 +152,10 @@ export default function ProfileScreen() {
             onChanged={reload}
           />
         )}
+
+        <Pressable onPress={() => router.push('/security')} style={styles.securityLink}>
+          <Text style={styles.addText}>Sécurité — double authentification et appareils</Text>
+        </Pressable>
 
         <Pressable onPress={() => void logout()} style={styles.logout}>
           <Text style={styles.logoutText}>Se déconnecter</Text>
@@ -855,6 +861,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.muted,
     textAlign: 'center',
+  },
+  securityLink: {
+    marginTop: 16,
+    alignItems: 'center',
   },
   logout: {
     marginTop: 24,

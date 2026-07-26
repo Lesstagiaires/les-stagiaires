@@ -13,9 +13,11 @@ import { useAuth } from '../../lib/auth-context';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, completeTwoFactorLogin } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,7 +25,10 @@ export default function LoginScreen() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await login(identifier.trim(), password);
+      const result = await login(identifier.trim(), password);
+      if (result.requiresTwoFactor && result.challengeToken) {
+        setChallengeToken(result.challengeToken);
+      }
     } catch (err) {
       setError(
         err instanceof ApiError
@@ -33,6 +38,57 @@ export default function LoginScreen() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  async function handleVerifyTwoFactor() {
+    if (!challengeToken) return;
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await completeTwoFactorLogin(challengeToken, code);
+    } catch (err) {
+      setError(
+        err instanceof ApiError ? err.message : 'Vérification impossible.',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  if (challengeToken) {
+    return (
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>Double authentification</Text>
+          <Text style={styles.subtitle}>
+            Un code a été envoyé par SMS à votre numéro. Saisissez-le pour terminer la
+            connexion.
+          </Text>
+
+          <View style={styles.form}>
+            <FormInput
+              placeholder="Code à 6 chiffres"
+              value={code}
+              onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              maxLength={6}
+            />
+            <ErrorText>{error}</ErrorText>
+            <PrimaryButton
+              title="Vérifier"
+              onPress={handleVerifyTwoFactor}
+              loading={isSubmitting}
+              disabled={code.length !== 6}
+            />
+          </View>
+
+          <LinkButton title="Retour" onPress={() => setChallengeToken(null)} />
+        </View>
+      </KeyboardAvoidingView>
+    );
   }
 
   return (

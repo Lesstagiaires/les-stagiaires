@@ -130,9 +130,25 @@ export interface VerifyOtpResult {
   requiresParentalLink: boolean;
 }
 
-export interface LoginResult {
+export interface RefreshResult {
   accessToken: string;
   refreshToken: string;
+}
+
+// CLAUDE.md §2 : double authentification — quand elle est activée sur le compte, login()
+// ne renvoie aucun jeton, seulement un défi à confirmer via verifyLoginTwoFactor().
+export type LoginResult =
+  | { requiresTwoFactor: true; challengeToken: string }
+  | { requiresTwoFactor: false; accessToken: string; refreshToken: string };
+
+// Appareil/session connecté (CLAUDE.md §2) — révocable individuellement, effet immédiat.
+export interface Session {
+  id: string;
+  deviceLabel: string;
+  userAgent: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+  lastUsedAt: string;
 }
 
 export type LanguageLevel = 'BASIQUE' | 'INTERMEDIAIRE' | 'AVANCE' | 'COURANT' | 'NATIF';
@@ -817,8 +833,39 @@ export const api = {
       body: { identifier, password },
     }),
 
+  verifyLoginTwoFactor: (challengeToken: string, code: string) =>
+    request<RefreshResult>('/auth/2fa/verify-login', {
+      method: 'POST',
+      body: { challengeToken, code },
+    }),
+
+  getTwoFactorStatus: (accessToken: string) =>
+    request<{ enabled: boolean }>('/auth/2fa/status', { accessToken }),
+
+  enableTwoFactor: (accessToken: string) =>
+    request<{ message: string }>('/auth/2fa/enable', {
+      method: 'POST',
+      accessToken,
+    }),
+
+  disableTwoFactor: (accessToken: string, password: string) =>
+    request<{ message: string }>('/auth/2fa/disable', {
+      method: 'POST',
+      body: { password },
+      accessToken,
+    }),
+
+  listSessions: (accessToken: string) =>
+    request<Session[]>('/auth/sessions', { accessToken }),
+
+  revokeSession: (accessToken: string, sessionId: string) =>
+    request<{ message: string }>(`/auth/sessions/${sessionId}`, {
+      method: 'DELETE',
+      accessToken,
+    }),
+
   refresh: (refreshToken: string) =>
-    request<LoginResult>('/auth/refresh', {
+    request<RefreshResult>('/auth/refresh', {
       method: 'POST',
       body: { refreshToken },
     }),

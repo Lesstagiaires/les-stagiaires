@@ -17,7 +17,14 @@ interface AuthContextValue {
   isLoading: boolean;
   register: (input: RegisterInput) => ReturnType<typeof api.register>;
   verifyOtp: (phone: string, code: string) => Promise<void>;
-  login: (identifier: string, password: string) => Promise<void>;
+  // CLAUDE.md §2 : quand la double authentification est active sur le compte, aucune
+  // session n'est ouverte ici — l'appelant doit relayer challengeToken vers
+  // completeTwoFactorLogin() une fois le code SMS saisi.
+  login: (
+    identifier: string,
+    password: string,
+  ) => Promise<{ requiresTwoFactor: boolean; challengeToken?: string }>;
+  completeTwoFactorLogin: (challengeToken: string, code: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -85,6 +92,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
       },
       login: async (identifier, password) => {
         const result = await api.login(identifier, password);
+        if (result.requiresTwoFactor) {
+          return { requiresTwoFactor: true, challengeToken: result.challengeToken };
+        }
+        await persistSession(result.accessToken, result.refreshToken);
+        setAccessToken(result.accessToken);
+        return { requiresTwoFactor: false };
+      },
+      completeTwoFactorLogin: async (challengeToken, code) => {
+        const result = await api.verifyLoginTwoFactor(challengeToken, code);
         await persistSession(result.accessToken, result.refreshToken);
         setAccessToken(result.accessToken);
       },
