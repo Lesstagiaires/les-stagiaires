@@ -1,6 +1,8 @@
 import { Stack } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { AuthProvider, useAuth } from '../lib/auth-context';
+import { initI18n } from '../lib/i18n';
 
 function RootNavigator() {
   const { accessToken, isLoading } = useAuth();
@@ -8,7 +10,7 @@ function RootNavigator() {
   if (isLoading) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator size="large" color="#0B6E4F" />
+        <ActivityIndicator size="large" color="#1B2A4A" />
       </View>
     );
   }
@@ -27,6 +29,20 @@ function RootNavigator() {
 }
 
 export default function RootLayout() {
+  const [isI18nReady, setIsI18nReady] = useState(false);
+
+  useEffect(() => {
+    void initI18n().then(() => setIsI18nReady(true));
+  }, []);
+
+  if (!isI18nReady) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#1B2A4A" />
+      </View>
+    );
+  }
+
   return (
     <AuthProvider>
       <RootNavigator />

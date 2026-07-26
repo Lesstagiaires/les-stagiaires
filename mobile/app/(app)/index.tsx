@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { typography, colors, spacing } from '../../components/theme';
 import { OpportunityCard } from '../../components/opportunity-card';
 import { api, ApiError, type Opportunity } from '../../lib/api';
@@ -15,6 +16,7 @@ import { useAuth } from '../../lib/auth-context';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
   const [fullName, setFullName] = useState<string | null>(null);
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
@@ -86,23 +88,23 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.hero}>
-          <Text style={styles.eyebrow}>LES STAGIAIRES</Text>
+          <Text style={styles.eyebrow}>{t('home.eyebrow')}</Text>
           <Text style={styles.title}>
-            {fullName ? `Bienvenue, ${fullName.split(' ')[0]}` : 'Bienvenue'}
+            {fullName
+              ? t('home.welcomeNamed', { name: fullName.split(' ')[0] })
+              : t('home.welcome')}
           </Text>
-          <Text style={styles.subtitle}>
-            Découvrez les opportunités de stage et d'emploi à travers l'Afrique.
-          </Text>
+          <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
         </View>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Opportunités du moment</Text>
+          <Text style={styles.sectionTitle}>{t('home.sectionTitle')}</Text>
         </View>
 
         {isLoading ? (
           <ActivityIndicator color={colors.primary} style={styles.loader} />
         ) : opportunities.length === 0 ? (
-          <Text style={styles.emptyText}>Aucune offre publiée pour l'instant.</Text>
+          <Text style={styles.emptyText}>{t('home.empty')}</Text>
         ) : (
           <ScrollView
             horizontal

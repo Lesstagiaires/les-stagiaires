@@ -8,12 +8,14 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { ChipSelect } from '../../components/chip-select';
 import { DateInput } from '../../components/date-input';
 import { colors, ErrorText, FormInput, LinkButton, PrimaryButton } from '../../components/form';
 import { ApiError, type Sex } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
 import { toIsoDateString } from '../../lib/date';
+import { getCurrentLanguage } from '../../lib/i18n';
 
 // Approximation cliente affichant le champ parent par anticipation — le seuil réel,
 // configurable par pays (CountryPolicy), n'est tranché qu'au serveur (moteur de règles,
@@ -28,14 +30,14 @@ function isLikelyMinor(dateOfBirth: Date): boolean {
   return age < 18;
 }
 
-const SEX_OPTIONS: { value: Sex; label: string }[] = [
-  { value: 'MALE', label: 'Homme' },
-  { value: 'FEMALE', label: 'Femme' },
-];
-
 export default function RegisterScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { register } = useAuth();
+  const SEX_OPTIONS: { value: Sex; label: string }[] = [
+    { value: 'MALE', label: t('auth.register.male') },
+    { value: 'FEMALE', label: t('auth.register.female') },
+  ];
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [sex, setSex] = useState<Sex | null>(null);
@@ -57,7 +59,7 @@ export default function RegisterScreen() {
   async function handleSubmit() {
     setError(null);
     if (!dateOfBirth) {
-      setError('Indiquez votre date de naissance.');
+      setError(t('auth.register.missingDob'));
       return;
     }
     setIsSubmitting(true);
@@ -71,7 +73,7 @@ export default function RegisterScreen() {
         cityOfResidence: cityOfResidence.trim(),
         countryOfResidence: countryOfResidence.trim().toUpperCase(),
         password,
-        language: 'FR',
+        language: getCurrentLanguage().toUpperCase() as 'FR' | 'EN' | 'ES' | 'AR',
         dateOfBirth: toIsoDateString(dateOfBirth),
         parentPhone: likelyMinor ? parentPhone.trim() || undefined : undefined,
       });
@@ -80,11 +82,7 @@ export default function RegisterScreen() {
         params: { phone: phone.trim(), message: result.message },
       });
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : 'Inscription impossible. Vérifiez votre connexion internet.',
-      );
+      setError(err instanceof ApiError ? err.message : t('auth.register.genericError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -106,16 +104,24 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Créer un compte</Text>
+        <Text style={styles.title}>{t('auth.register.title')}</Text>
 
         <View style={styles.form}>
-          <FormInput placeholder="Prénom" value={firstName} onChangeText={setFirstName} />
-          <FormInput placeholder="Nom" value={lastName} onChangeText={setLastName} />
+          <FormInput
+            placeholder={t('auth.register.firstName')}
+            value={firstName}
+            onChangeText={setFirstName}
+          />
+          <FormInput
+            placeholder={t('auth.register.lastName')}
+            value={lastName}
+            onChangeText={setLastName}
+          />
 
           <ChipSelect options={SEX_OPTIONS} value={sex} onChange={(v) => setSex(v as Sex)} />
 
           <FormInput
-            placeholder="Téléphone (ex: +237670000000)"
+            placeholder={t('auth.register.phone')}
             value={phone}
             onChangeText={setPhone}
             autoCapitalize="none"
@@ -123,7 +129,7 @@ export default function RegisterScreen() {
             keyboardType="phone-pad"
           />
           <FormInput
-            placeholder="Email (facultatif)"
+            placeholder={t('auth.register.email')}
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
@@ -131,12 +137,12 @@ export default function RegisterScreen() {
             keyboardType="email-address"
           />
           <FormInput
-            placeholder="Ville de résidence"
+            placeholder={t('auth.register.city')}
             value={cityOfResidence}
             onChangeText={setCityOfResidence}
           />
           <FormInput
-            placeholder="Pays de résidence (code, ex : CM)"
+            placeholder={t('auth.register.country')}
             value={countryOfResidence}
             onChangeText={(text) => setCountryOfResidence(text.toUpperCase().slice(0, 2))}
             autoCapitalize="characters"
@@ -144,14 +150,14 @@ export default function RegisterScreen() {
           />
 
           <FormInput
-            placeholder="Mot de passe (10 caractères min., majuscule, minuscule, chiffre)"
+            placeholder={t('auth.register.password')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
           />
 
           <DateInput
-            placeholder="Date de naissance"
+            placeholder={t('auth.register.dateOfBirth')}
             value={dateOfBirth}
             onChange={setDateOfBirth}
             maximumDate={new Date()}
@@ -159,12 +165,9 @@ export default function RegisterScreen() {
 
           {likelyMinor && (
             <>
-              <Text style={styles.minorNotice}>
-                Selon votre pays de résidence, un compte de cet âge peut nécessiter le
-                numéro d'un parent ou tuteur, qui recevra un SMS pour donner son accord.
-              </Text>
+              <Text style={styles.minorNotice}>{t('auth.register.minorNotice')}</Text>
               <FormInput
-                placeholder="Téléphone du parent/tuteur"
+                placeholder={t('auth.register.parentPhone')}
                 value={parentPhone}
                 onChangeText={setParentPhone}
                 autoCapitalize="none"
@@ -176,14 +179,14 @@ export default function RegisterScreen() {
 
           <ErrorText>{error}</ErrorText>
           <PrimaryButton
-            title="S'inscrire"
+            title={t('auth.register.submit')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={!canSubmit}
           />
         </View>
 
-        <LinkButton title="Déjà un compte ? Connectez-vous" onPress={() => router.back()} />
+        <LinkButton title={t('auth.register.haveAccount')} onPress={() => router.back()} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

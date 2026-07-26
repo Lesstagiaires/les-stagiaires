@@ -1,0 +1,98 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "loading": "Loading…",
+    "genericError": "Something went wrong.",
+    "connectionError": "Couldn't load. Check your internet connection."
+  },
+  "nav": {
+    "home": "Home",
+    "opportunities": "Listings",
+    "applications": "Applications",
+    "recruiter": "Recruiter",
+    "digitalSafe": "Digital Safe",
+    "profile": "Profile",
+    "security": "Security"
+  },
+  "auth": {
+    "login": {
+      "title": "LES STAGIAIRES",
+      "subtitle": "Sign in to your account",
+      "identifierPlaceholder": "Phone (e.g. +237670000000) or email",
+      "passwordPlaceholder": "Password",
+      "submit": "Sign in",
+      "noAccount": "Don't have an account yet? Sign up",
+      "genericError": "Couldn't sign in. Check your internet connection."
+    },
+    "twoFactor": {
+      "title": "Two-factor authentication",
+      "subtitle": "A code was sent by SMS to your number. Enter it to finish signing in.",
+      "codePlaceholder": "6-digit code",
+      "submit": "Verify",
+      "back": "Back",
+      "genericError": "Couldn't verify the code."
+    },
+    "register": {
+      "title": "Create an account",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "male": "Male",
+      "female": "Female",
+      "phone": "Phone (e.g. +237670000000)",
+      "email": "Email (optional)",
+      "city": "City of residence",
+      "country": "Country of residence (code, e.g. CM)",
+      "password": "Password (min. 10 characters, upper/lowercase, digit)",
+      "dateOfBirth": "Date of birth",
+      "minorNotice": "Depending on your country of residence, an account of this age may require a parent's or guardian's phone number, who will receive an SMS to give consent.",
+      "parentPhone": "Parent's/guardian's phone number",
+      "submit": "Sign up",
+      "haveAccount": "Already have an account? Sign in",
+      "missingDob": "Please enter your date of birth.",
+      "genericError": "Couldn't sign up. Check your internet connection."
+    },
+    "verifyOtp": {
+      "title": "Phone verification",
+      "subtitleDefault": "A code was sent by SMS to {{phone}}.",
+      "codePlaceholder": "6-digit code",
+      "submit": "Confirm",
+      "genericError": "Couldn't verify. Check your internet connection."
+    }
+  },
+  "home": {
+    "eyebrow": "LES STAGIAIRES",
+    "welcome": "Welcome",
+    "welcomeNamed": "Welcome, {{name}}",
+    "subtitle": "Discover internship and job opportunities across Africa.",
+    "sectionTitle": "Current opportunities",
+    "empty": "No listings published yet."
+  },
+  "profile": {
+    "title": "My profile",
+    "securityLink": "Security — two-factor authentication and devices",
+    "logout": "Sign out",
+    "language": {
+      "sectionTitle": "App language",
+      "hint": "Choose the language used in the app."
+    }
+  },
+  "security": {
+    "title": "Security",
+    "twoFactorTitle": "Two-factor authentication",
+    "twoFactorDescription": "An SMS code will be requested on every sign-in, in addition to your password.",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "enable": "Enable",
+    "disable": "Disable",
+    "disablePasswordPlaceholder": "Password (to disable)",
+    "enableError": "Couldn't enable.",
+    "disableError": "Couldn't disable.",
+    "devicesTitle": "Connected devices",
+    "devicesDescription": "These devices have access to your account. Revoke immediately any device you don't recognize.",
+    "noDevices": "No connected devices.",
+    "lastActivity": "Last activity: {{date}}",
+    "disconnectDevice": "Disconnect this device",
+    "revokeError": "Couldn't revoke."
+  }
+}

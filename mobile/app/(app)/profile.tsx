@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../components/badge';
 import { Card } from '../../components/card';
 import { ChipSelect } from '../../components/chip-select';
@@ -28,6 +29,7 @@ import {
   type RoleCatalogItem,
 } from '../../lib/api';
 import { LEARNER_STATUS_LABELS, LEARNER_STATUS_TONE } from '../../lib/establishment-labels';
+import { SUPPORTED_LANGUAGES, setAppLanguage, type AppLanguage } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth-context';
 import { formatDisplayDate, toIsoDateString } from '../../lib/date';
 
@@ -41,6 +43,7 @@ const LANGUAGE_LEVEL_OPTIONS: { value: LanguageLevel; label: string }[] = [
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [catalog, setCatalog] = useState<RoleCatalogItem[]>([]);
@@ -70,15 +73,11 @@ export default function ProfileScreen() {
         void logout();
         return;
       }
-      setLoadError(
-        err instanceof ApiError
-          ? err.message
-          : 'Chargement impossible. Vérifiez votre connexion internet.',
-      );
+      setLoadError(err instanceof ApiError ? err.message : t('common.connectionError'));
     } finally {
       setIsLoading(false);
     }
-  }, [accessToken, logout]);
+  }, [accessToken, logout, t]);
 
   useEffect(() => {
     void reload();
@@ -98,7 +97,7 @@ export default function ProfileScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>{loadError ?? 'Profil indisponible.'}</ErrorText>
+          <ErrorText>{loadError ?? t('common.genericError')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -107,7 +106,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.screenTitle}>Mon profil</Text>
+        <Text style={styles.screenTitle}>{t('profile.title')}</Text>
 
         <ProfileHeaderForm
           accessToken={accessToken}
@@ -153,12 +152,14 @@ export default function ProfileScreen() {
           />
         )}
 
+        <AppLanguageSection />
+
         <Pressable onPress={() => router.push('/security')} style={styles.securityLink}>
-          <Text style={styles.addText}>Sécurité — double authentification et appareils</Text>
+          <Text style={styles.addText}>{t('profile.securityLink')}</Text>
         </Pressable>
 
         <Pressable onPress={() => void logout()} style={styles.logout}>
-          <Text style={styles.logoutText}>Se déconnecter</Text>
+          <Text style={styles.logoutText}>{t('profile.logout')}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>
@@ -758,6 +759,51 @@ function RecommendationsSection({
         </Card>
       ))}
       <ErrorText>{error}</ErrorText>
+    </Section>
+  );
+}
+
+// --- Langue de l'application (FR/EN/ES/AR) ------------------------------------------------
+
+function AppLanguageSection() {
+  const { t, i18n } = useTranslation();
+  const [isChanging, setIsChanging] = useState(false);
+  const [reloadNotice, setReloadNotice] = useState(false);
+
+  async function handleChange(next: string) {
+    const language = next as AppLanguage;
+    if (language === i18n.language) return;
+    setIsChanging(true);
+    setReloadNotice(false);
+    try {
+      // Web applique le sens d'écriture immédiatement (attribut `dir`) ; seul le natif
+      // (iOS/Android) a besoin d'un redémarrage complet pour que I18nManager s'applique.
+      const { reloadRequired } = await setAppLanguage(language);
+      if (reloadRequired) setReloadNotice(true);
+    } finally {
+      setIsChanging(false);
+    }
+  }
+
+  return (
+    <Section title={t('profile.language.sectionTitle')}>
+      <Text style={styles.hint}>{t('profile.language.hint')}</Text>
+      <ChipSelect
+        options={SUPPORTED_LANGUAGES.map((entry) => ({
+          value: entry.code,
+          label: entry.nativeLabel,
+        }))}
+        value={i18n.language}
+        onChange={handleChange}
+      />
+      {isChanging && <ActivityIndicator color={colors.primary} />}
+      {reloadNotice && (
+        <Text style={styles.hint}>
+          {i18n.language === 'ar'
+            ? 'أعد تشغيل التطبيق يدويًا لتطبيق اتجاه الكتابة الجديد بالكامل.'
+            : 'Redémarrez manuellement l’application pour appliquer le nouveau sens d’écriture.'}
+        </Text>
+      )}
     </Section>
   );
 }

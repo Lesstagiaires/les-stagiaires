@@ -11,9 +11,12 @@ datasource db {
   provider = "postgresql"
 }
 
+// Les 4 langues de l'application (FR/EN/ES/AR) — AR s'affiche en RTL côté mobile.
 enum Language {
   FR
   EN
+  ES
+  AR
 }
 
 enum AccountStatus {

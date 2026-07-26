@@ -1,0 +1,98 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "loading": "Cargando…",
+    "genericError": "Se ha producido un error.",
+    "connectionError": "No se pudo cargar. Verifique su conexión a internet."
+  },
+  "nav": {
+    "home": "Inicio",
+    "opportunities": "Ofertas",
+    "applications": "Candidaturas",
+    "recruiter": "Reclutador",
+    "digitalSafe": "Caja fuerte digital",
+    "profile": "Perfil",
+    "security": "Seguridad"
+  },
+  "auth": {
+    "login": {
+      "title": "LES STAGIAIRES",
+      "subtitle": "Inicia sesión en tu cuenta",
+      "identifierPlaceholder": "Teléfono (ej: +237670000000) o correo",
+      "passwordPlaceholder": "Contraseña",
+      "submit": "Iniciar sesión",
+      "noAccount": "¿Aún no tienes cuenta? Regístrate",
+      "genericError": "No se pudo iniciar sesión. Verifique su conexión a internet."
+    },
+    "twoFactor": {
+      "title": "Autenticación de dos factores",
+      "subtitle": "Se envió un código por SMS a tu número. Introdúcelo para terminar de iniciar sesión.",
+      "codePlaceholder": "Código de 6 dígitos",
+      "submit": "Verificar",
+      "back": "Volver",
+      "genericError": "No se pudo verificar el código."
+    },
+    "register": {
+      "title": "Crear una cuenta",
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "male": "Hombre",
+      "female": "Mujer",
+      "phone": "Teléfono (ej: +237670000000)",
+      "email": "Correo (opcional)",
+      "city": "Ciudad de residencia",
+      "country": "País de residencia (código, ej: CM)",
+      "password": "Contraseña (mín. 10 caracteres, mayúscula, minúscula, número)",
+      "dateOfBirth": "Fecha de nacimiento",
+      "minorNotice": "Según tu país de residencia, una cuenta de esta edad puede requerir el número de un padre o tutor, quien recibirá un SMS para dar su consentimiento.",
+      "parentPhone": "Teléfono del padre/tutor",
+      "submit": "Registrarse",
+      "haveAccount": "¿Ya tienes una cuenta? Inicia sesión",
+      "missingDob": "Indica tu fecha de nacimiento.",
+      "genericError": "No se pudo registrar. Verifique su conexión a internet."
+    },
+    "verifyOtp": {
+      "title": "Verificación del teléfono",
+      "subtitleDefault": "Se envió un código por SMS al {{phone}}.",
+      "codePlaceholder": "Código de 6 dígitos",
+      "submit": "Validar",
+      "genericError": "No se pudo verificar. Verifique su conexión a internet."
+    }
+  },
+  "home": {
+    "eyebrow": "LES STAGIAIRES",
+    "welcome": "Bienvenido",
+    "welcomeNamed": "Bienvenido, {{name}}",
+    "subtitle": "Descubre oportunidades de prácticas y empleo en toda África.",
+    "sectionTitle": "Ofertas del momento",
+    "empty": "Aún no hay ofertas publicadas."
+  },
+  "profile": {
+    "title": "Mi perfil",
+    "securityLink": "Seguridad — autenticación de dos factores y dispositivos",
+    "logout": "Cerrar sesión",
+    "language": {
+      "sectionTitle": "Idioma de la aplicación",
+      "hint": "Elige el idioma utilizado en la aplicación."
+    }
+  },
+  "security": {
+    "title": "Seguridad",
+    "twoFactorTitle": "Autenticación de dos factores",
+    "twoFactorDescription": "Se solicitará un código por SMS en cada inicio de sesión, además de la contraseña.",
+    "enabled": "Activada",
+    "disabled": "Desactivada",
+    "enable": "Activar",
+    "disable": "Desactivar",
+    "disablePasswordPlaceholder": "Contraseña (para desactivar)",
+    "enableError": "No se pudo activar.",
+    "disableError": "No se pudo desactivar.",
+    "devicesTitle": "Dispositivos conectados",
+    "devicesDescription": "Estos dispositivos tienen acceso a tu cuenta. Revoca inmediatamente cualquier dispositivo que no reconozcas.",
+    "noDevices": "No hay dispositivos conectados.",
+    "lastActivity": "Última actividad: {{date}}",
+    "disconnectDevice": "Desconectar este dispositivo",
+    "revokeError": "No se pudo revocar."
+  }
+}

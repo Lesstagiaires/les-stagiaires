@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../components/badge';
 import { Card } from '../../components/card';
 import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../components/form';
@@ -10,6 +11,7 @@ import { api, ApiError, type Session } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
 
 export default function SecurityScreen() {
+  const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
   const [twoFactorEnabled, setTwoFactorEnabled] = useState<boolean | null>(null);
   const [sessions, setSessions] = useState<Session[] | null>(null);
@@ -30,9 +32,9 @@ export default function SecurityScreen() {
         void logout();
         return;
       }
-      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('common.connectionError'));
     }
-  }, [accessToken, logout]);
+  }, [accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -59,13 +61,10 @@ export default function SecurityScreen() {
           onChanged={reload}
         />
 
-        <Section title="Appareils connectés">
-          <Text style={typography.caption}>
-            Ces appareils ont accès à votre compte. Révoquez immédiatement tout appareil
-            que vous ne reconnaissez pas.
-          </Text>
+        <Section title={t('security.devicesTitle')}>
+          <Text style={typography.caption}>{t('security.devicesDescription')}</Text>
           {sessions.length === 0 ? (
-            <Text style={typography.caption}>Aucun appareil connecté.</Text>
+            <Text style={typography.caption}>{t('security.noDevices')}</Text>
           ) : (
             sessions.map((session) => (
               <SessionRow
@@ -93,6 +92,7 @@ function TwoFactorSection({
   enabled: boolean;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [password, setPassword] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +104,7 @@ function TwoFactorSection({
       await api.enableTwoFactor(accessToken);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Activation impossible.');
+      setError(err instanceof ApiError ? err.message : t('security.enableError'));
     } finally {
       setIsBusy(false);
     }
@@ -118,32 +118,33 @@ function TwoFactorSection({
       setPassword('');
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Désactivation impossible.');
+      setError(err instanceof ApiError ? err.message : t('security.disableError'));
     } finally {
       setIsBusy(false);
     }
   }
 
   return (
-    <Section title="Double authentification">
+    <Section title={t('security.twoFactorTitle')}>
       <View style={styles.statusRow}>
-        <Text style={typography.body}>
-          Un code par SMS sera demandé à chaque connexion, en plus du mot de passe.
-        </Text>
-        <Badge label={enabled ? 'Activée' : 'Désactivée'} tone={enabled ? 'success' : 'neutral'} />
+        <Text style={typography.body}>{t('security.twoFactorDescription')}</Text>
+        <Badge
+          label={enabled ? t('security.enabled') : t('security.disabled')}
+          tone={enabled ? 'success' : 'neutral'}
+        />
       </View>
 
       {enabled ? (
         <>
           <FormInput
-            placeholder="Mot de passe (pour désactiver)"
+            placeholder={t('security.disablePasswordPlaceholder')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
           />
           <ErrorText>{error}</ErrorText>
           <SecondaryButton
-            title="Désactiver"
+            title={t('security.disable')}
             onPress={handleDisable}
             loading={isBusy}
             disabled={!password}
@@ -152,7 +153,7 @@ function TwoFactorSection({
       ) : (
         <>
           <ErrorText>{error}</ErrorText>
-          <PrimaryButton title="Activer" onPress={handleEnable} loading={isBusy} />
+          <PrimaryButton title={t('security.enable')} onPress={handleEnable} loading={isBusy} />
         </>
       )}
     </Section>
@@ -168,6 +169,7 @@ function SessionRow({
   session: Session;
   onChanged: () => Promise<void>;
 }) {
+  const { t, i18n } = useTranslation();
   const [isRevoking, setIsRevoking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -178,7 +180,7 @@ function SessionRow({
       await api.revokeSession(accessToken, session.id);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Révocation impossible.');
+      setError(err instanceof ApiError ? err.message : t('security.revokeError'));
     } finally {
       setIsRevoking(false);
     }
@@ -188,13 +190,15 @@ function SessionRow({
     <Card style={styles.sessionCard}>
       <Text style={typography.bodyBold}>{session.deviceLabel}</Text>
       <Text style={typography.caption}>
-        Dernière activité : {new Date(session.lastUsedAt).toLocaleString('fr-FR')}
+        {t('security.lastActivity', {
+          date: new Date(session.lastUsedAt).toLocaleString(i18n.language),
+        })}
       </Text>
       {isRevoking ? (
         <ActivityIndicator color={colors.error} />
       ) : (
         <Text style={styles.revokeText} onPress={handleRevoke}>
-          Déconnecter cet appareil
+          {t('security.disconnectDevice')}
         </Text>
       )}
       <ErrorText>{error}</ErrorText>

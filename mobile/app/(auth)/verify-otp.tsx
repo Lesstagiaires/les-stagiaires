@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, ErrorText, FormInput, PrimaryButton } from '../../components/form';
 import { ApiError } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
@@ -16,6 +17,7 @@ export default function VerifyOtpScreen() {
     phone: string;
     message?: string;
   }>();
+  const { t } = useTranslation();
   const { verifyOtp } = useAuth();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -30,11 +32,7 @@ export default function VerifyOtpScreen() {
       // accessToken devient non nul.
       await verifyOtp(phone, code.trim());
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : 'Vérification impossible. Vérifiez votre connexion internet.',
-      );
+      setError(err instanceof ApiError ? err.message : t('auth.verifyOtp.genericError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -46,14 +44,14 @@ export default function VerifyOtpScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.content}>
-        <Text style={styles.title}>Vérification du téléphone</Text>
+        <Text style={styles.title}>{t('auth.verifyOtp.title')}</Text>
         <Text style={styles.subtitle}>
-          {message ?? `Un code a été envoyé par SMS au ${phone}.`}
+          {message ?? t('auth.verifyOtp.subtitleDefault', { phone })}
         </Text>
 
         <View style={styles.form}>
           <FormInput
-            placeholder="Code à 6 chiffres"
+            placeholder={t('auth.verifyOtp.codePlaceholder')}
             value={code}
             onChangeText={setCode}
             keyboardType="number-pad"
@@ -61,7 +59,7 @@ export default function VerifyOtpScreen() {
           />
           <ErrorText>{error}</ErrorText>
           <PrimaryButton
-            title="Valider"
+            title={t('auth.verifyOtp.submit')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={code.length !== 6}

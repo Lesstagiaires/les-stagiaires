@@ -1,0 +1,98 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "loading": "Chargement…",
+    "genericError": "Une erreur est survenue.",
+    "connectionError": "Chargement impossible. Vérifiez votre connexion internet."
+  },
+  "nav": {
+    "home": "Accueil",
+    "opportunities": "Offres",
+    "applications": "Candidatures",
+    "recruiter": "Recruteur",
+    "digitalSafe": "Coffre-fort",
+    "profile": "Profil",
+    "security": "Sécurité"
+  },
+  "auth": {
+    "login": {
+      "title": "LES STAGIAIRES",
+      "subtitle": "Connectez-vous à votre compte",
+      "identifierPlaceholder": "Téléphone (ex: +237670000000) ou email",
+      "passwordPlaceholder": "Mot de passe",
+      "submit": "Se connecter",
+      "noAccount": "Pas encore de compte ? Inscrivez-vous",
+      "genericError": "Connexion impossible. Vérifiez votre connexion internet."
+    },
+    "twoFactor": {
+      "title": "Double authentification",
+      "subtitle": "Un code a été envoyé par SMS à votre numéro. Saisissez-le pour terminer la connexion.",
+      "codePlaceholder": "Code à 6 chiffres",
+      "submit": "Vérifier",
+      "back": "Retour",
+      "genericError": "Vérification impossible."
+    },
+    "register": {
+      "title": "Créer un compte",
+      "firstName": "Prénom",
+      "lastName": "Nom",
+      "male": "Homme",
+      "female": "Femme",
+      "phone": "Téléphone (ex: +237670000000)",
+      "email": "Email (facultatif)",
+      "city": "Ville de résidence",
+      "country": "Pays de résidence (code, ex : CM)",
+      "password": "Mot de passe (10 caractères min., majuscule, minuscule, chiffre)",
+      "dateOfBirth": "Date de naissance",
+      "minorNotice": "Selon votre pays de résidence, un compte de cet âge peut nécessiter le numéro d'un parent ou tuteur, qui recevra un SMS pour donner son accord.",
+      "parentPhone": "Téléphone du parent/tuteur",
+      "submit": "S'inscrire",
+      "haveAccount": "Déjà un compte ? Connectez-vous",
+      "missingDob": "Indiquez votre date de naissance.",
+      "genericError": "Inscription impossible. Vérifiez votre connexion internet."
+    },
+    "verifyOtp": {
+      "title": "Vérification du téléphone",
+      "subtitleDefault": "Un code a été envoyé par SMS au {{phone}}.",
+      "codePlaceholder": "Code à 6 chiffres",
+      "submit": "Valider",
+      "genericError": "Vérification impossible. Vérifiez votre connexion internet."
+    }
+  },
+  "home": {
+    "eyebrow": "LES STAGIAIRES",
+    "welcome": "Bienvenue",
+    "welcomeNamed": "Bienvenue, {{name}}",
+    "subtitle": "Découvrez les opportunités de stage et d'emploi à travers l'Afrique.",
+    "sectionTitle": "Opportunités du moment",
+    "empty": "Aucune offre publiée pour l'instant."
+  },
+  "profile": {
+    "title": "Mon profil",
+    "securityLink": "Sécurité — double authentification et appareils",
+    "logout": "Se déconnecter",
+    "language": {
+      "sectionTitle": "Langue de l'application",
+      "hint": "Choisissez la langue utilisée dans l'application."
+    }
+  },
+  "security": {
+    "title": "Sécurité",
+    "twoFactorTitle": "Double authentification",
+    "twoFactorDescription": "Un code par SMS sera demandé à chaque connexion, en plus du mot de passe.",
+    "enabled": "Activée",
+    "disabled": "Désactivée",
+    "enable": "Activer",
+    "disable": "Désactiver",
+    "disablePasswordPlaceholder": "Mot de passe (pour désactiver)",
+    "enableError": "Activation impossible.",
+    "disableError": "Désactivation impossible.",
+    "devicesTitle": "Appareils connectés",
+    "devicesDescription": "Ces appareils ont accès à votre compte. Révoquez immédiatement tout appareil que vous ne reconnaissez pas.",
+    "noDevices": "Aucun appareil connecté.",
+    "lastActivity": "Dernière activité : {{date}}",
+    "disconnectDevice": "Déconnecter cet appareil",
+    "revokeError": "Révocation impossible."
+  }
+}

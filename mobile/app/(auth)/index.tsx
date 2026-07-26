@@ -7,12 +7,14 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors, ErrorText, FormInput, LinkButton, PrimaryButton } from '../../components/form';
 import { ApiError } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { login, completeTwoFactorLogin } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -30,11 +32,7 @@ export default function LoginScreen() {
         setChallengeToken(result.challengeToken);
       }
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : 'Connexion impossible. Vérifiez votre connexion internet.',
-      );
+      setError(err instanceof ApiError ? err.message : t('auth.login.genericError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -47,9 +45,7 @@ export default function LoginScreen() {
     try {
       await completeTwoFactorLogin(challengeToken, code);
     } catch (err) {
-      setError(
-        err instanceof ApiError ? err.message : 'Vérification impossible.',
-      );
+      setError(err instanceof ApiError ? err.message : t('auth.twoFactor.genericError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -62,15 +58,12 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.content}>
-          <Text style={styles.title}>Double authentification</Text>
-          <Text style={styles.subtitle}>
-            Un code a été envoyé par SMS à votre numéro. Saisissez-le pour terminer la
-            connexion.
-          </Text>
+          <Text style={styles.title}>{t('auth.twoFactor.title')}</Text>
+          <Text style={styles.subtitle}>{t('auth.twoFactor.subtitle')}</Text>
 
           <View style={styles.form}>
             <FormInput
-              placeholder="Code à 6 chiffres"
+              placeholder={t('auth.twoFactor.codePlaceholder')}
               value={code}
               onChangeText={(text) => setCode(text.replace(/\D/g, '').slice(0, 6))}
               keyboardType="number-pad"
@@ -78,14 +71,14 @@ export default function LoginScreen() {
             />
             <ErrorText>{error}</ErrorText>
             <PrimaryButton
-              title="Vérifier"
+              title={t('auth.twoFactor.submit')}
               onPress={handleVerifyTwoFactor}
               loading={isSubmitting}
               disabled={code.length !== 6}
             />
           </View>
 
-          <LinkButton title="Retour" onPress={() => setChallengeToken(null)} />
+          <LinkButton title={t('auth.twoFactor.back')} onPress={() => setChallengeToken(null)} />
         </View>
       </KeyboardAvoidingView>
     );
@@ -97,12 +90,12 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.content}>
-        <Text style={styles.title}>LES STAGIAIRES</Text>
-        <Text style={styles.subtitle}>Connectez-vous à votre compte</Text>
+        <Text style={styles.title}>{t('auth.login.title')}</Text>
+        <Text style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
 
         <View style={styles.form}>
           <FormInput
-            placeholder="Téléphone (ex: +237670000000) ou email"
+            placeholder={t('auth.login.identifierPlaceholder')}
             value={identifier}
             onChangeText={setIdentifier}
             autoCapitalize="none"
@@ -110,14 +103,14 @@ export default function LoginScreen() {
             keyboardType="email-address"
           />
           <FormInput
-            placeholder="Mot de passe"
+            placeholder={t('auth.login.passwordPlaceholder')}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
           />
           <ErrorText>{error}</ErrorText>
           <PrimaryButton
-            title="Se connecter"
+            title={t('auth.login.submit')}
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={!identifier || !password}
@@ -125,7 +118,7 @@ export default function LoginScreen() {
         </View>
 
         <LinkButton
-          title="Pas encore de compte ? Inscrivez-vous"
+          title={t('auth.login.noAccount')}
           onPress={() => router.push('/(auth)/register')}
         />
       </View>

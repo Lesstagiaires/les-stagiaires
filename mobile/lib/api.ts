@@ -99,7 +99,7 @@ async function request<T>(
   return body as T;
 }
 
-export type Language = 'FR' | 'EN';
+export type Language = 'FR' | 'EN' | 'ES' | 'AR';
 export type AccountStatus =
   | 'PENDING_VERIFICATION'
   | 'AWAITING_PARENTAL_CONSENT'
