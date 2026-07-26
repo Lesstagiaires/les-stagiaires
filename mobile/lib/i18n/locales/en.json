@@ -456,6 +456,101 @@
       "editTitle": "Edit draft",
       "titlePlaceholder": "Title",
       "saveError": "Couldn't save."
+    },
+    "receivedApplications": {
+      "allFilter": "All",
+      "loadError": "Couldn't load.",
+      "empty": "No applications for this filter.",
+      "candidateLabel": "Candidate: {{lsId}}",
+      "detail": {
+        "unavailable": "Application unavailable.",
+        "candidateLabel": "Candidate: {{lsId}}",
+        "dossier": {
+          "title": "Candidate profile",
+          "education": "EDUCATION",
+          "experience": "EXPERIENCE",
+          "languages": "LANGUAGES",
+          "recommendationsCount": "{{count}} recommendation(s) received.",
+          "empty": "The candidate hasn't filled in their profile yet."
+        },
+        "markUnderReview": "Mark as under review",
+        "actionError": "Action failed.",
+        "documentRequests": {
+          "title": "Additional documents",
+          "fulfilled": "Provided by the candidate",
+          "pending": "Pending"
+        },
+        "requestDocument": {
+          "openButton": "Request a document",
+          "title": "Request an additional document",
+          "placeholder": "E.g.: copy of ID",
+          "error": "Couldn't send the request.",
+          "submit": "Send the request",
+          "cancel": "Cancel"
+        },
+        "interview": {
+          "title": "Interview",
+          "modeLabel": "Mode: {{mode}}",
+          "locationLabel": "Location: {{location}}",
+          "confirmed": "Confirmed by the candidate.",
+          "awaitingConfirmation": "Awaiting the candidate's confirmation.",
+          "datePlaceholder": "Interview date",
+          "timePlaceholder": "Time (e.g.: 14:30)",
+          "modePlaceholder": "Mode (e.g.: video call, in person)",
+          "locationPlaceholder": "Location (optional)",
+          "error": "Couldn't propose the interview.",
+          "reschedule": "Reschedule the interview",
+          "propose": "Propose the interview",
+          "proposeNew": "Propose an interview",
+          "cancel": "Cancel"
+        },
+        "travelConsent": {
+          "title": "Parental consent pending",
+          "body": "The candidate is a minor and the offer requires relocation — parental consent to travel is awaiting SMS confirmation."
+        },
+        "admissionLetterSent": {
+          "title": "Admission letter sent",
+          "body": "Awaiting the candidate's acceptance of the admission letter."
+        },
+        "decision": {
+          "title": "Decision",
+          "notePlaceholder": "Note (optional)",
+          "error": "Couldn't record the decision.",
+          "accept": "Accept",
+          "reject": "Reject"
+        },
+        "signature": {
+          "title": "Agreement signature",
+          "candidateLabel": "Candidate:",
+          "yourLabel": "You:",
+          "signedBy": "signed by {{name}}",
+          "unsigned": "not signed",
+          "namePlaceholder": "Signatory's name (on behalf of the organization)",
+          "error": "Couldn't sign.",
+          "submit": "Sign the agreement"
+        },
+        "complete": {
+          "title": "Internship completion",
+          "body": "Close out the internship once it's finished to generate the completion certificate.",
+          "error": "Couldn't close out.",
+          "submit": "Close out the internship"
+        },
+        "recommend": {
+          "title": "Recommendation",
+          "sent": "Recommendation sent, thank you.",
+          "placeholder": "Your recommendation for this intern",
+          "error": "Couldn't send.",
+          "submit": "Send the recommendation"
+        },
+        "artifacts": {
+          "title": "Documents",
+          "download": "Download",
+          "error": "Couldn't download."
+        },
+        "history": {
+          "title": "History"
+        }
+      }
     }
   },
   "security": {

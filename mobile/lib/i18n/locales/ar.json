@@ -456,6 +456,101 @@
       "editTitle": "تعديل المسودة",
       "titlePlaceholder": "العنوان",
       "saveError": "تعذّر الحفظ."
+    },
+    "receivedApplications": {
+      "allFilter": "الكل",
+      "loadError": "تعذّر التحميل.",
+      "empty": "لا توجد ترشيحات لهذا الفلتر.",
+      "candidateLabel": "المرشّح: {{lsId}}",
+      "detail": {
+        "unavailable": "الترشيح غير متاح.",
+        "candidateLabel": "المرشّح: {{lsId}}",
+        "dossier": {
+          "title": "ملف المرشّح",
+          "education": "التكوين",
+          "experience": "الخبرات",
+          "languages": "اللغات",
+          "recommendationsCount": "{{count}} توصية (توصيات) مستلمة.",
+          "empty": "لم يقم المرشّح بملء ملفه الشخصي بعد."
+        },
+        "markUnderReview": "وضع قيد الدراسة",
+        "actionError": "تعذّر تنفيذ الإجراء.",
+        "documentRequests": {
+          "title": "مستندات تكميلية",
+          "fulfilled": "قدّمها المرشّح",
+          "pending": "في الانتظار"
+        },
+        "requestDocument": {
+          "openButton": "طلب مستند",
+          "title": "طلب مستند تكميلي",
+          "placeholder": "مثال: نسخة من بطاقة الهوية",
+          "error": "تعذّر إرسال الطلب.",
+          "submit": "إرسال الطلب",
+          "cancel": "إلغاء"
+        },
+        "interview": {
+          "title": "المقابلة",
+          "modeLabel": "الطريقة: {{mode}}",
+          "locationLabel": "المكان: {{location}}",
+          "confirmed": "تم التأكيد من قبل المرشّح.",
+          "awaitingConfirmation": "في انتظار تأكيد المرشّح.",
+          "datePlaceholder": "تاريخ المقابلة",
+          "timePlaceholder": "الوقت (مثال: 14:30)",
+          "modePlaceholder": "الطريقة (مثال: مكالمة فيديو، حضوري)",
+          "locationPlaceholder": "المكان (اختياري)",
+          "error": "تعذّر اقتراح المقابلة.",
+          "reschedule": "إعادة جدولة المقابلة",
+          "propose": "اقتراح المقابلة",
+          "proposeNew": "اقتراح مقابلة",
+          "cancel": "إلغاء"
+        },
+        "travelConsent": {
+          "title": "موافقة الوالدين قيد الانتظار",
+          "body": "المرشّح قاصر والعرض يتطلب الانتقال — موافقة الوالدين على التنقل في انتظار التأكيد عبر الرسائل القصيرة."
+        },
+        "admissionLetterSent": {
+          "title": "تم إرسال رسالة القبول",
+          "body": "في انتظار قبول المرشّح لرسالة القبول."
+        },
+        "decision": {
+          "title": "القرار",
+          "notePlaceholder": "ملاحظة (اختياري)",
+          "error": "تعذّر تسجيل القرار.",
+          "accept": "قبول",
+          "reject": "رفض"
+        },
+        "signature": {
+          "title": "توقيع الاتفاقية",
+          "candidateLabel": "المرشّح:",
+          "yourLabel": "أنتم:",
+          "signedBy": "وقّعها {{name}}",
+          "unsigned": "غير موقّعة",
+          "namePlaceholder": "اسم الموقّع (باسم المنظمة)",
+          "error": "تعذّر التوقيع.",
+          "submit": "توقيع الاتفاقية"
+        },
+        "complete": {
+          "title": "إنهاء التدريب",
+          "body": "أنهِ التدريب بمجرد انتهائه لإصدار شهادة إتمام التدريب.",
+          "error": "تعذّر الإنهاء.",
+          "submit": "إنهاء التدريب"
+        },
+        "recommend": {
+          "title": "التوصية",
+          "sent": "تم إرسال التوصية، شكرًا لكم.",
+          "placeholder": "توصيتكم بشأن هذا المتدرّب",
+          "error": "تعذّر الإرسال.",
+          "submit": "إرسال التوصية"
+        },
+        "artifacts": {
+          "title": "المستندات",
+          "download": "تنزيل",
+          "error": "تعذّر التنزيل."
+        },
+        "history": {
+          "title": "السجل"
+        }
+      }
     }
   },
   "security": {

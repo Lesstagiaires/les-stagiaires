@@ -456,6 +456,101 @@
       "editTitle": "Editar borrador",
       "titlePlaceholder": "Título",
       "saveError": "No se pudo guardar."
+    },
+    "receivedApplications": {
+      "allFilter": "Todas",
+      "loadError": "No se pudo cargar.",
+      "empty": "Ninguna candidatura para este filtro.",
+      "candidateLabel": "Candidato: {{lsId}}",
+      "detail": {
+        "unavailable": "Candidatura no disponible.",
+        "candidateLabel": "Candidato: {{lsId}}",
+        "dossier": {
+          "title": "Perfil del candidato",
+          "education": "FORMACIÓN",
+          "experience": "EXPERIENCIA",
+          "languages": "IDIOMAS",
+          "recommendationsCount": "{{count}} recomendación(es) recibida(s).",
+          "empty": "El candidato aún no ha completado su perfil."
+        },
+        "markUnderReview": "Pasar a revisión",
+        "actionError": "Acción no disponible.",
+        "documentRequests": {
+          "title": "Documentos complementarios",
+          "fulfilled": "Proporcionado por el candidato",
+          "pending": "Pendiente"
+        },
+        "requestDocument": {
+          "openButton": "Solicitar un documento",
+          "title": "Solicitar un documento complementario",
+          "placeholder": "Ej.: copia del documento de identidad",
+          "error": "No se pudo enviar la solicitud.",
+          "submit": "Enviar la solicitud",
+          "cancel": "Cancelar"
+        },
+        "interview": {
+          "title": "Entrevista",
+          "modeLabel": "Modalidad: {{mode}}",
+          "locationLabel": "Lugar: {{location}}",
+          "confirmed": "Confirmada por el candidato.",
+          "awaitingConfirmation": "Pendiente de confirmación del candidato.",
+          "datePlaceholder": "Fecha de la entrevista",
+          "timePlaceholder": "Hora (ej.: 14:30)",
+          "modePlaceholder": "Modalidad (ej.: videollamada, presencial)",
+          "locationPlaceholder": "Lugar (opcional)",
+          "error": "No se pudo proponer la entrevista.",
+          "reschedule": "Reprogramar la entrevista",
+          "propose": "Proponer la entrevista",
+          "proposeNew": "Proponer una entrevista",
+          "cancel": "Cancelar"
+        },
+        "travelConsent": {
+          "title": "Consentimiento parental pendiente",
+          "body": "El candidato es menor de edad y la oferta requiere reubicación — el consentimiento parental de desplazamiento está pendiente de confirmación por SMS."
+        },
+        "admissionLetterSent": {
+          "title": "Carta de admisión enviada",
+          "body": "Pendiente de la aceptación de la carta de admisión por parte del candidato."
+        },
+        "decision": {
+          "title": "Decisión",
+          "notePlaceholder": "Nota (opcional)",
+          "error": "No se pudo registrar la decisión.",
+          "accept": "Aceptar",
+          "reject": "Rechazar"
+        },
+        "signature": {
+          "title": "Firma del convenio",
+          "candidateLabel": "Candidato:",
+          "yourLabel": "Usted:",
+          "signedBy": "firmado por {{name}}",
+          "unsigned": "sin firmar",
+          "namePlaceholder": "Nombre del firmante (en nombre de la organización)",
+          "error": "No se pudo firmar.",
+          "submit": "Firmar el convenio"
+        },
+        "complete": {
+          "title": "Cierre de la pasantía",
+          "body": "Cierre la pasantía una vez finalizada para generar el certificado de finalización.",
+          "error": "No se pudo cerrar.",
+          "submit": "Cerrar la pasantía"
+        },
+        "recommend": {
+          "title": "Recomendación",
+          "sent": "Recomendación enviada, gracias.",
+          "placeholder": "Su recomendación para este pasante",
+          "error": "No se pudo enviar.",
+          "submit": "Enviar la recomendación"
+        },
+        "artifacts": {
+          "title": "Documentos",
+          "download": "Descargar",
+          "error": "No se pudo descargar."
+        },
+        "history": {
+          "title": "Historial"
+        }
+      }
     }
   },
   "security": {

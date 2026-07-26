@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../../components/badge';
 import { Card } from '../../../../components/card';
 import { DateInput } from '../../../../components/date-input';
@@ -34,6 +35,7 @@ const PROCESSABLE_STATUSES = [
 export default function ReceivedApplicationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { accessToken, logout } = useAuth();
+  const { t } = useTranslation();
 
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,11 +51,11 @@ export default function ReceivedApplicationDetailScreen() {
         void logout();
         return;
       }
-      setLoadError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setLoadError(err instanceof ApiError ? err.message : t('recruiter.receivedApplications.loadError'));
     } finally {
       setIsLoading(false);
     }
-  }, [id, accessToken, logout]);
+  }, [id, accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -75,7 +77,7 @@ export default function ReceivedApplicationDetailScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>{loadError ?? 'Candidature indisponible.'}</ErrorText>
+          <ErrorText>{loadError ?? t('recruiter.receivedApplications.detail.unavailable')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -96,9 +98,13 @@ export default function ReceivedApplicationDetailScreen() {
           <Text style={styles.reference}>{application.reference}</Text>
         </View>
         <Text style={styles.title}>
-          {application.opportunity?.title ?? 'Candidature spontanée'}
+          {application.opportunity?.title ?? t('applications.list.spontaneous')}
         </Text>
-        <Text style={styles.candidate}>Candidat : {application.candidate?.lsId ?? '—'}</Text>
+        <Text style={styles.candidate}>
+          {t('recruiter.receivedApplications.detail.candidateLabel', {
+            lsId: application.candidate?.lsId ?? '—',
+          })}
+        </Text>
 
         <DossierSection dossier={application.dossierSnapshot} />
 
@@ -124,18 +130,17 @@ export default function ReceivedApplicationDetailScreen() {
         )}
 
         {application.status === 'AWAITING_TRAVEL_CONSENT' && (
-          <Section title="Accord parental en attente">
+          <Section title={t('recruiter.receivedApplications.detail.travelConsent.title')}>
             <Text style={typography.body}>
-              Le candidat est mineur et l'offre nécessite une relocalisation — un accord
-              parental de déplacement est en attente de confirmation par SMS.
+              {t('recruiter.receivedApplications.detail.travelConsent.body')}
             </Text>
           </Section>
         )}
 
         {application.status === 'ADMISSION_LETTER_SENT' && (
-          <Section title="Lettre d'admission envoyée">
+          <Section title={t('recruiter.receivedApplications.detail.admissionLetterSent.title')}>
             <Text style={typography.body}>
-              En attente de l'acceptation de la lettre d'admission par le candidat.
+              {t('recruiter.receivedApplications.detail.admissionLetterSent.body')}
             </Text>
           </Section>
         )}
@@ -182,14 +187,15 @@ export default function ReceivedApplicationDetailScreen() {
 // --- Dossier du candidat (snapshot au moment de la candidature) ----------------------------
 
 function DossierSection({ dossier }: { dossier: ApplicationDetail['dossierSnapshot'] }) {
+  const { t } = useTranslation();
   return (
-    <Section title="Dossier du candidat">
+    <Section title={t('recruiter.receivedApplications.detail.dossier.title')}>
       {!!dossier.headline && <Text style={typography.bodyBold}>{dossier.headline}</Text>}
       {!!dossier.summary && <Text style={typography.body}>{dossier.summary}</Text>}
 
       {dossier.education.length > 0 && (
         <View style={styles.dossierBlock}>
-          <Text style={typography.label}>FORMATIONS</Text>
+          <Text style={typography.label}>{t('recruiter.receivedApplications.detail.dossier.education')}</Text>
           {dossier.education.map((entry) => (
             <Text key={entry.id} style={typography.body}>
               {entry.degree ? `${entry.degree} — ` : ''}
@@ -201,7 +207,7 @@ function DossierSection({ dossier }: { dossier: ApplicationDetail['dossierSnapsh
 
       {dossier.experience.length > 0 && (
         <View style={styles.dossierBlock}>
-          <Text style={typography.label}>EXPÉRIENCES</Text>
+          <Text style={typography.label}>{t('recruiter.receivedApplications.detail.dossier.experience')}</Text>
           {dossier.experience.map((entry) => (
             <Text key={entry.id} style={typography.body}>
               {entry.title} — {entry.organization}
@@ -212,7 +218,7 @@ function DossierSection({ dossier }: { dossier: ApplicationDetail['dossierSnapsh
 
       {dossier.languages.length > 0 && (
         <View style={styles.dossierBlock}>
-          <Text style={typography.label}>LANGUES</Text>
+          <Text style={typography.label}>{t('recruiter.receivedApplications.detail.dossier.languages')}</Text>
           <Text style={typography.body}>
             {dossier.languages.map((entry) => entry.language).join(', ')}
           </Text>
@@ -221,7 +227,9 @@ function DossierSection({ dossier }: { dossier: ApplicationDetail['dossierSnapsh
 
       {dossier.recommendations.length > 0 && (
         <Text style={typography.caption}>
-          {dossier.recommendations.length} recommandation(s) reçue(s).
+          {t('recruiter.receivedApplications.detail.dossier.recommendationsCount', {
+            count: dossier.recommendations.length,
+          })}
         </Text>
       )}
 
@@ -230,7 +238,7 @@ function DossierSection({ dossier }: { dossier: ApplicationDetail['dossierSnapsh
         dossier.education.length === 0 &&
         dossier.experience.length === 0 &&
         dossier.languages.length === 0 && (
-          <Text style={typography.caption}>Profil non renseigné par le candidat.</Text>
+          <Text style={typography.caption}>{t('recruiter.receivedApplications.detail.dossier.empty')}</Text>
         )}
     </Section>
   );
@@ -247,6 +255,7 @@ function MarkUnderReviewButton({
   applicationId: string;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -257,7 +266,7 @@ function MarkUnderReviewButton({
       await api.markApplicationUnderReview(accessToken, applicationId);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Action impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.receivedApplications.detail.actionError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -265,7 +274,11 @@ function MarkUnderReviewButton({
 
   return (
     <View style={styles.inlineAction}>
-      <SecondaryButton title="Passer en cours d'examen" onPress={handlePress} loading={isSubmitting} />
+      <SecondaryButton
+        title={t('recruiter.receivedApplications.detail.markUnderReview')}
+        onPress={handlePress}
+        loading={isSubmitting}
+      />
       <ErrorText>{error}</ErrorText>
     </View>
   );
@@ -274,13 +287,16 @@ function MarkUnderReviewButton({
 // --- Documents complémentaires demandés (historique) ----------------------------------------
 
 function DocumentRequestsSection({ requests }: { requests: ApplicationDetail['documentRequests'] }) {
+  const { t } = useTranslation();
   return (
-    <Section title="Documents complémentaires">
+    <Section title={t('recruiter.receivedApplications.detail.documentRequests.title')}>
       {requests.map((request) => (
         <View key={request.id} style={styles.historyRow}>
           <Text style={typography.body}>{request.description}</Text>
           <Text style={typography.caption}>
-            {request.status === 'FULFILLED' ? 'Fourni par le candidat' : 'En attente'}
+            {request.status === 'FULFILLED'
+              ? t('recruiter.receivedApplications.detail.documentRequests.fulfilled')
+              : t('recruiter.receivedApplications.detail.documentRequests.pending')}
           </Text>
         </View>
       ))}
@@ -297,6 +313,7 @@ function RequestDocumentSection({
   applicationId: string;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -311,7 +328,7 @@ function RequestDocumentSection({
       setIsOpen(false);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Demande impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.receivedApplications.detail.requestDocument.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -320,15 +337,18 @@ function RequestDocumentSection({
   if (!isOpen) {
     return (
       <View style={styles.inlineAction}>
-        <SecondaryButton title="Demander un document" onPress={() => setIsOpen(true)} />
+        <SecondaryButton
+          title={t('recruiter.receivedApplications.detail.requestDocument.openButton')}
+          onPress={() => setIsOpen(true)}
+        />
       </View>
     );
   }
 
   return (
-    <Section title="Demander un document complémentaire">
+    <Section title={t('recruiter.receivedApplications.detail.requestDocument.title')}>
       <FormInput
-        placeholder="Ex : copie de la pièce d'identité"
+        placeholder={t('recruiter.receivedApplications.detail.requestDocument.placeholder')}
         value={description}
         onChangeText={setDescription}
         multiline
@@ -336,13 +356,13 @@ function RequestDocumentSection({
       />
       <ErrorText>{error}</ErrorText>
       <PrimaryButton
-        title="Envoyer la demande"
+        title={t('recruiter.receivedApplications.detail.requestDocument.submit')}
         onPress={handleSubmit}
         loading={isSubmitting}
         disabled={!description.trim()}
       />
       <Text style={styles.cancelText} onPress={() => setIsOpen(false)}>
-        Annuler
+        {t('recruiter.receivedApplications.detail.requestDocument.cancel')}
       </Text>
     </Section>
   );
@@ -361,6 +381,7 @@ function InterviewSection({
   application: ApplicationDetail;
   onChanged: () => Promise<void>;
 }) {
+  const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [date, setDate] = useState<Date | null>(
     application.interviewProposedAt ? new Date(application.interviewProposedAt) : null,
@@ -392,53 +413,83 @@ function InterviewSection({
       setIsOpen(false);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Proposition impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.receivedApplications.detail.interview.error'));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <Section title="Entretien">
+    <Section title={t('recruiter.receivedApplications.detail.interview.title')}>
       {alreadyProposed && (
         <>
           <Text style={typography.body}>
-            {new Date(application.interviewProposedAt as string).toLocaleString('fr-FR')}
+            {new Date(application.interviewProposedAt as string).toLocaleString(i18n.language)}
           </Text>
           {!!application.interviewMode && (
-            <Text style={typography.caption}>Mode : {application.interviewMode}</Text>
+            <Text style={typography.caption}>
+              {t('recruiter.receivedApplications.detail.interview.modeLabel', { mode: application.interviewMode })}
+            </Text>
           )}
           {!!application.interviewLocation && (
-            <Text style={typography.caption}>Lieu : {application.interviewLocation}</Text>
+            <Text style={typography.caption}>
+              {t('recruiter.receivedApplications.detail.interview.locationLabel', {
+                location: application.interviewLocation,
+              })}
+            </Text>
           )}
           <Text style={typography.caption}>
             {application.interviewConfirmedAt
-              ? 'Confirmé par le candidat.'
-              : 'En attente de confirmation du candidat.'}
+              ? t('recruiter.receivedApplications.detail.interview.confirmed')
+              : t('recruiter.receivedApplications.detail.interview.awaitingConfirmation')}
           </Text>
         </>
       )}
 
       {isOpen ? (
         <>
-          <DateInput placeholder="Date de l'entretien" value={date} onChange={setDate} />
-          <FormInput placeholder="Heure (ex : 14:30)" value={time} onChangeText={setTime} />
-          <FormInput placeholder="Mode (ex : visioconférence, présentiel)" value={mode} onChangeText={setMode} />
-          <FormInput placeholder="Lieu (optionnel)" value={location} onChangeText={setLocation} />
+          <DateInput
+            placeholder={t('recruiter.receivedApplications.detail.interview.datePlaceholder')}
+            value={date}
+            onChange={setDate}
+          />
+          <FormInput
+            placeholder={t('recruiter.receivedApplications.detail.interview.timePlaceholder')}
+            value={time}
+            onChangeText={setTime}
+          />
+          <FormInput
+            placeholder={t('recruiter.receivedApplications.detail.interview.modePlaceholder')}
+            value={mode}
+            onChangeText={setMode}
+          />
+          <FormInput
+            placeholder={t('recruiter.receivedApplications.detail.interview.locationPlaceholder')}
+            value={location}
+            onChangeText={setLocation}
+          />
           <ErrorText>{error}</ErrorText>
           <PrimaryButton
-            title={alreadyProposed ? "Reprogrammer l'entretien" : "Proposer l'entretien"}
+            title={
+              alreadyProposed
+                ? t('recruiter.receivedApplications.detail.interview.reschedule')
+                : t('recruiter.receivedApplications.detail.interview.propose')
+            }
             onPress={handleSubmit}
             loading={isSubmitting}
             disabled={!date || !mode.trim()}
           />
           <Text style={styles.cancelText} onPress={() => setIsOpen(false)}>
-            Annuler
+            {t('recruiter.receivedApplications.detail.interview.cancel')}
           </Text>
         </>
       ) : (
         <SecondaryButton
-          title={alreadyProposed ? "Reprogrammer l'entretien" : "Proposer un entretien"}
+          title={
+            alreadyProposed
+              ? t('recruiter.receivedApplications.detail.interview.reschedule')
+              : t('recruiter.receivedApplications.detail.interview.proposeNew')
+          }
           onPress={() => setIsOpen(true)}
         />
       )}
@@ -459,6 +510,7 @@ function DecisionSection({
   canAccept: boolean;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [note, setNote] = useState('');
   const [busyDecision, setBusyDecision] = useState<'ACCEPTED' | 'REJECTED' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -470,16 +522,16 @@ function DecisionSection({
       await api.decideApplication(accessToken, applicationId, { decision, note: note || undefined });
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Décision impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.receivedApplications.detail.decision.error'));
     } finally {
       setBusyDecision(null);
     }
   }
 
   return (
-    <Section title="Décision">
+    <Section title={t('recruiter.receivedApplications.detail.decision.title')}>
       <FormInput
-        placeholder="Note (optionnelle)"
+        placeholder={t('recruiter.receivedApplications.detail.decision.notePlaceholder')}
         value={note}
         onChangeText={setNote}
         multiline
@@ -490,7 +542,7 @@ function DecisionSection({
         {canAccept && (
           <View style={styles.decisionButton}>
             <PrimaryButton
-              title="Accepter"
+              title={t('recruiter.receivedApplications.detail.decision.accept')}
               onPress={() => handleDecide('ACCEPTED')}
               loading={busyDecision === 'ACCEPTED'}
               disabled={busyDecision !== null && busyDecision !== 'ACCEPTED'}
@@ -499,7 +551,7 @@ function DecisionSection({
         )}
         <View style={styles.decisionButton}>
           <SecondaryButton
-            title="Rejeter"
+            title={t('recruiter.receivedApplications.detail.decision.reject')}
             onPress={() => handleDecide('REJECTED')}
             loading={busyDecision === 'REJECTED'}
             disabled={busyDecision !== null && busyDecision !== 'REJECTED'}
@@ -523,6 +575,7 @@ function SignatureSection({
   application: ApplicationDetail;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -536,33 +589,40 @@ function SignatureSection({
       await api.signApplication(accessToken, applicationId, name);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Signature impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.receivedApplications.detail.signature.error'));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <Section title="Signature de la convention">
+    <Section title={t('recruiter.receivedApplications.detail.signature.title')}>
       <Text style={typography.caption}>
-        Candidat :{' '}
+        {t('recruiter.receivedApplications.detail.signature.candidateLabel')}{' '}
         {application.candidateSignedAt
-          ? `signé par ${application.candidateSignedName}`
-          : 'non signé'}
+          ? t('recruiter.receivedApplications.detail.signature.signedBy', {
+              name: application.candidateSignedName,
+            })
+          : t('recruiter.receivedApplications.detail.signature.unsigned')}
       </Text>
       <Text style={typography.caption}>
-        Vous : {alreadySigned ? `signé par ${application.organizationSignedName}` : 'non signé'}
+        {t('recruiter.receivedApplications.detail.signature.yourLabel')}{' '}
+        {alreadySigned
+          ? t('recruiter.receivedApplications.detail.signature.signedBy', {
+              name: application.organizationSignedName,
+            })
+          : t('recruiter.receivedApplications.detail.signature.unsigned')}
       </Text>
       {!alreadySigned && (
         <>
           <FormInput
-            placeholder="Nom du signataire (au nom de l'organisation)"
+            placeholder={t('recruiter.receivedApplications.detail.signature.namePlaceholder')}
             value={name}
             onChangeText={setName}
           />
           <ErrorText>{error}</ErrorText>
           <PrimaryButton
-            title="Signer la convention"
+            title={t('recruiter.receivedApplications.detail.signature.submit')}
             onPress={handleSign}
             loading={isSubmitting}
             disabled={!name.trim()}
@@ -584,6 +644,7 @@ function CompleteSection({
   applicationId: string;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -594,19 +655,21 @@ function CompleteSection({
       await api.completeApplication(accessToken, applicationId);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Clôture impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.receivedApplications.detail.complete.error'));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <Section title="Clôture du stage">
-      <Text style={typography.body}>
-        Clôturez le stage une fois terminé pour générer l'attestation de fin de stage.
-      </Text>
+    <Section title={t('recruiter.receivedApplications.detail.complete.title')}>
+      <Text style={typography.body}>{t('recruiter.receivedApplications.detail.complete.body')}</Text>
       <ErrorText>{error}</ErrorText>
-      <SecondaryButton title="Clôturer le stage" onPress={handleComplete} loading={isSubmitting} />
+      <SecondaryButton
+        title={t('recruiter.receivedApplications.detail.complete.submit')}
+        onPress={handleComplete}
+        loading={isSubmitting}
+      />
     </Section>
   );
 }
@@ -620,6 +683,7 @@ function RecommendSection({
   accessToken: string;
   applicationId: string;
 }) {
+  const { t } = useTranslation();
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSent, setIsSent] = useState(false);
@@ -632,20 +696,20 @@ function RecommendSection({
       await api.recommendCandidate(accessToken, applicationId, message);
       setIsSent(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Envoi impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.receivedApplications.detail.recommend.error'));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   return (
-    <Section title="Recommandation">
+    <Section title={t('recruiter.receivedApplications.detail.recommend.title')}>
       {isSent ? (
-        <Text style={typography.body}>Recommandation envoyée, merci.</Text>
+        <Text style={typography.body}>{t('recruiter.receivedApplications.detail.recommend.sent')}</Text>
       ) : (
         <>
           <FormInput
-            placeholder="Votre recommandation pour ce stagiaire"
+            placeholder={t('recruiter.receivedApplications.detail.recommend.placeholder')}
             value={message}
             onChangeText={setMessage}
             multiline
@@ -653,7 +717,7 @@ function RecommendSection({
           />
           <ErrorText>{error}</ErrorText>
           <PrimaryButton
-            title="Envoyer la recommandation"
+            title={t('recruiter.receivedApplications.detail.recommend.submit')}
             onPress={handleSend}
             loading={isSubmitting}
             disabled={message.trim().length < 10}
@@ -675,6 +739,7 @@ function ArtifactsSection({
   applicationId: string;
   artifacts: ApplicationDetail['artifacts'];
 }) {
+  const { t } = useTranslation();
   const [downloadingKind, setDownloadingKind] = useState<ApplicationArtifactKind | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -685,14 +750,14 @@ function ArtifactsSection({
       const { blob, fileName } = await api.downloadArtifact(accessToken, applicationId, kind);
       await saveFile(blob, fileName);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Téléchargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.receivedApplications.detail.artifacts.error'));
     } finally {
       setDownloadingKind(null);
     }
   }
 
   return (
-    <Section title="Documents">
+    <Section title={t('recruiter.receivedApplications.detail.artifacts.title')}>
       {artifacts.map((artifact) => (
         <View key={artifact.id} style={styles.artifactRow}>
           <Text style={typography.body}>{ARTIFACT_KIND_LABELS[artifact.kind]}</Text>
@@ -700,7 +765,7 @@ function ArtifactsSection({
             {downloadingKind === artifact.kind ? (
               <ActivityIndicator color={colors.primary} />
             ) : (
-              <Text style={styles.downloadText}>Télécharger</Text>
+              <Text style={styles.downloadText}>{t('recruiter.receivedApplications.detail.artifacts.download')}</Text>
             )}
           </Pressable>
         </View>
@@ -713,13 +778,14 @@ function ArtifactsSection({
 // --- Historique -------------------------------------------------------------------------------
 
 function HistorySection({ history }: { history: ApplicationDetail['history'] }) {
+  const { t, i18n } = useTranslation();
   return (
-    <Section title="Historique">
+    <Section title={t('recruiter.receivedApplications.detail.history.title')}>
       {history.map((event) => (
         <View key={event.id} style={styles.historyRow}>
           <Text style={typography.bodyBold}>{APPLICATION_STATUS_LABELS[event.toStatus]}</Text>
           <Text style={typography.caption}>
-            {new Date(event.createdAt).toLocaleString('fr-FR')}
+            {new Date(event.createdAt).toLocaleString(i18n.language)}
           </Text>
           {!!event.note && <Text style={typography.caption}>{event.note}</Text>}
         </View>

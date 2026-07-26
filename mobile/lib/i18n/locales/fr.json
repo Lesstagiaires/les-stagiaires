@@ -456,6 +456,101 @@
       "editTitle": "Modifier le brouillon",
       "titlePlaceholder": "Titre",
       "saveError": "Enregistrement impossible."
+    },
+    "receivedApplications": {
+      "allFilter": "Toutes",
+      "loadError": "Chargement impossible.",
+      "empty": "Aucune candidature pour ce filtre.",
+      "candidateLabel": "Candidat : {{lsId}}",
+      "detail": {
+        "unavailable": "Candidature indisponible.",
+        "candidateLabel": "Candidat : {{lsId}}",
+        "dossier": {
+          "title": "Dossier du candidat",
+          "education": "FORMATIONS",
+          "experience": "EXPÉRIENCES",
+          "languages": "LANGUES",
+          "recommendationsCount": "{{count}} recommandation(s) reçue(s).",
+          "empty": "Profil non renseigné par le candidat."
+        },
+        "markUnderReview": "Passer en cours d'examen",
+        "actionError": "Action impossible.",
+        "documentRequests": {
+          "title": "Documents complémentaires",
+          "fulfilled": "Fourni par le candidat",
+          "pending": "En attente"
+        },
+        "requestDocument": {
+          "openButton": "Demander un document",
+          "title": "Demander un document complémentaire",
+          "placeholder": "Ex : copie de la pièce d'identité",
+          "error": "Demande impossible.",
+          "submit": "Envoyer la demande",
+          "cancel": "Annuler"
+        },
+        "interview": {
+          "title": "Entretien",
+          "modeLabel": "Mode : {{mode}}",
+          "locationLabel": "Lieu : {{location}}",
+          "confirmed": "Confirmé par le candidat.",
+          "awaitingConfirmation": "En attente de confirmation du candidat.",
+          "datePlaceholder": "Date de l'entretien",
+          "timePlaceholder": "Heure (ex : 14:30)",
+          "modePlaceholder": "Mode (ex : visioconférence, présentiel)",
+          "locationPlaceholder": "Lieu (optionnel)",
+          "error": "Proposition impossible.",
+          "reschedule": "Reprogrammer l'entretien",
+          "propose": "Proposer l'entretien",
+          "proposeNew": "Proposer un entretien",
+          "cancel": "Annuler"
+        },
+        "travelConsent": {
+          "title": "Accord parental en attente",
+          "body": "Le candidat est mineur et l'offre nécessite une relocalisation — un accord parental de déplacement est en attente de confirmation par SMS."
+        },
+        "admissionLetterSent": {
+          "title": "Lettre d'admission envoyée",
+          "body": "En attente de l'acceptation de la lettre d'admission par le candidat."
+        },
+        "decision": {
+          "title": "Décision",
+          "notePlaceholder": "Note (optionnelle)",
+          "error": "Décision impossible.",
+          "accept": "Accepter",
+          "reject": "Rejeter"
+        },
+        "signature": {
+          "title": "Signature de la convention",
+          "candidateLabel": "Candidat :",
+          "yourLabel": "Vous :",
+          "signedBy": "signé par {{name}}",
+          "unsigned": "non signé",
+          "namePlaceholder": "Nom du signataire (au nom de l'organisation)",
+          "error": "Signature impossible.",
+          "submit": "Signer la convention"
+        },
+        "complete": {
+          "title": "Clôture du stage",
+          "body": "Clôturez le stage une fois terminé pour générer l'attestation de fin de stage.",
+          "error": "Clôture impossible.",
+          "submit": "Clôturer le stage"
+        },
+        "recommend": {
+          "title": "Recommandation",
+          "sent": "Recommandation envoyée, merci.",
+          "placeholder": "Votre recommandation pour ce stagiaire",
+          "error": "Envoi impossible.",
+          "submit": "Envoyer la recommandation"
+        },
+        "artifacts": {
+          "title": "Documents",
+          "download": "Télécharger",
+          "error": "Téléchargement impossible."
+        },
+        "history": {
+          "title": "Historique"
+        }
+      }
     }
   },
   "security": {
