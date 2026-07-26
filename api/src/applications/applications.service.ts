@@ -11,13 +11,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomInt, timingSafeEqual } from 'crypto';
 import {
-  AccountStatus,
   ApplicationArtifactKind,
   ApplicationDocumentRequestStatus,
   ApplicationStatus,
   DigitalSafeDocumentCategory,
   InternshipReportStatus,
   LearnerStatus,
+  MinorGatedAction,
   OpportunityStatus,
   OpportunityType,
   OrganizationMemberStatus,
@@ -27,6 +27,7 @@ import {
   TravelConsentStatus,
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
+import { MinorPolicyService } from '../auth/minor-policy.service';
 import { CvService } from '../profiles/cv.service';
 import { ProfilesService } from '../profiles/profiles.service';
 import { RecommendationsService } from '../profiles/recommendations.service';
@@ -114,6 +115,7 @@ export class ApplicationsService {
     private readonly digitalSafeDocuments: DigitalSafeDocumentsService,
     private readonly shares: SharesService,
     private readonly orgAccess: OrganizationAccessService,
+    private readonly minorPolicy: MinorPolicyService,
     @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
   ) {}
 
@@ -142,14 +144,10 @@ export class ApplicationsService {
     const candidate = await this.prisma.user.findUniqueOrThrow({
       where: { id: candidateId },
     });
-    // Mineur en mode restreint : la candidature réelle reste bloquée tant que le
-    // consentement parental n'est pas confirmé — la constitution du profil reste
-    // accessible, seule cette action transactionnelle est conditionnée (CLAUDE.md §5).
-    if (candidate.status === AccountStatus.AWAITING_PARENTAL_CONSENT) {
-      throw new ForbiddenException(
-        "La candidature réelle est bloquée tant que le consentement parental n'est pas confirmé.",
-      );
-    }
+    // La candidature réelle est une action transactionnelle conditionnée à l'accord
+    // parental selon le moteur de règles par pays — la constitution du profil reste
+    // accessible dans tous les cas (CLAUDE.md §5).
+    await this.minorPolicy.assertActionAllowed(candidate, MinorGatedAction.APPLICATION_SUBMIT);
 
     let organizationId: string;
     let opportunityId: string | null = null;
@@ -693,10 +691,14 @@ export class ApplicationsService {
     const candidate = await this.prisma.user.findUniqueOrThrow({
       where: { id: candidateId },
     });
+    await this.minorPolicy.assertActionAllowed(candidate, MinorGatedAction.ACCEPT_OFFER);
+
     // Un mineur peut candidater à toute offre ; c'est ici, à l'acceptation d'une offre
     // à relocalisation, que l'accord actif du parent/tuteur pour CE déplacement précis
-    // est requis — jamais à la candidature elle-même.
-    if (candidate.isMinor && application.opportunity?.relocationRequired) {
+    // est requis — jamais à la candidature elle-même. Déclenché seulement si la
+    // mobilité fait partie des actions encadrées pour le pays du candidat.
+    const mobilityGated = await this.minorPolicy.isActionGated(candidate, MinorGatedAction.MOBILITY);
+    if (mobilityGated && application.opportunity?.relocationRequired) {
       await this.transitionStatus(
         application,
         ApplicationStatus.AWAITING_TRAVEL_CONSENT,
@@ -939,6 +941,12 @@ export class ApplicationsService {
       throw new ForbiddenException(
         'Cette candidature ne concerne pas ce compte, ou votre rôle ne permet pas de signer.',
       );
+    }
+    if (isCandidate) {
+      const candidate = await this.prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+      });
+      await this.minorPolicy.assertActionAllowed(candidate, MinorGatedAction.SIGN_CONVENTION);
     }
     this.assertTransition(application.status, [ApplicationStatus.ACCEPTED]);
 

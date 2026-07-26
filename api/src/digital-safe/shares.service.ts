@@ -7,11 +7,12 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'crypto';
 import {
-  AccountStatus,
   DigitalSafeAccessAction,
+  MinorGatedAction,
   ShareTargetType,
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
+import { MinorPolicyService } from '../auth/minor-policy.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccessLogService } from './access-log.service';
 import { CreateShareDto } from './dto/create-share.dto';
@@ -25,6 +26,7 @@ export class SharesService {
     private readonly audit: AuditService,
     private readonly accessLog: AccessLogService,
     private readonly documents: DigitalSafeDocumentsService,
+    private readonly minorPolicy: MinorPolicyService,
   ) {}
 
   private hashToken(token: string): string {
@@ -49,18 +51,13 @@ export class SharesService {
   async create(userId: string, documentId: string, dto: CreateShareDto) {
     await this.documents.assertOwnsDocument(userId, documentId);
 
-    // Mineur en mode restreint : le partage d'un document du Digital Safe reste bloqué
-    // tant que le consentement parental n'est pas confirmé — la constitution du Digital
-    // Safe (upload) reste accessible, seul le partage est une action transactionnelle
-    // conditionnée (CLAUDE.md §5).
+    // Le partage d'un document du Digital Safe est une action transactionnelle
+    // conditionnée à l'accord parental (moteur de règles par pays, CLAUDE.md §5) — la
+    // constitution du Digital Safe (upload) reste accessible dans tous les cas.
     const owner = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
     });
-    if (owner.status === AccountStatus.AWAITING_PARENTAL_CONSENT) {
-      throw new ForbiddenException(
-        "Le partage de documents du Digital Safe est bloqué tant que le consentement parental n'est pas confirmé.",
-      );
-    }
+    await this.minorPolicy.assertActionAllowed(owner, MinorGatedAction.DIGITAL_SAFE_SHARE);
 
     if (dto.targetType === ShareTargetType.USER) {
       if (!dto.sharedWithUserId) {

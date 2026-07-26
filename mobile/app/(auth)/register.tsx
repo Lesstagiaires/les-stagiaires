@@ -8,13 +8,17 @@ import {
   Text,
   View,
 } from 'react-native';
+import { ChipSelect } from '../../components/chip-select';
 import { DateInput } from '../../components/date-input';
 import { colors, ErrorText, FormInput, LinkButton, PrimaryButton } from '../../components/form';
-import { ApiError } from '../../lib/api';
+import { ApiError, type Sex } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
 import { toIsoDateString } from '../../lib/date';
 
-function computeIsMinor(dateOfBirth: Date): boolean {
+// Approximation cliente affichant le champ parent par anticipation — le seuil réel,
+// configurable par pays (CountryPolicy), n'est tranché qu'au serveur (moteur de règles,
+// jamais un seuil fixe côté client non plus).
+function isLikelyMinor(dateOfBirth: Date): boolean {
   const now = new Date();
   let age = now.getFullYear() - dateOfBirth.getFullYear();
   const monthDiff = now.getMonth() - dateOfBirth.getMonth();
@@ -24,21 +28,29 @@ function computeIsMinor(dateOfBirth: Date): boolean {
   return age < 18;
 }
 
+const SEX_OPTIONS: { value: Sex; label: string }[] = [
+  { value: 'MALE', label: 'Homme' },
+  { value: 'FEMALE', label: 'Femme' },
+];
+
 export default function RegisterScreen() {
   const router = useRouter();
   const { register } = useAuth();
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [sex, setSex] = useState<Sex | null>(null);
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [cityOfResidence, setCityOfResidence] = useState('');
+  const [countryOfResidence, setCountryOfResidence] = useState('');
   const [password, setPassword] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
   const [parentPhone, setParentPhone] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calculé côté client dès la saisie de la date de naissance, pour afficher le champ
-  // parent AVANT la soumission — la même règle est réappliquée côté serveur
-  // (FR-AUTH-004a), le client ne fait qu'anticiper l'UX, jamais l'unique garde-fou.
-  const isMinor = useMemo(
-    () => (dateOfBirth ? computeIsMinor(dateOfBirth) : false),
+  const likelyMinor = useMemo(
+    () => (dateOfBirth ? isLikelyMinor(dateOfBirth) : false),
     [dateOfBirth],
   );
 
@@ -51,11 +63,17 @@ export default function RegisterScreen() {
     setIsSubmitting(true);
     try {
       const result = await register({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        sex: sex as Sex,
         phone: phone.trim(),
+        email: email.trim() || undefined,
+        cityOfResidence: cityOfResidence.trim(),
+        countryOfResidence: countryOfResidence.trim().toUpperCase(),
         password,
         language: 'FR',
         dateOfBirth: toIsoDateString(dateOfBirth),
-        parentPhone: isMinor ? parentPhone.trim() : undefined,
+        parentPhone: likelyMinor ? parentPhone.trim() || undefined : undefined,
       });
       router.push({
         pathname: '/(auth)/verify-otp',
@@ -73,7 +91,14 @@ export default function RegisterScreen() {
   }
 
   const canSubmit =
-    !!phone && !!password && !!dateOfBirth && (!isMinor || !!parentPhone);
+    !!firstName &&
+    !!lastName &&
+    !!sex &&
+    !!phone &&
+    !!cityOfResidence &&
+    countryOfResidence.trim().length === 2 &&
+    !!password &&
+    !!dateOfBirth;
 
   return (
     <KeyboardAvoidingView
@@ -84,6 +109,11 @@ export default function RegisterScreen() {
         <Text style={styles.title}>Créer un compte</Text>
 
         <View style={styles.form}>
+          <FormInput placeholder="Prénom" value={firstName} onChangeText={setFirstName} />
+          <FormInput placeholder="Nom" value={lastName} onChangeText={setLastName} />
+
+          <ChipSelect options={SEX_OPTIONS} value={sex} onChange={(v) => setSex(v as Sex)} />
+
           <FormInput
             placeholder="Téléphone (ex: +237670000000)"
             value={phone}
@@ -92,6 +122,27 @@ export default function RegisterScreen() {
             autoCorrect={false}
             keyboardType="phone-pad"
           />
+          <FormInput
+            placeholder="Email (facultatif)"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="email-address"
+          />
+          <FormInput
+            placeholder="Ville de résidence"
+            value={cityOfResidence}
+            onChangeText={setCityOfResidence}
+          />
+          <FormInput
+            placeholder="Pays de résidence (code, ex : CM)"
+            value={countryOfResidence}
+            onChangeText={(text) => setCountryOfResidence(text.toUpperCase().slice(0, 2))}
+            autoCapitalize="characters"
+            maxLength={2}
+          />
+
           <FormInput
             placeholder="Mot de passe (10 caractères min., majuscule, minuscule, chiffre)"
             value={password}
@@ -106,11 +157,11 @@ export default function RegisterScreen() {
             maximumDate={new Date()}
           />
 
-          {isMinor && (
+          {likelyMinor && (
             <>
               <Text style={styles.minorNotice}>
-                Un compte pour un compte mineur nécessite le numéro d'un
-                parent ou tuteur, qui recevra un SMS pour donner son accord.
+                Selon votre pays de résidence, un compte de cet âge peut nécessiter le
+                numéro d'un parent ou tuteur, qui recevra un SMS pour donner son accord.
               </Text>
               <FormInput
                 placeholder="Téléphone du parent/tuteur"

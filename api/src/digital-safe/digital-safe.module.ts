@@ -1,5 +1,6 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { ProfilesModule } from '../profiles/profiles.module';
 import { StorageModule } from '../storage/storage.module';
 import { AccessLogService } from './access-log.service';
@@ -15,6 +16,7 @@ import { SharesService } from './shares.service';
 
 @Module({
   imports: [
+    AuthModule,
     StorageModule,
     ProfilesModule,
     BullModule.registerQueue({ name: 'digital-safe-cleanup' }),

@@ -6,10 +6,23 @@ import {
   IsPhoneNumber,
   IsStrongPassword,
   IsString,
+  Length,
+  MaxLength,
 } from 'class-validator';
-import { Language } from '../../../generated/prisma/enums';
+import { Language, Sex } from '../../../generated/prisma/enums';
 
 export class RegisterDto {
+  @IsString()
+  @MaxLength(100)
+  firstName: string;
+
+  @IsString()
+  @MaxLength(100)
+  lastName: string;
+
+  @IsEnum(Sex)
+  sex: Sex;
+
   @IsPhoneNumber(undefined, {
     message:
       'Numéro de téléphone invalide (format international requis, ex: +237...)',
@@ -19,6 +32,16 @@ export class RegisterDto {
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @IsString()
+  @MaxLength(100)
+  cityOfResidence: string;
+
+  // Code pays ISO 3166-1 alpha-2 (ex: CM, SN, AO) — pilote la résolution de la
+  // politique de protection des mineurs applicable (jamais un seuil fixe).
+  @IsString()
+  @Length(2, 2)
+  countryOfResidence: string;
 
   @IsString()
   @IsStrongPassword(
@@ -42,8 +65,8 @@ export class RegisterDto {
   @IsDateString()
   dateOfBirth: string;
 
-  // Requis si l'utilisateur est mineur (vérifié en service, calculé depuis dateOfBirth) —
-  // permet le consentement parental actif dès l'inscription (CLAUDE.md §5, FR-AUTH-004a).
+  // Requis si l'âge du candidat, croisé avec la politique de son pays de résidence,
+  // exige un parent/tuteur — jamais un seuil d'âge fixe (moteur de règles CountryPolicy).
   @IsOptional()
   @IsPhoneNumber(undefined, {
     message:

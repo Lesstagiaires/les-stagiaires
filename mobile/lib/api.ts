@@ -108,8 +108,16 @@ export type AccountStatus =
   | 'PENDING_DELETION'
   | 'DELETED';
 
+export type Sex = 'MALE' | 'FEMALE';
+
 export interface RegisterInput {
+  firstName: string;
+  lastName: string;
+  sex: Sex;
   phone: string;
+  email?: string;
+  cityOfResidence: string;
+  countryOfResidence: string; // code ISO 3166-1 alpha-2, ex: CM
   password: string;
   language: Language;
   dateOfBirth: string; // ISO 8601

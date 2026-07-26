@@ -23,6 +23,7 @@ import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SwitchRoleDto } from './dto/switch-role.dto';
+import { UpdateEmergencyContactDto } from './dto/update-emergency-contact.dto';
 import { VerifyLoginTwoFactorDto } from './dto/verify-login-two-factor.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ParentalConsentService } from './parental-consent.service';
@@ -86,6 +87,15 @@ export class AuthController {
     @Body() dto: DisableTwoFactorDto,
   ) {
     return this.auth.disableTwoFactor(user.sub, dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('emergency-contact')
+  updateEmergencyContact(
+    @CurrentUser() user: AccessTokenPayload,
+    @Body() dto: UpdateEmergencyContactDto,
+  ) {
+    return this.auth.updateEmergencyContact(user.sub, dto);
   }
 
   // --- Appareils connectés (CLAUDE.md §2) ---------------------------------------------------

@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
-import { AccountStatus, OtpPurpose } from '../../generated/prisma/enums';
+import { AccountStatus, MinorGatedAction, OtpPurpose } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { generateLsIdCandidate } from '../common/ls-id/ls-id.util';
 import { PrismaService } from '../prisma/prisma.service';
@@ -24,7 +24,9 @@ import { VerifyLoginTwoFactorDto } from './dto/verify-login-two-factor.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateEmergencyContactDto } from './dto/update-emergency-contact.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
+import { MinorPolicyService } from './minor-policy.service';
 import { OtpService } from './otp.service';
 import { ParentalConsentService } from './parental-consent.service';
 import { TokenService } from './token.service';
@@ -40,6 +42,7 @@ export class AuthService {
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
     private readonly parentalConsent: ParentalConsentService,
+    private readonly minorPolicy: MinorPolicyService,
     @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
   ) {}
 
@@ -66,14 +69,24 @@ export class AuthService {
     }
 
     const dateOfBirth = new Date(dto.dateOfBirth);
-    const isMinor = this.computeIsMinor(dateOfBirth);
+    const countryOfResidence = dto.countryOfResidence.toUpperCase();
 
-    // FR-AUTH-004a : le téléphone d'un parent/tuteur est requis dès l'inscription pour un
-    // mineur — jamais pour bloquer la création du compte, mais pour déclencher le
-    // consentement actif immédiatement (CLAUDE.md §5).
-    if (isMinor && !dto.parentPhone) {
+    // Âge minimum du pays déclaré — avant toute autre vérification (moteur de règles
+    // CountryPolicy, jamais un seuil fixe, cahier des charges).
+    await this.minorPolicy.assertMeetsMinimumAge(dateOfBirth, countryOfResidence);
+
+    const { isMinor } = await this.minorPolicy.classify(dateOfBirth, countryOfResidence);
+    const registrationGated = await this.minorPolicy.isActionGated(
+      { dateOfBirth, countryOfResidence },
+      MinorGatedAction.REGISTRATION,
+    );
+
+    // Le téléphone d'un parent/tuteur n'est requis que si l'inscription fait partie des
+    // actions encadrées pour ce pays et cette tranche d'âge — jamais un seuil fixe de
+    // 18 ans (CLAUDE.md §5, moteur de règles CountryPolicy).
+    if (registrationGated && !dto.parentPhone) {
       throw new BadRequestException(
-        "Le numéro de téléphone d'un parent ou tuteur est requis pour un compte mineur.",
+        "Le numéro de téléphone d'un parent ou tuteur est requis pour un compte de cet âge, dans ce pays.",
       );
     }
 
@@ -81,8 +94,13 @@ export class AuthService {
 
     const user = await this.prisma.user.create({
       data: {
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        sex: dto.sex,
         phone: dto.phone,
         email: dto.email,
+        cityOfResidence: dto.cityOfResidence,
+        countryOfResidence,
         password: passwordHash,
         language: dto.language,
         dateOfBirth,
@@ -90,13 +108,18 @@ export class AuthService {
         status: AccountStatus.PENDING_VERIFICATION,
       },
     });
+    // Profil préreempli avec le nom déclaré à l'inscription — modifiable ensuite,
+    // notamment pour les documents générés nommément (lettre d'admission, convention).
+    await this.prisma.profile.create({
+      data: { userId: user.id, fullName: `${dto.firstName} ${dto.lastName}` },
+    });
 
     await this.otp.generateAndSend(user.id, dto.phone, OtpPurpose.REGISTRATION);
-    await this.audit.record('ACCOUNT_REGISTERED', user.id, { isMinor });
+    await this.audit.record('ACCOUNT_REGISTERED', user.id, { isMinor, countryOfResidence });
 
-    // Envoyé dès la saisie, en parallèle de l'OTP du mineur — jamais après coup
+    // Envoyé dès la saisie, en parallèle de l'OTP — jamais après coup
     // (FR-AUTH-004a : ne jamais bloquer l'inscription en attendant la validation).
-    if (isMinor && dto.parentPhone) {
+    if (registrationGated && dto.parentPhone) {
       await this.parentalConsent.requestConsent(user.id, dto.parentPhone);
     }
 
@@ -130,7 +153,11 @@ export class AuthService {
     if (!isValid) throw new UnauthorizedException('Code invalide ou expiré.');
 
     const lsId = await this.generateUniqueLsId();
-    const newStatus = user.isMinor
+    const registrationGated =
+      user.dateOfBirth && user.countryOfResidence
+        ? await this.minorPolicy.isActionGated(user, MinorGatedAction.REGISTRATION)
+        : false;
+    const newStatus = registrationGated
       ? AccountStatus.AWAITING_PARENTAL_CONSENT
       : AccountStatus.ACTIVE;
 
@@ -157,21 +184,8 @@ export class AuthService {
       status: newStatus,
       accessToken,
       refreshToken,
-      requiresParentalLink: user.isMinor,
+      requiresParentalLink: registrationGated,
     };
-  }
-
-  private computeIsMinor(dateOfBirth: Date): boolean {
-    const now = new Date();
-    let age = now.getFullYear() - dateOfBirth.getFullYear();
-    const monthDiff = now.getMonth() - dateOfBirth.getMonth();
-    if (
-      monthDiff < 0 ||
-      (monthDiff === 0 && now.getDate() < dateOfBirth.getDate())
-    ) {
-      age--;
-    }
-    return age < 18;
   }
 
   private async generateUniqueLsId(): Promise<string> {
@@ -275,6 +289,21 @@ export class AuthService {
 
     await this.audit.record('LOGIN_2FA_VERIFIED', userId);
     return this.createSessionAndIssueTokens(userId, userAgent, ip);
+  }
+
+  // Contact d'urgence facultatif — pertinent en pratique pour un compte majeur (un
+  // mineur a déjà un parent/tuteur rattaché via ParentalLink, cf. cahier des charges).
+  async updateEmergencyContact(userId: string, dto: UpdateEmergencyContactDto) {
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        emergencyContactName: dto.name,
+        emergencyContactPhone: dto.phone,
+      },
+      select: { emergencyContactName: true, emergencyContactPhone: true },
+    });
+    await this.audit.record('EMERGENCY_CONTACT_UPDATED', userId);
+    return updated;
   }
 
   async getTwoFactorStatus(userId: string) {

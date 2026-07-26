@@ -36,6 +36,24 @@ enum OtpPurpose {
   PASSWORD_RESET
 }
 
+enum Sex {
+  MALE
+  FEMALE
+}
+
+// Moteur de règles de protection des mineurs configurable par pays — jamais de seuil
+// d'âge ni de liste d'actions codés en dur (cahier des charges). Chaque action
+// sensible interroge CountryPolicyService.assertActionAllowed() plutôt que de
+// comparer directement User.isMinor.
+enum MinorGatedAction {
+  REGISTRATION
+  APPLICATION_SUBMIT
+  ACCEPT_OFFER
+  SIGN_CONVENTION
+  MOBILITY
+  DIGITAL_SAFE_SHARE
+}
+
 enum ParentalLinkStatus {
   PENDING
   ACTIVE
@@ -51,11 +69,28 @@ model User {
   phone    String? @unique
   password String
 
+  // Nullable pour rester compatible avec les comptes créés avant l'introduction du
+  // moteur de règles par pays — requis par RegisterDto pour toute nouvelle inscription.
+  firstName String?
+  lastName  String?
+  sex       Sex?
+  // Ville/pays déclarés à l'inscription — countryOfResidence pilote la résolution de
+  // CountryPolicy (âges, actions nécessitant l'accord parental), jamais un seuil fixe.
+  cityOfResidence    String?
+  countryOfResidence String?
+
   language Language      @default(FR)
   status   AccountStatus @default(PENDING_VERIFICATION)
 
+  // Dérivé à l'inscription depuis dateOfBirth + l'âge de majorité civile de
+  // CountryPolicy(countryOfResidence) — jamais un seuil de 18 ans codé en dur.
   isMinor     Boolean   @default(false)
   dateOfBirth DateTime?
+
+  // Facultatif, réservé en pratique aux comptes majeurs (pas de contrôle d'accès
+  // dédié — un mineur a de toute façon un parent/tuteur rattaché via ParentalLink).
+  emergencyContactName  String?
+  emergencyContactPhone String?
 
   failedLoginAttempts Int       @default(0)
   lockedUntil         DateTime?
@@ -171,6 +206,28 @@ model ParentalLink {
 
   @@unique([childId, parentPhone])
   @@index([status, createdAt])
+}
+
+// Moteur de règles de protection des mineurs, configurable par pays plutôt que codé en
+// dur (cahier des charges) : âges seuils + liste des actions nécessitant l'accord actif
+// du parent/tuteur. Résolu par CountryPolicyService, avec une politique de repli sûre
+// pour tout pays non encore configuré — jamais d'absence de protection par défaut.
+model CountryPolicy {
+  id          String @id @default(cuid())
+  countryCode String @unique
+
+  // Âge minimum pour créer un compte candidat / effectuer un stage.
+  minInternshipAge Int
+  // Âge à partir duquel le parent/tuteur devient obligatoire pour les actions listées
+  // ci-dessous (peut différer de minInternshipAge selon la législation locale).
+  minParentRequiredAge Int
+  // Âge de la majorité civile — remplace le seuil de 18 ans autrefois codé en dur.
+  civilMajorityAge Int
+
+  gatedActions MinorGatedAction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model OtpCode {

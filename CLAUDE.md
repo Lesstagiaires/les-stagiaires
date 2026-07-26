@@ -57,6 +57,7 @@ Chaque donnée ou document manipulé par le système doit être rattaché à l'u
 - Collecte de données strictement limitée à ce qui est nécessaire ; aucun champ optionnel « au cas où » sur un profil mineur.
 - Un mécanisme de signalement (harcèlement, abus, danger) doit être accessible dès le MVP, même sous une forme simple.
 - Une attestation de réussite émise par un établissement ne devient visible sur le profil qu'après un consentement actif et distinct — celui du titulaire s'il est majeur, celui du parent/tuteur s'il est mineur (même mécanisme de SMS de consentement actif que pour l'inscription). Un établissement ne peut jamais publier une attestation unilatéralement.
+- Les seuils d'âge (âge minimum pour un stage/apprentissage, âge à partir duquel un parent/tuteur est obligatoire, âge de la majorité civile) et la liste des actions nécessitant l'accord parental (inscription, candidature, acceptation d'une offre, signature de convention, mobilité, partage Digital Safe...) sont **configurables par pays**, jamais des valeurs codées en dur — un moteur de règles (CountryPolicy), avec une politique de repli protectrice pour tout pays non encore configuré.
 
 **Règle pour Claude Code** : traiter le statut « mineur » comme un attribut qui modifie le comportement de plusieurs modules à la fois (profil, opportunités, communication) — pas comme une case à cocher isolée dans le formulaire d'inscription.
 

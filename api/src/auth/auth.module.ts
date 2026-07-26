@@ -7,6 +7,9 @@ import { AccountCleanupProcessor } from './account-cleanup.processor';
 import { AccountCleanupScheduler } from './account-cleanup.scheduler';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { CountryPolicyController } from './country-policy.controller';
+import { CountryPolicyService } from './country-policy.service';
+import { MinorPolicyService } from './minor-policy.service';
 import { OtpService } from './otp.service';
 import { ParentalConsentService } from './parental-consent.service';
 import { ParentalConsentSweepProcessor } from './parental-consent-sweep.processor';
@@ -24,11 +27,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       { name: 'parental-consent-sweep' },
     ),
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, CountryPolicyController],
   providers: [
     AuthService,
     OtpService,
     ParentalConsentService,
+    CountryPolicyService,
+    MinorPolicyService,
     TokenService,
     JwtStrategy,
     AccountCleanupProcessor,
@@ -36,5 +41,9 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     ParentalConsentSweepProcessor,
     ParentalConsentSweepScheduler,
   ],
+  // MinorPolicyService est réutilisé par les modules Candidatures et Digital Safe pour
+  // les actions nécessitant l'accord parental (candidature, acceptation, signature,
+  // mobilité, partage) — jamais une comparaison directe à User.isMinor hors de ce module.
+  exports: [MinorPolicyService, CountryPolicyService],
 })
 export class AuthModule {}

@@ -1,5 +1,6 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
+import { AuthModule } from '../auth/auth.module';
 import { DigitalSafeModule } from '../digital-safe/digital-safe.module';
 import { OpportunitiesModule } from '../opportunities/opportunities.module';
 import { ProfilesModule } from '../profiles/profiles.module';
@@ -13,6 +14,7 @@ import { TravelConsentSweepScheduler } from './travel-consent-sweep.scheduler';
 
 @Module({
   imports: [
+    AuthModule,
     ProfilesModule,
     DigitalSafeModule,
     OpportunitiesModule,
