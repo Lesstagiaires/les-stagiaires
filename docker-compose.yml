@@ -19,6 +19,19 @@ services:
     volumes:
       - redis_data:/data
 
+  # Démon d'analyse anti-malware (CLAUDE.md §4) — utilisé quand
+  # MALWARE_SCANNER_PROVIDER="clamav". Le premier démarrage peut prendre plusieurs
+  # minutes le temps que freshclam télécharge la base de signatures ; clamav_data
+  # la conserve entre redémarrages pour éviter de la retélécharger à chaque fois.
+  clamav:
+    image: clamav/clamav:stable
+    restart: unless-stopped
+    ports:
+      - "3310:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+
 volumes:
   postgres_data:
   redis_data:
+  clamav_data:
