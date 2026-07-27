@@ -74,9 +74,9 @@ model User {
 
   // Nullable pour rester compatible avec les comptes créés avant l'introduction du
   // moteur de règles par pays — requis par RegisterDto pour toute nouvelle inscription.
-  firstName String?
-  lastName  String?
-  sex       Sex?
+  firstName          String?
+  lastName           String?
+  sex                Sex?
   // Ville/pays déclarés à l'inscription — countryOfResidence pilote la résolution de
   // CountryPolicy (âges, actions nécessitant l'accord parental), jamais un seuil fixe.
   cityOfResidence    String?
@@ -106,45 +106,47 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  roles               UserRole[]
-  otpCodes            OtpCode[]
-  refreshTokens       RefreshToken[]
-  sessions            Session[]
-  parentLinksAsChild  ParentalLink[] @relation("ChildLinks")
-  parentLinksAsParent ParentalLink[] @relation("ParentLinks")
-  auditLogs           AuditLog[]
-  reports             Report[]
-  reportsResolved     Report[] @relation("ReportResolvedBy")
-  profile             Profile?
-  profileShares       ProfileShare[]
-  recommendationsGiven    Recommendation[] @relation("RecommendationGiver")
-  recommendationsReceived Recommendation[] @relation("RecommendationReceiver")
-  digitalSafeDocuments    DigitalSafeDocument[]
-  digitalSafeSharesReceived DigitalSafeShare[]
-  digitalSafeAccessLogs   DigitalSafeAccessLog[]
-  organizations           Organization[]
-  organizationMemberships OrganizationMember[]
-  opportunityFavorites    OpportunityFavorite[]
-  opportunityAlerts       OpportunityAlert[]
-  applications            Application[]
-  needRequestsHandled     OrganizationNeedRequest[]
+  roles                       UserRole[]
+  otpCodes                    OtpCode[]
+  refreshTokens               RefreshToken[]
+  sessions                    Session[]
+  parentLinksAsChild          ParentalLink[]            @relation("ChildLinks")
+  parentLinksAsParent         ParentalLink[]            @relation("ParentLinks")
+  auditLogs                   AuditLog[]
+  reports                     Report[]
+  reportsResolved             Report[]                  @relation("ReportResolvedBy")
+  profile                     Profile?
+  profileShares               ProfileShare[]
+  recommendationsGiven        Recommendation[]          @relation("RecommendationGiver")
+  recommendationsReceived     Recommendation[]          @relation("RecommendationReceiver")
+  digitalSafeDocuments        DigitalSafeDocument[]
+  digitalSafeSharesReceived   DigitalSafeShare[]
+  digitalSafeAccessLogs       DigitalSafeAccessLog[]
+  organizations               Organization[]
+  organizationMemberships     OrganizationMember[]
+  opportunityFavorites        OpportunityFavorite[]
+  opportunityAlerts           OpportunityAlert[]
+  applications                Application[]
+  needRequestsHandled         OrganizationNeedRequest[]
   establishmentLearnerRecords EstablishmentLearner[]
   internshipReportsReviewed   InternshipReport[]
+  partnershipRequestsAssigned PartnershipRequest[]      @relation("PartnershipRequestAssignee")
+  partnershipRequestNotes     PartnershipRequestNote[]
 
   @@index([email])
   @@index([phone])
 }
 
 model Role {
-  id              String  @id @default(cuid())
-  name            String  @unique
-  description     String?
+  id             String  @id @default(cuid())
+  name           String  @unique
+  description    String?
   // Un rôle non "selfAssignable" (ex: ADMIN) ne peut jamais être attribué par l'utilisateur
   // lui-même — uniquement via une procédure interne, conformément à CLAUDE.md §3.
-  selfAssignable  Boolean @default(false)
+  selfAssignable Boolean @default(false)
 
-  permissions RolePermission[]
-  userRoles   UserRole[]
+  permissions       RolePermission[]
+  userRoles         UserRole[]
   activeForProfiles Profile[]
 }
 
@@ -181,14 +183,14 @@ model UserRole {
 }
 
 model ParentalLink {
-  id      String @id @default(cuid())
-  childId String
+  id          String  @id @default(cuid())
+  childId     String
   // Le téléphone déclaré par le mineur est la source de vérité de la demande — le parent
   // n'a pas besoin d'un compte existant sur la plateforme pour consentir (CLAUDE.md §5 :
   // limite assumée du MVP, numéro déclaratif non vérifié par pièce d'identité).
   parentPhone String
   // Rattaché a posteriori si un compte existe déjà ou est créé avec ce numéro — jamais requis.
-  parentId String?
+  parentId    String?
 
   status ParentalLinkStatus @default(PENDING)
 
@@ -221,12 +223,12 @@ model CountryPolicy {
   countryCode String @unique
 
   // Âge minimum pour créer un compte candidat / effectuer un stage.
-  minInternshipAge Int
+  minInternshipAge     Int
   // Âge à partir duquel le parent/tuteur devient obligatoire pour les actions listées
   // ci-dessous (peut différer de minInternshipAge selon la législation locale).
   minParentRequiredAge Int
   // Âge de la majorité civile — remplace le seuil de 18 ans autrefois codé en dur.
-  civilMajorityAge Int
+  civilMajorityAge     Int
 
   gatedActions MinorGatedAction[]
 
@@ -383,8 +385,8 @@ enum DocumentCategory {
 }
 
 model Profile {
-  id       String @id @default(cuid())
-  userId   String @unique
+  id       String  @id @default(cuid())
+  userId   String  @unique
   // Optionnel, ajouté a posteriori pour les documents générés (lettre d'admission,
   // convention — module 5) qui doivent s'adresser nommément au titulaire ; en son
   // absence, ces documents se replient sur le LS-ID.
@@ -399,8 +401,8 @@ model Profile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  activeRole Role?   @relation(fields: [activeRoleId], references: [id], onDelete: SetNull)
+  user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeRole Role? @relation(fields: [activeRoleId], references: [id], onDelete: SetNull)
 
   educations        Education[]
   experiences       Experience[]
@@ -456,10 +458,10 @@ model ProfileLanguage {
 // défaut (fail-closed) — cf. CLAUDE.md §1 : la protection s'applique avant d'exposer,
 // jamais après coup.
 model ProfileSectionVisibility {
-  id         String             @id @default(cuid())
+  id         String            @id @default(cuid())
   profileId  String
   section    ProfileSection
-  visibility SectionVisibility  @default(PRIVATE)
+  visibility SectionVisibility @default(PRIVATE)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
@@ -617,12 +619,12 @@ model DigitalSafeShare {
 // Journal d'accès dédié (FR-M3-009) — table interrogeable, pas seulement un log
 // système : le titulaire doit pouvoir consulter qui a accédé à ses documents et quand.
 model DigitalSafeAccessLog {
-  id          String                   @id @default(cuid())
+  id          String                  @id @default(cuid())
   documentId  String
   shareId     String?
   actorUserId String?
   action      DigitalSafeAccessAction
-  createdAt   DateTime                 @default(now())
+  createdAt   DateTime                @default(now())
 
   document DigitalSafeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   share    DigitalSafeShare?   @relation(fields: [shareId], references: [id], onDelete: SetNull)
@@ -654,11 +656,11 @@ enum OrganizationType {
 // ORG-ID d'affichage, équipe/permissions, page publique, vitrine partenaires.
 // L'id ci-dessous est l'identifiant stable et permanent : un cuid, jamais régénéré.
 model Organization {
-  id     String           @id @default(cuid())
-  type   OrganizationType @default(ENTREPRISE)
+  id      String           @id @default(cuid())
+  type    OrganizationType @default(ENTREPRISE)
   // FR-ORG-001 / EDU-FR-002 : identifiant d'affichage, même mécanique que le LS-ID —
   // préfixe ORG- ou EDU- selon le type, attribué dès la création.
-  orgId  String? @unique
+  orgId   String?          @unique
   // Compte détenant le rôle ENTREPRISE ou ETABLISSEMENT qui a créé l'organisation —
   // vérifié en service, pas dans le schéma (cohérent avec la modélisation des rôles
   // du module 1). Droits pleins et permanents, jamais révocable via l'équipe (module 6).
@@ -722,11 +724,11 @@ enum OrganizationMemberStatus {
 // cérémonie de code par SMS comme pour le consentement parental — les deux parties sont
 // déjà authentifiées sur la plateforme).
 model OrganizationMember {
-  id             String                    @id @default(cuid())
+  id             String                   @id @default(cuid())
   organizationId String
   userId         String
   role           OrganizationMemberRole
-  status         OrganizationMemberStatus  @default(PENDING)
+  status         OrganizationMemberStatus @default(PENDING)
 
   invitedAt DateTime  @default(now())
   joinedAt  DateTime?
@@ -764,7 +766,7 @@ enum NeedRequestStatus {
 // offre des types concernés (SEASONAL/VOLUNTEER/TEMPORARY, cf. Opportunity.type et
 // OpportunitiesService.publish()).
 model OrganizationNeedRequest {
-  id             String            @id @default(cuid())
+  id             String          @id @default(cuid())
   organizationId String
   type           OpportunityType
   quantity       Int
@@ -833,7 +835,7 @@ model Opportunity {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  organization Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   favorites    OpportunityFavorite[]
   reports      Report[]
   applications Application[]
@@ -952,9 +954,9 @@ model Application {
   // Signature légère déclarative de la convention (MVP) : nom saisi, horodatage et IP
   // journalisés par partie — sans valeur de signature électronique qualifiée, cohérent
   // avec le niveau de déclaratif déjà admis ailleurs (numéro du parent non vérifié).
-  candidateSignedAt     DateTime?
-  candidateSignedName   String?
-  candidateSignedIp     String?
+  candidateSignedAt      DateTime?
+  candidateSignedName    String?
+  candidateSignedIp      String?
   organizationSignedAt   DateTime?
   organizationSignedName String?
   organizationSignedIp   String?
@@ -977,9 +979,9 @@ model Application {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  candidate    User          @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  opportunity  Opportunity?  @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  candidate    User         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunity  Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
 
   history          ApplicationStatusEvent[]
   documentRequests ApplicationDocumentRequest[]
@@ -1037,11 +1039,11 @@ model ApplicationStatusEvent {
 // satisfait en référençant un document déjà présent dans son Digital Safe (jamais de
 // nouvel emplacement de stockage utilisateur hors Digital Safe, CLAUDE.md §6).
 model ApplicationDocumentRequest {
-  id                String                            @id @default(cuid())
+  id                String                           @id @default(cuid())
   applicationId     String
   requestedByUserId String
   description       String
-  status            ApplicationDocumentRequestStatus   @default(PENDING)
+  status            ApplicationDocumentRequestStatus @default(PENDING)
 
   fulfilledDigitalSafeDocumentId String?
   fulfilledAt                    DateTime?
@@ -1060,11 +1062,11 @@ model ApplicationDocumentRequest {
 // tant que la candidature n'est pas terminale (cf. ApplicationShareRenewalScheduler),
 // plutôt que par un stockage dupliqué en dehors du Digital Safe.
 model ApplicationArtifact {
-  id                     String                  @id @default(cuid())
-  applicationId          String
-  kind                   ApplicationArtifactKind
-  digitalSafeDocumentId  String                  @unique
-  createdAt              DateTime                @default(now())
+  id                    String                  @id @default(cuid())
+  applicationId         String
+  kind                  ApplicationArtifactKind
+  digitalSafeDocumentId String                  @unique
+  createdAt             DateTime                @default(now())
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
@@ -1145,10 +1147,10 @@ enum InternshipReportStatus {
 // l'apprenant (comme les artefacts de candidature, module 5) ; l'établissement y
 // accède via un partage, jamais un stockage dupliqué.
 model InternshipReport {
-  id                    String                  @id @default(cuid())
-  applicationId         String                  @unique
+  id                    String                 @id @default(cuid())
+  applicationId         String                 @unique
   digitalSafeDocumentId String
-  status                InternshipReportStatus  @default(SUBMITTED)
+  status                InternshipReportStatus @default(SUBMITTED)
 
   reviewNote   String?
   reviewedAt   DateTime?
@@ -1158,5 +1160,108 @@ model InternshipReport {
   updatedAt DateTime @updatedAt
 
   application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-  reviewedBy  User?        @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedBy  User?       @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+}
+
+// ============================================================================
+// Module "Nous contacter" — CRM de prospection et de gestion des partenariats.
+// Distinct du menu "support technique" : entreprises, ONG, administrations,
+// organisations internationales, universités, écoles, centres de formation et
+// autres partenaires qui sollicitent les services de LES STAGIAIRES (devenir
+// partenaire, publier des offres, campagne de recrutement, démo, formation...).
+// ============================================================================
+
+enum PartnershipRequestOrgType {
+  COMPANY
+  NGO
+  PUBLIC_ADMINISTRATION
+  INTERNATIONAL_ORGANIZATION
+  UNIVERSITY
+  SCHOOL
+  TRAINING_CENTER
+  CONSULTING_FIRM
+  STARTUP
+  OTHER
+}
+
+enum PartnershipRequestReason {
+  BECOME_PARTNER
+  PUBLISH_OPPORTUNITIES
+  RECRUITMENT_CAMPAIGN
+  MASS_RECRUITMENT
+  PARTNERSHIP_AGREEMENT
+  PLATFORM_DEMO
+  TRAINING_SUPPORT
+  COMMERCIAL_INFO
+  TECHNICAL_SUPPORT
+  OTHER
+}
+
+enum PartnershipRequestStatus {
+  NEW
+  IN_PROGRESS
+  PROCESSED
+  CLOSED
+}
+
+// Une entrée d'historique par échange/évènement — notes manuelles de l'équipe aussi
+// bien que changements de statut/attribution journalisés automatiquement, pour que le
+// panneau CRM affiche une chronologie complète et pas seulement le dernier état.
+enum PartnershipRequestNoteType {
+  NOTE
+  STATUS_CHANGE
+  ASSIGNMENT
+}
+
+model PartnershipRequest {
+  id String @id @default(cuid())
+
+  organizationName String
+  organizationType PartnershipRequestOrgType
+
+  contactName  String
+  contactTitle String?
+  phone        String
+  email        String
+
+  country String
+  city    String?
+
+  reason      PartnershipRequestReason
+  subject     String
+  description String
+
+  status       PartnershipRequestStatus @default(NEW)
+  assignedToId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignedTo User?                    @relation("PartnershipRequestAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  notes      PartnershipRequestNote[]
+
+  @@index([status])
+  @@index([reason])
+  @@index([assignedToId])
+}
+
+model PartnershipRequestNote {
+  id        String                     @id @default(cuid())
+  requestId String
+  authorId  String
+  type      PartnershipRequestNoteType @default(NOTE)
+
+  // "content" porte le texte libre rédigé par l'équipe (type NOTE) — jamais de texte
+  // pré-rédigé côté serveur pour STATUS_CHANGE/ASSIGNMENT : "metadata" y stocke les
+  // données structurées (ex. {previousStatus, newStatus} ou {assigneeId, assigneeLsId})
+  // et c'est le client mobile qui les traduit dans la langue de l'utilisateur (FR/EN/ES/AR).
+  content  String?
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  request PartnershipRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  author  User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([requestId])
 }

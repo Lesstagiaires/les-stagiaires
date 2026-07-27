@@ -33,6 +33,7 @@
       "passwordPlaceholder": "Mot de passe",
       "submit": "Se connecter",
       "noAccount": "Pas encore de compte ? Inscrivez-vous",
+      "contactLink": "Vous représentez une organisation ? Contactez-nous",
       "genericError": "Connexion impossible. Vérifiez votre connexion internet."
     },
     "twoFactor": {
@@ -81,7 +82,9 @@
   "profile": {
     "title": "Mon profil",
     "securityLink": "Sécurité — double authentification et appareils",
+    "contactLink": "Nous contacter",
     "moderationLink": "Panneau de modération",
+    "partnershipRequestsLink": "Demandes de partenariat",
     "logout": "Se déconnecter",
     "language": {
       "sectionTitle": "Langue de l'application",
@@ -738,6 +741,36 @@
       "OPEN": "Ouvert",
       "REVIEWED": "Examiné",
       "CLOSED": "Clôturé"
+    },
+    "partnershipReason": {
+      "BECOME_PARTNER": "Devenir partenaire",
+      "PUBLISH_OPPORTUNITIES": "Publier des offres de stage",
+      "RECRUITMENT_CAMPAIGN": "Organiser une campagne de recrutement",
+      "MASS_RECRUITMENT": "Recrutement massif",
+      "PARTNERSHIP_AGREEMENT": "Signature d'une convention de partenariat",
+      "PLATFORM_DEMO": "Démonstration de la plateforme",
+      "TRAINING_SUPPORT": "Formation ou accompagnement",
+      "COMMERCIAL_INFO": "Demande d'informations commerciales",
+      "TECHNICAL_SUPPORT": "Support technique",
+      "OTHER": "Autre"
+    },
+    "partnershipOrgType": {
+      "COMPANY": "Entreprise",
+      "NGO": "ONG",
+      "PUBLIC_ADMINISTRATION": "Administration publique",
+      "INTERNATIONAL_ORGANIZATION": "Organisation internationale",
+      "UNIVERSITY": "Université",
+      "SCHOOL": "École",
+      "TRAINING_CENTER": "Centre de formation",
+      "CONSULTING_FIRM": "Cabinet",
+      "STARTUP": "Startup",
+      "OTHER": "Autre"
+    },
+    "partnershipStatus": {
+      "NEW": "Nouveau",
+      "IN_PROGRESS": "En cours",
+      "PROCESSED": "Traité",
+      "CLOSED": "Clos"
     }
   },
   "moderation": {
@@ -755,5 +788,51 @@
     "markReviewed": "Marquer comme examiné",
     "close": "Clôturer",
     "resolveError": "Traitement impossible."
+  },
+  "contact": {
+    "title": "Nous contacter",
+    "intro": "Entreprises, ONG, administrations publiques, organisations internationales, universités, écoles, centres de formation et autres partenaires : contactez-nous pour solliciter les services de LES STAGIAIRES.",
+    "organizationNamePlaceholder": "Nom de l'organisation",
+    "organizationTypeLabel": "Type d'organisation",
+    "contactNamePlaceholder": "Nom et prénom du contact",
+    "contactTitlePlaceholder": "Fonction (optionnel)",
+    "phonePlaceholder": "Téléphone (ex : +237670000000)",
+    "emailPlaceholder": "Adresse e-mail",
+    "countryPlaceholder": "Pays",
+    "cityPlaceholder": "Ville (optionnel)",
+    "reasonLabel": "Motif de la demande",
+    "subjectPlaceholder": "Objet de la demande",
+    "descriptionPlaceholder": "Description détaillée (10 caractères minimum)",
+    "submit": "Envoyer la demande",
+    "successTitle": "Demande envoyée",
+    "successBody": "Merci, notre équipe vous recontactera prochainement.",
+    "error": "Envoi impossible."
+  },
+  "partnershipRequests": {
+    "title": "Demandes de partenariat",
+    "loadError": "Chargement impossible.",
+    "unavailable": "Accès réservé aux administrateurs.",
+    "filterAll": "Toutes",
+    "empty": "Aucune demande pour ce filtre.",
+    "contactLabel": "Contact : {{name}}",
+    "assignedLabel": "Assigné à {{name}}",
+    "detail": {
+      "title": "Demande",
+      "notFound": "Demande introuvable.",
+      "contactSection": "Contact",
+      "requestSection": "Demande",
+      "statusSection": "Statut",
+      "statusError": "Changement de statut impossible.",
+      "assignSection": "Attribution",
+      "unassigned": "Non assigné",
+      "assignError": "Attribution impossible.",
+      "notesSection": "Historique des échanges",
+      "notePlaceholder": "Ajouter une note",
+      "addNote": "Ajouter",
+      "noteError": "Envoi impossible.",
+      "statusChangeNote": "{{previous}} → {{next}}",
+      "assignmentNote": "Assigné à {{name}}",
+      "unassignmentNote": "Désassigné"
+    }
   }
 }

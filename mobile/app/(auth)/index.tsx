@@ -121,6 +121,10 @@ export default function LoginScreen() {
           title={t('auth.login.noAccount')}
           onPress={() => router.push('/(auth)/register')}
         />
+        <LinkButton
+          title={t('auth.login.contactLink')}
+          onPress={() => router.push('/contact')}
+        />
       </View>
     </KeyboardAvoidingView>
   );

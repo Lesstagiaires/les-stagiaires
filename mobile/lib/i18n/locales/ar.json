@@ -33,6 +33,7 @@
       "passwordPlaceholder": "كلمة المرور",
       "submit": "تسجيل الدخول",
       "noAccount": "ليس لديك حساب بعد؟ أنشئ حسابًا",
+      "contactLink": "تمثّلون منظمة؟ تواصلوا معنا",
       "genericError": "تعذّر تسجيل الدخول. تحقّق من اتصالك بالإنترنت."
     },
     "twoFactor": {
@@ -81,7 +82,9 @@
   "profile": {
     "title": "ملفي الشخصي",
     "securityLink": "الأمان — المصادقة الثنائية والأجهزة",
+    "contactLink": "تواصل معنا",
     "moderationLink": "لوحة الإشراف",
+    "partnershipRequestsLink": "طلبات الشراكة",
     "logout": "تسجيل الخروج",
     "language": {
       "sectionTitle": "لغة التطبيق",
@@ -738,6 +741,36 @@
       "OPEN": "مفتوح",
       "REVIEWED": "تمت المراجعة",
       "CLOSED": "مغلق"
+    },
+    "partnershipReason": {
+      "BECOME_PARTNER": "أن نصبح شركاء",
+      "PUBLISH_OPPORTUNITIES": "نشر عروض التدريب",
+      "RECRUITMENT_CAMPAIGN": "تنظيم حملة توظيف",
+      "MASS_RECRUITMENT": "توظيف جماعي",
+      "PARTNERSHIP_AGREEMENT": "توقيع اتفاقية شراكة",
+      "PLATFORM_DEMO": "عرض توضيحي للمنصة",
+      "TRAINING_SUPPORT": "تكوين أو مرافقة",
+      "COMMERCIAL_INFO": "طلب معلومات تجارية",
+      "TECHNICAL_SUPPORT": "دعم تقني",
+      "OTHER": "أخرى"
+    },
+    "partnershipOrgType": {
+      "COMPANY": "شركة",
+      "NGO": "منظمة غير حكومية",
+      "PUBLIC_ADMINISTRATION": "إدارة عمومية",
+      "INTERNATIONAL_ORGANIZATION": "منظمة دولية",
+      "UNIVERSITY": "جامعة",
+      "SCHOOL": "مدرسة",
+      "TRAINING_CENTER": "مركز تكوين",
+      "CONSULTING_FIRM": "مكتب استشاري",
+      "STARTUP": "شركة ناشئة",
+      "OTHER": "أخرى"
+    },
+    "partnershipStatus": {
+      "NEW": "جديد",
+      "IN_PROGRESS": "قيد المعالجة",
+      "PROCESSED": "تمت المعالجة",
+      "CLOSED": "مغلق"
     }
   },
   "moderation": {
@@ -755,5 +788,51 @@
     "markReviewed": "وضع علامة تمت المراجعة",
     "close": "إغلاق",
     "resolveError": "تعذّرت المعالجة."
+  },
+  "contact": {
+    "title": "تواصل معنا",
+    "intro": "الشركات، المنظمات غير الحكومية، الإدارات العمومية، المنظمات الدولية، الجامعات، المدارس، مراكز التكوين والشركاء الآخرون: تواصلوا معنا لطلب خدمات LES STAGIAIRES.",
+    "organizationNamePlaceholder": "اسم المنظمة",
+    "organizationTypeLabel": "نوع المنظمة",
+    "contactNamePlaceholder": "الاسم الكامل لجهة الاتصال",
+    "contactTitlePlaceholder": "الوظيفة (اختياري)",
+    "phonePlaceholder": "الهاتف (مثال: +237670000000)",
+    "emailPlaceholder": "البريد الإلكتروني",
+    "countryPlaceholder": "البلد",
+    "cityPlaceholder": "المدينة (اختياري)",
+    "reasonLabel": "سبب الطلب",
+    "subjectPlaceholder": "موضوع الطلب",
+    "descriptionPlaceholder": "وصف تفصيلي (10 أحرف على الأقل)",
+    "submit": "إرسال الطلب",
+    "successTitle": "تم إرسال الطلب",
+    "successBody": "شكرًا لكم، سيتواصل معكم فريقنا قريبًا.",
+    "error": "تعذّر الإرسال."
+  },
+  "partnershipRequests": {
+    "title": "طلبات الشراكة",
+    "loadError": "تعذّر التحميل.",
+    "unavailable": "الوصول مقتصر على المسؤولين.",
+    "filterAll": "الكل",
+    "empty": "لا توجد طلبات لهذا الفلتر.",
+    "contactLabel": "جهة الاتصال: {{name}}",
+    "assignedLabel": "مُسنَد إلى {{name}}",
+    "detail": {
+      "title": "الطلب",
+      "notFound": "الطلب غير موجود.",
+      "contactSection": "جهة الاتصال",
+      "requestSection": "الطلب",
+      "statusSection": "الحالة",
+      "statusError": "تعذّر تغيير الحالة.",
+      "assignSection": "الإسناد",
+      "unassigned": "غير مُسنَد",
+      "assignError": "تعذّر الإسناد.",
+      "notesSection": "سجل التبادلات",
+      "notePlaceholder": "إضافة ملاحظة",
+      "addNote": "إضافة",
+      "noteError": "تعذّر الإرسال.",
+      "statusChangeNote": "{{previous}} ← {{next}}",
+      "assignmentNote": "مُسنَد إلى {{name}}",
+      "unassignmentNote": "غير مُسنَد"
+    }
   }
 }

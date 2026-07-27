@@ -33,6 +33,7 @@
       "passwordPlaceholder": "Password",
       "submit": "Sign in",
       "noAccount": "Don't have an account yet? Sign up",
+      "contactLink": "Represent an organization? Contact us",
       "genericError": "Couldn't sign in. Check your internet connection."
     },
     "twoFactor": {
@@ -81,7 +82,9 @@
   "profile": {
     "title": "My profile",
     "securityLink": "Security — two-factor authentication and devices",
+    "contactLink": "Contact us",
     "moderationLink": "Moderation panel",
+    "partnershipRequestsLink": "Partnership requests",
     "logout": "Sign out",
     "language": {
       "sectionTitle": "App language",
@@ -738,6 +741,36 @@
       "OPEN": "Open",
       "REVIEWED": "Reviewed",
       "CLOSED": "Closed"
+    },
+    "partnershipReason": {
+      "BECOME_PARTNER": "Become a partner",
+      "PUBLISH_OPPORTUNITIES": "Publish internship listings",
+      "RECRUITMENT_CAMPAIGN": "Organize a recruitment campaign",
+      "MASS_RECRUITMENT": "Mass recruitment",
+      "PARTNERSHIP_AGREEMENT": "Sign a partnership agreement",
+      "PLATFORM_DEMO": "Platform demo",
+      "TRAINING_SUPPORT": "Training or support",
+      "COMMERCIAL_INFO": "Commercial information request",
+      "TECHNICAL_SUPPORT": "Technical support",
+      "OTHER": "Other"
+    },
+    "partnershipOrgType": {
+      "COMPANY": "Company",
+      "NGO": "NGO",
+      "PUBLIC_ADMINISTRATION": "Public administration",
+      "INTERNATIONAL_ORGANIZATION": "International organization",
+      "UNIVERSITY": "University",
+      "SCHOOL": "School",
+      "TRAINING_CENTER": "Training center",
+      "CONSULTING_FIRM": "Consulting firm",
+      "STARTUP": "Startup",
+      "OTHER": "Other"
+    },
+    "partnershipStatus": {
+      "NEW": "New",
+      "IN_PROGRESS": "In progress",
+      "PROCESSED": "Processed",
+      "CLOSED": "Closed"
     }
   },
   "moderation": {
@@ -755,5 +788,51 @@
     "markReviewed": "Mark as reviewed",
     "close": "Close",
     "resolveError": "Couldn't resolve."
+  },
+  "contact": {
+    "title": "Contact us",
+    "intro": "Companies, NGOs, public administrations, international organizations, universities, schools, training centers, and other partners: contact us to request LES STAGIAIRES's services.",
+    "organizationNamePlaceholder": "Organization name",
+    "organizationTypeLabel": "Organization type",
+    "contactNamePlaceholder": "Contact's full name",
+    "contactTitlePlaceholder": "Role (optional)",
+    "phonePlaceholder": "Phone (e.g.: +237670000000)",
+    "emailPlaceholder": "Email address",
+    "countryPlaceholder": "Country",
+    "cityPlaceholder": "City (optional)",
+    "reasonLabel": "Reason for the request",
+    "subjectPlaceholder": "Subject of the request",
+    "descriptionPlaceholder": "Detailed description (10 characters minimum)",
+    "submit": "Send the request",
+    "successTitle": "Request sent",
+    "successBody": "Thank you, our team will get back to you soon.",
+    "error": "Couldn't send."
+  },
+  "partnershipRequests": {
+    "title": "Partnership requests",
+    "loadError": "Couldn't load.",
+    "unavailable": "Access restricted to administrators.",
+    "filterAll": "All",
+    "empty": "No requests for this filter.",
+    "contactLabel": "Contact: {{name}}",
+    "assignedLabel": "Assigned to {{name}}",
+    "detail": {
+      "title": "Request",
+      "notFound": "Request not found.",
+      "contactSection": "Contact",
+      "requestSection": "Request",
+      "statusSection": "Status",
+      "statusError": "Couldn't change status.",
+      "assignSection": "Assignment",
+      "unassigned": "Unassigned",
+      "assignError": "Couldn't assign.",
+      "notesSection": "Interaction history",
+      "notePlaceholder": "Add a note",
+      "addNote": "Add",
+      "noteError": "Couldn't send.",
+      "statusChangeNote": "{{previous}} → {{next}}",
+      "assignmentNote": "Assigned to {{name}}",
+      "unassignmentNote": "Unassigned"
+    }
   }
 }

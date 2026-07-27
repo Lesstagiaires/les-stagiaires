@@ -150,10 +150,22 @@ export default function ProfileScreen() {
           <Text style={styles.addText}>{t('profile.securityLink')}</Text>
         </Pressable>
 
+        <Pressable onPress={() => router.push('/contact')} style={styles.securityLink}>
+          <Text style={styles.addText}>{t('profile.contactLink')}</Text>
+        </Pressable>
+
         {heldRoles.some((entry) => entry.role.name === 'ADMIN') && (
-          <Pressable onPress={() => router.push('/moderation')} style={styles.securityLink}>
-            <Text style={styles.addText}>{t('profile.moderationLink')}</Text>
-          </Pressable>
+          <>
+            <Pressable onPress={() => router.push('/moderation')} style={styles.securityLink}>
+              <Text style={styles.addText}>{t('profile.moderationLink')}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/partnership-requests')}
+              style={styles.securityLink}
+            >
+              <Text style={styles.addText}>{t('profile.partnershipRequestsLink')}</Text>
+            </Pressable>
+          </>
         )}
 
         <Pressable onPress={() => void logout()} style={styles.logout}>

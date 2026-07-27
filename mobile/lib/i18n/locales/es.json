@@ -33,6 +33,7 @@
       "passwordPlaceholder": "Contraseña",
       "submit": "Iniciar sesión",
       "noAccount": "¿Aún no tienes cuenta? Regístrate",
+      "contactLink": "¿Representa a una organización? Contáctenos",
       "genericError": "No se pudo iniciar sesión. Verifique su conexión a internet."
     },
     "twoFactor": {
@@ -81,7 +82,9 @@
   "profile": {
     "title": "Mi perfil",
     "securityLink": "Seguridad — autenticación de dos factores y dispositivos",
+    "contactLink": "Contáctenos",
     "moderationLink": "Panel de moderación",
+    "partnershipRequestsLink": "Solicitudes de asociación",
     "logout": "Cerrar sesión",
     "language": {
       "sectionTitle": "Idioma de la aplicación",
@@ -738,6 +741,36 @@
       "OPEN": "Abierto",
       "REVIEWED": "Examinado",
       "CLOSED": "Cerrado"
+    },
+    "partnershipReason": {
+      "BECOME_PARTNER": "Convertirse en socio",
+      "PUBLISH_OPPORTUNITIES": "Publicar ofertas de pasantías",
+      "RECRUITMENT_CAMPAIGN": "Organizar una campaña de contratación",
+      "MASS_RECRUITMENT": "Contratación masiva",
+      "PARTNERSHIP_AGREEMENT": "Firma de un convenio de asociación",
+      "PLATFORM_DEMO": "Demostración de la plataforma",
+      "TRAINING_SUPPORT": "Formación o acompañamiento",
+      "COMMERCIAL_INFO": "Solicitud de información comercial",
+      "TECHNICAL_SUPPORT": "Soporte técnico",
+      "OTHER": "Otro"
+    },
+    "partnershipOrgType": {
+      "COMPANY": "Empresa",
+      "NGO": "ONG",
+      "PUBLIC_ADMINISTRATION": "Administración pública",
+      "INTERNATIONAL_ORGANIZATION": "Organización internacional",
+      "UNIVERSITY": "Universidad",
+      "SCHOOL": "Escuela",
+      "TRAINING_CENTER": "Centro de formación",
+      "CONSULTING_FIRM": "Consultora",
+      "STARTUP": "Startup",
+      "OTHER": "Otro"
+    },
+    "partnershipStatus": {
+      "NEW": "Nueva",
+      "IN_PROGRESS": "En curso",
+      "PROCESSED": "Tratada",
+      "CLOSED": "Cerrada"
     }
   },
   "moderation": {
@@ -755,5 +788,51 @@
     "markReviewed": "Marcar como examinado",
     "close": "Cerrar",
     "resolveError": "No se pudo tratar."
+  },
+  "contact": {
+    "title": "Contáctenos",
+    "intro": "Empresas, ONG, administraciones públicas, organizaciones internacionales, universidades, escuelas, centros de formación y otros socios: contáctenos para solicitar los servicios de LES STAGIAIRES.",
+    "organizationNamePlaceholder": "Nombre de la organización",
+    "organizationTypeLabel": "Tipo de organización",
+    "contactNamePlaceholder": "Nombre completo del contacto",
+    "contactTitlePlaceholder": "Función (opcional)",
+    "phonePlaceholder": "Teléfono (ej.: +237670000000)",
+    "emailPlaceholder": "Dirección de correo electrónico",
+    "countryPlaceholder": "País",
+    "cityPlaceholder": "Ciudad (opcional)",
+    "reasonLabel": "Motivo de la solicitud",
+    "subjectPlaceholder": "Asunto de la solicitud",
+    "descriptionPlaceholder": "Descripción detallada (10 caracteres mínimo)",
+    "submit": "Enviar la solicitud",
+    "successTitle": "Solicitud enviada",
+    "successBody": "Gracias, nuestro equipo se pondrá en contacto con usted próximamente.",
+    "error": "No se pudo enviar."
+  },
+  "partnershipRequests": {
+    "title": "Solicitudes de asociación",
+    "loadError": "No se pudo cargar.",
+    "unavailable": "Acceso restringido a administradores.",
+    "filterAll": "Todas",
+    "empty": "Ninguna solicitud para este filtro.",
+    "contactLabel": "Contacto: {{name}}",
+    "assignedLabel": "Asignado a {{name}}",
+    "detail": {
+      "title": "Solicitud",
+      "notFound": "Solicitud no encontrada.",
+      "contactSection": "Contacto",
+      "requestSection": "Solicitud",
+      "statusSection": "Estado",
+      "statusError": "No se pudo cambiar el estado.",
+      "assignSection": "Asignación",
+      "unassigned": "Sin asignar",
+      "assignError": "No se pudo asignar.",
+      "notesSection": "Historial de intercambios",
+      "notePlaceholder": "Añadir una nota",
+      "addNote": "Añadir",
+      "noteError": "No se pudo enviar.",
+      "statusChangeNote": "{{previous}} → {{next}}",
+      "assignmentNote": "Asignado a {{name}}",
+      "unassignmentNote": "Sin asignar"
+    }
   }
 }

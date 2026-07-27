@@ -445,6 +445,92 @@ export interface ResolveReportInput {
   note?: string;
 }
 
+// --- CRM Partenariats (menu "Nous contacter") ----------------------------------------------
+
+export type PartnershipRequestOrgType =
+  | 'COMPANY'
+  | 'NGO'
+  | 'PUBLIC_ADMINISTRATION'
+  | 'INTERNATIONAL_ORGANIZATION'
+  | 'UNIVERSITY'
+  | 'SCHOOL'
+  | 'TRAINING_CENTER'
+  | 'CONSULTING_FIRM'
+  | 'STARTUP'
+  | 'OTHER';
+
+export type PartnershipRequestReason =
+  | 'BECOME_PARTNER'
+  | 'PUBLISH_OPPORTUNITIES'
+  | 'RECRUITMENT_CAMPAIGN'
+  | 'MASS_RECRUITMENT'
+  | 'PARTNERSHIP_AGREEMENT'
+  | 'PLATFORM_DEMO'
+  | 'TRAINING_SUPPORT'
+  | 'COMMERCIAL_INFO'
+  | 'TECHNICAL_SUPPORT'
+  | 'OTHER';
+
+export type PartnershipRequestStatus = 'NEW' | 'IN_PROGRESS' | 'PROCESSED' | 'CLOSED';
+
+export type PartnershipRequestNoteType = 'NOTE' | 'STATUS_CHANGE' | 'ASSIGNMENT';
+
+export interface PartnershipRequestContact {
+  id: string;
+  lsId: string | null;
+  firstName: string | null;
+  lastName: string | null;
+}
+
+export interface CreatePartnershipRequestInput {
+  organizationName: string;
+  organizationType: PartnershipRequestOrgType;
+  contactName: string;
+  contactTitle?: string;
+  phone: string;
+  email: string;
+  country: string;
+  city?: string;
+  reason: PartnershipRequestReason;
+  subject: string;
+  description: string;
+}
+
+export interface PartnershipRequest {
+  id: string;
+  organizationName: string;
+  organizationType: PartnershipRequestOrgType;
+  contactName: string;
+  contactTitle: string | null;
+  phone: string;
+  email: string;
+  country: string;
+  city: string | null;
+  reason: PartnershipRequestReason;
+  subject: string;
+  description: string;
+  status: PartnershipRequestStatus;
+  assignedToId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  assignedTo: PartnershipRequestContact | null;
+}
+
+export interface PartnershipRequestNote {
+  id: string;
+  requestId: string;
+  authorId: string;
+  type: PartnershipRequestNoteType;
+  content: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  author: PartnershipRequestContact;
+}
+
+export interface PartnershipRequestDetail extends PartnershipRequest {
+  notes: PartnershipRequestNote[];
+}
+
 // --- Candidatures (module 5) ---------------------------------------------------------------
 
 export type ApplicationStatus =
@@ -1529,6 +1615,68 @@ export const api = {
   declineEnrollment: (accessToken: string, learnerId: string) =>
     request<void>(`/establishments/enrollments/${learnerId}/decline`, {
       method: 'POST',
+      accessToken,
+    }),
+
+  // --- CRM Partenariats (menu "Nous contacter") ---------------------------------------------
+
+  // Public — formulaire accessible sans compte (entreprises, ONG, administrations,
+  // organisations internationales, universités, écoles, centres de formation...).
+  submitPartnershipRequest: (input: CreatePartnershipRequestInput) =>
+    request<{ id: string; status: PartnershipRequestStatus; createdAt: string }>(
+      '/partnership-requests',
+      { method: 'POST', body: input },
+    ),
+
+  // Back-office CRM — réservé ADMIN.
+  listPartnershipRequests: (
+    accessToken: string,
+    filters?: {
+      status?: PartnershipRequestStatus;
+      reason?: PartnershipRequestReason;
+      assignedToId?: string;
+      q?: string;
+    },
+  ) =>
+    request<PartnershipRequest[]>(
+      `/partnership-requests${buildQueryString(filters ?? {})}`,
+      { accessToken },
+    ),
+
+  getPartnershipRequest: (accessToken: string, id: string) =>
+    request<PartnershipRequestDetail>(`/partnership-requests/${id}`, { accessToken }),
+
+  listAssignablePartnershipUsers: (accessToken: string) =>
+    request<PartnershipRequestContact[]>('/partnership-requests/assignable-users', {
+      accessToken,
+    }),
+
+  updatePartnershipRequestStatus: (
+    accessToken: string,
+    id: string,
+    status: PartnershipRequestStatus,
+  ) =>
+    request<PartnershipRequestDetail>(`/partnership-requests/${id}/status`, {
+      method: 'PATCH',
+      body: { status },
+      accessToken,
+    }),
+
+  assignPartnershipRequest: (
+    accessToken: string,
+    id: string,
+    assigneeId: string | null,
+  ) =>
+    request<PartnershipRequestDetail>(`/partnership-requests/${id}/assign`, {
+      method: 'PATCH',
+      body: { assigneeId },
+      accessToken,
+    }),
+
+  addPartnershipRequestNote: (accessToken: string, id: string, content: string) =>
+    request<PartnershipRequestDetail>(`/partnership-requests/${id}/notes`, {
+      method: 'POST',
+      body: { content },
       accessToken,
     }),
 };

@@ -1,10 +1,12 @@
 import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { AuthProvider, useAuth } from '../lib/auth-context';
 import { initI18n } from '../lib/i18n';
 
 function RootNavigator() {
+  const { t } = useTranslation();
   const { accessToken, isLoading } = useAuth();
 
   if (isLoading) {
@@ -24,6 +26,11 @@ function RootNavigator() {
       <Stack.Protected guard={!accessToken}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
+
+      {/* Accessible sans compte : formulaire "Nous contacter" pour les partenaires
+          (entreprises, ONG, administrations, universités...) qui n'ont pas nécessairement
+          de compte candidat. */}
+      <Stack.Screen name="contact" options={{ headerShown: true, title: t('contact.title') }} />
     </Stack>
   );
 }
