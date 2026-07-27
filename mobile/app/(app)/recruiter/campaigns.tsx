@@ -9,7 +9,7 @@ import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../../c
 import { Section } from '../../../components/section';
 import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type InternshipCampaign } from '../../../lib/api';
-import { CAMPAIGN_STATUS_LABELS, CAMPAIGN_STATUS_TONE } from '../../../lib/establishment-labels';
+import { useCampaignStatusLabels, CAMPAIGN_STATUS_TONE } from '../../../lib/establishment-labels';
 import { useAuth } from '../../../lib/auth-context';
 import { toIsoDateString } from '../../../lib/date';
 
@@ -95,6 +95,7 @@ function CampaignRow({
   onChanged: () => Promise<void>;
 }) {
   const { t, i18n } = useTranslation();
+  const campaignStatusLabels = useCampaignStatusLabels();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -115,7 +116,7 @@ function CampaignRow({
     <Card style={styles.campaignCard}>
       <View style={styles.campaignHeader}>
         <Text style={typography.bodyBold}>{campaign.name}</Text>
-        <Badge label={CAMPAIGN_STATUS_LABELS[campaign.status]} tone={CAMPAIGN_STATUS_TONE[campaign.status]} />
+        <Badge label={campaignStatusLabels[campaign.status]} tone={CAMPAIGN_STATUS_TONE[campaign.status]} />
       </View>
       <Text style={typography.caption}>
         {new Date(campaign.startDate).toLocaleDateString(i18n.language)} —{' '}

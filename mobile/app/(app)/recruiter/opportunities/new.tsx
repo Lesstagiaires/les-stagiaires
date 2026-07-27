@@ -6,19 +6,15 @@ import { ChipSelect } from '../../../../components/chip-select';
 import { ErrorText, FormInput, PrimaryButton } from '../../../../components/form';
 import { colors, spacing, typography } from '../../../../components/theme';
 import { api, ApiError, type Organization, type OpportunityType, type WorkMode } from '../../../../lib/api';
-import { OPPORTUNITY_TYPE_OPTIONS } from '../../../../lib/opportunity-labels';
+import { useOpportunityTypeOptions, useWorkModeOptions } from '../../../../lib/opportunity-labels';
 import { useAuth } from '../../../../lib/auth-context';
-
-const WORK_MODE_OPTIONS: { value: WorkMode; label: string }[] = [
-  { value: 'ON_SITE', label: 'Présentiel' },
-  { value: 'REMOTE', label: 'Télétravail' },
-  { value: 'HYBRID', label: 'Hybride' },
-];
 
 export default function NewOpportunityScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
+  const opportunityTypeOptions = useOpportunityTypeOptions();
+  const workModeOptions = useWorkModeOptions();
   const yesNoOptions = [
     { value: 'yes', label: t('common.yes') },
     { value: 'no', label: t('common.no') },
@@ -137,7 +133,7 @@ export default function NewOpportunityScreen() {
 
         <View style={styles.field}>
           <Text style={typography.label}>{t('recruiter.opportunityForm.typeLabel')}</Text>
-          <ChipSelect options={OPPORTUNITY_TYPE_OPTIONS} value={type} onChange={(v) => setType(v as OpportunityType)} />
+          <ChipSelect options={opportunityTypeOptions} value={type} onChange={(v) => setType(v as OpportunityType)} />
           {(type === 'SEASONAL' || type === 'VOLUNTEER' || type === 'TEMPORARY') && (
             <Text style={typography.caption}>{t('recruiter.opportunityForm.gatedTypeHint')}</Text>
           )}
@@ -161,7 +157,7 @@ export default function NewOpportunityScreen() {
 
         <View style={styles.field}>
           <Text style={typography.label}>{t('recruiter.opportunityForm.workModeLabel')}</Text>
-          <ChipSelect options={WORK_MODE_OPTIONS} value={workMode} onChange={(v) => setWorkMode(v as WorkMode)} />
+          <ChipSelect options={workModeOptions} value={workMode} onChange={(v) => setWorkMode(v as WorkMode)} />
         </View>
 
         <View style={styles.field}>

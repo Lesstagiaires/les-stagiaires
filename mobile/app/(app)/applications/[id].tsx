@@ -25,9 +25,9 @@ import {
   type DigitalSafeDocument,
 } from '../../../lib/api';
 import {
-  APPLICATION_STATUS_LABELS,
+  useApplicationStatusLabels,
   APPLICATION_STATUS_TONE,
-  ARTIFACT_KIND_LABELS,
+  useArtifactKindLabels,
 } from '../../../lib/application-labels';
 import { useAuth } from '../../../lib/auth-context';
 import { saveFile } from '../../../lib/save-file';
@@ -36,6 +36,7 @@ export default function ApplicationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
+  const applicationStatusLabels = useApplicationStatusLabels();
 
   const [application, setApplication] = useState<ApplicationDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -99,7 +100,7 @@ export default function ApplicationDetailScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <Badge
-            label={APPLICATION_STATUS_LABELS[application.status]}
+            label={applicationStatusLabels[application.status]}
             tone={APPLICATION_STATUS_TONE[application.status]}
           />
           <Text style={styles.reference}>{application.reference}</Text>
@@ -572,6 +573,7 @@ function ArtifactsSection({
   artifacts: ApplicationDetail['artifacts'];
 }) {
   const { t } = useTranslation();
+  const artifactKindLabels = useArtifactKindLabels();
   const [downloadingKind, setDownloadingKind] = useState<ApplicationArtifactKind | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -592,7 +594,7 @@ function ArtifactsSection({
     <Section title={t('applications.detail.artifacts.sectionTitle')}>
       {artifacts.map((artifact) => (
         <View key={artifact.id} style={styles.artifactRow}>
-          <Text style={typography.body}>{ARTIFACT_KIND_LABELS[artifact.kind]}</Text>
+          <Text style={typography.body}>{artifactKindLabels[artifact.kind]}</Text>
           <Pressable onPress={() => handleDownload(artifact.kind)} hitSlop={8}>
             {downloadingKind === artifact.kind ? (
               <ActivityIndicator color={colors.primary} />
@@ -611,11 +613,12 @@ function ArtifactsSection({
 
 function HistorySection({ history }: { history: ApplicationDetail['history'] }) {
   const { t, i18n } = useTranslation();
+  const applicationStatusLabels = useApplicationStatusLabels();
   return (
     <Section title={t('applications.detail.historyTitle')}>
       {history.map((event) => (
         <View key={event.id} style={styles.historyRow}>
-          <Text style={typography.bodyBold}>{APPLICATION_STATUS_LABELS[event.toStatus]}</Text>
+          <Text style={typography.bodyBold}>{applicationStatusLabels[event.toStatus]}</Text>
           <Text style={typography.caption}>
             {new Date(event.createdAt).toLocaleString(i18n.language)}
           </Text>

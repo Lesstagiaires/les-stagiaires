@@ -8,18 +8,19 @@ import { PressableCard } from '../../../../components/card';
 import { ErrorText } from '../../../../components/form';
 import { colors, spacing, typography } from '../../../../components/theme';
 import { api, ApiError, type Application, type ApplicationStatus } from '../../../../lib/api';
-import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_TONE } from '../../../../lib/application-labels';
+import { useApplicationStatusLabels, APPLICATION_STATUS_TONE } from '../../../../lib/application-labels';
 import { useAuth } from '../../../../lib/auth-context';
 
 export default function ReceivedApplicationsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
+  const applicationStatusLabels = useApplicationStatusLabels();
   const statusFilterOptions: { value: string; label: string }[] = [
     { value: '__all__', label: t('recruiter.receivedApplications.allFilter') },
-    ...(Object.keys(APPLICATION_STATUS_LABELS) as ApplicationStatus[]).map((status) => ({
+    ...(Object.keys(applicationStatusLabels) as ApplicationStatus[]).map((status) => ({
       value: status,
-      label: APPLICATION_STATUS_LABELS[status],
+      label: applicationStatusLabels[status],
     })),
   ];
   const [statusFilter, setStatusFilter] = useState('__all__');
@@ -72,7 +73,7 @@ export default function ReceivedApplicationsScreen() {
               >
                 <View style={styles.cardHeader}>
                   <Badge
-                    label={APPLICATION_STATUS_LABELS[application.status]}
+                    label={applicationStatusLabels[application.status]}
                     tone={APPLICATION_STATUS_TONE[application.status]}
                   />
                   <Text style={typography.caption}>{application.reference}</Text>

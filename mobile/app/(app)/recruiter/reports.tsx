@@ -7,7 +7,7 @@ import { Card } from '../../../components/card';
 import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../../components/form';
 import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type InternshipReportWithApplication } from '../../../lib/api';
-import { REPORT_STATUS_LABELS, REPORT_STATUS_TONE } from '../../../lib/establishment-labels';
+import { useReportStatusLabels, REPORT_STATUS_TONE } from '../../../lib/establishment-labels';
 import { useAuth } from '../../../lib/auth-context';
 import { saveFile } from '../../../lib/save-file';
 
@@ -89,6 +89,7 @@ function ReportRow({
   onChanged: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const reportStatusLabels = useReportStatusLabels();
   const [note, setNote] = useState('');
   const [busyAction, setBusyAction] = useState<'download' | 'validate' | 'revise' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +127,7 @@ function ReportRow({
     <Card style={styles.reportCard}>
       <View style={styles.reportHeader}>
         <Text style={typography.bodyBold}>{report.application.candidate.lsId ?? report.application.candidateId}</Text>
-        <Badge label={REPORT_STATUS_LABELS[report.status]} tone={REPORT_STATUS_TONE[report.status]} />
+        <Badge label={reportStatusLabels[report.status]} tone={REPORT_STATUS_TONE[report.status]} />
       </View>
       <Text style={typography.caption}>{report.application.reference}</Text>
       {!!report.reviewNote && (

@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Opportunity } from '../lib/api';
-import { OPPORTUNITY_TYPE_LABELS, WORK_MODE_LABELS } from '../lib/opportunity-labels';
+import { useOpportunityTypeLabels, useWorkModeLabels } from '../lib/opportunity-labels';
+import { useOrganizationVerificationLabels } from '../lib/organization-labels';
 import { Badge } from './badge';
 import { PressableCard } from './card';
 import { colors, radius, spacing, typography } from './theme';
@@ -19,10 +20,13 @@ export function OpportunityCard({
   onToggleFavorite?: () => void;
   compact?: boolean;
 }) {
+  const opportunityTypeLabels = useOpportunityTypeLabels();
+  const workModeLabels = useWorkModeLabels();
+  const organizationVerificationLabels = useOrganizationVerificationLabels();
   return (
     <PressableCard onPress={onPress} style={compact ? styles.compactCard : styles.card}>
       <View style={styles.header}>
-        <Badge label={OPPORTUNITY_TYPE_LABELS[opportunity.type]} tone="primary" />
+        <Badge label={opportunityTypeLabels[opportunity.type]} tone="primary" />
         {onToggleFavorite && (
           <Pressable
             onPress={(event) => {
@@ -46,7 +50,7 @@ export function OpportunityCard({
       <Text style={styles.organization} numberOfLines={1}>
         {opportunity.organization.name}
         {opportunity.organization.verificationStatus === 'VERIFIED' && (
-          <Text style={styles.verified}>  ✓ Vérifiée</Text>
+          <Text style={styles.verified}>  ✓ {organizationVerificationLabels.VERIFIED}</Text>
         )}
       </Text>
 
@@ -59,7 +63,7 @@ export function OpportunityCard({
         </View>
         <View style={styles.metaItem}>
           <Ionicons name="briefcase-outline" size={14} color={colors.muted} />
-          <Text style={styles.metaText}>{WORK_MODE_LABELS[opportunity.workMode]}</Text>
+          <Text style={styles.metaText}>{workModeLabels[opportunity.workMode]}</Text>
         </View>
       </View>
     </PressableCard>

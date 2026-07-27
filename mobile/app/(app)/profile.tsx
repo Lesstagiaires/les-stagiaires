@@ -28,7 +28,7 @@ import {
   type Recommendation,
   type RoleCatalogItem,
 } from '../../lib/api';
-import { LEARNER_STATUS_LABELS, LEARNER_STATUS_TONE } from '../../lib/establishment-labels';
+import { useLearnerStatusLabels, LEARNER_STATUS_TONE } from '../../lib/establishment-labels';
 import { SUPPORTED_LANGUAGES, setAppLanguage, type AppLanguage } from '../../lib/i18n';
 import { useAuth } from '../../lib/auth-context';
 import { formatDisplayDate, toIsoDateString } from '../../lib/date';
@@ -315,6 +315,7 @@ function EstablishmentsSection({
   onChanged: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const learnerStatusLabels = useLearnerStatusLabels();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -342,7 +343,7 @@ function EstablishmentsSection({
           <View style={styles.enrollmentHeader}>
             <Text style={styles.listItemTitle}>{enrollment.establishment.name}</Text>
             <Badge
-              label={LEARNER_STATUS_LABELS[enrollment.status]}
+              label={learnerStatusLabels[enrollment.status]}
               tone={LEARNER_STATUS_TONE[enrollment.status]}
             />
           </View>

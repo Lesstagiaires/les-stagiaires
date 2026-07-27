@@ -647,5 +647,90 @@
     "lastActivity": "Last activity: {{date}}",
     "disconnectDevice": "Disconnect this device",
     "revokeError": "Couldn't revoke."
+  },
+  "labels": {
+    "applicationStatus": {
+      "SUBMITTED": "Submitted",
+      "UNDER_REVIEW": "Under review",
+      "ADDITIONAL_DOCUMENT_REQUESTED": "Additional document requested",
+      "INTERVIEW_PROPOSED": "Interview proposed",
+      "INTERVIEW_CONFIRMED": "Interview confirmed",
+      "ADMISSION_LETTER_SENT": "Admission letter received",
+      "ACCEPTED": "Accepted",
+      "AWAITING_TRAVEL_CONSENT": "Awaiting parental consent",
+      "REJECTED": "Not selected",
+      "WITHDRAWN": "Withdrawn",
+      "COMPLETED": "Completed"
+    },
+    "artifactKind": {
+      "ADMISSION_LETTER": "Admission letter",
+      "CONVENTION": "Internship agreement",
+      "ATTESTATION": "Internship completion certificate"
+    },
+    "organizationVerification": {
+      "PENDING": "Verification pending",
+      "VERIFIED": "Verified",
+      "REJECTED": "Verification declined"
+    },
+    "opportunityStatus": {
+      "DRAFT": "Draft",
+      "PENDING_REVIEW": "Pending review",
+      "ACTIVE": "Published",
+      "PAUSED": "Paused",
+      "FILLED": "Filled",
+      "EXPIRED": "Expired",
+      "CANCELLED": "Cancelled",
+      "REPORTED": "Reported",
+      "SUSPENDED": "Suspended",
+      "ARCHIVED": "Archived"
+    },
+    "memberRole": {
+      "ADMIN": "Administrator",
+      "RECRUITER": "Recruiter",
+      "VIEWER": "Read-only"
+    },
+    "memberStatus": {
+      "PENDING": "Invitation pending",
+      "ACTIVE": "Active",
+      "REVOKED": "Revoked"
+    },
+    "needRequestType": {
+      "SEASONAL": "Seasonal",
+      "VOLUNTEER": "Volunteer",
+      "TEMPORARY": "Temporary"
+    },
+    "needRequestStatus": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "REJECTED": "Rejected"
+    },
+    "opportunityType": {
+      "ACADEMIC_INTERNSHIP": "Academic internship",
+      "PROFESSIONAL_INTERNSHIP": "Professional internship",
+      "SEASONAL": "Seasonal",
+      "WORK_STUDY": "Work-study",
+      "VOLUNTEER": "Volunteer",
+      "TEMPORARY": "Temporary"
+    },
+    "workMode": {
+      "ON_SITE": "On-site",
+      "REMOTE": "Remote",
+      "HYBRID": "Hybrid"
+    },
+    "learnerStatus": {
+      "PENDING": "Invitation pending",
+      "ACTIVE": "Attached",
+      "REVOKED": "Revoked"
+    },
+    "campaignStatus": {
+      "DRAFT": "Draft",
+      "ACTIVE": "Active",
+      "CLOSED": "Closed"
+    },
+    "reportStatus": {
+      "SUBMITTED": "Submitted",
+      "NEEDS_REVISION": "Revision requested",
+      "VALIDATED": "Validated"
+    }
   }
 }

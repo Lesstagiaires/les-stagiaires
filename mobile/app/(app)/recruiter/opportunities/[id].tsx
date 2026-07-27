@@ -9,23 +9,23 @@ import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../../.
 import { Section } from '../../../../components/section';
 import { colors, spacing, typography } from '../../../../components/theme';
 import { api, ApiError, type Opportunity, type OpportunityType, type WorkMode } from '../../../../lib/api';
-import { OPPORTUNITY_TYPE_LABELS, OPPORTUNITY_TYPE_OPTIONS } from '../../../../lib/opportunity-labels';
 import {
-  OPPORTUNITY_STATUS_LABELS,
+  useOpportunityTypeLabels,
+  useOpportunityTypeOptions,
+  useWorkModeOptions,
+} from '../../../../lib/opportunity-labels';
+import {
+  useOpportunityStatusLabels,
   OPPORTUNITY_STATUS_TONE,
 } from '../../../../lib/organization-labels';
 import { useAuth } from '../../../../lib/auth-context';
-
-const WORK_MODE_OPTIONS: { value: WorkMode; label: string }[] = [
-  { value: 'ON_SITE', label: 'Présentiel' },
-  { value: 'REMOTE', label: 'Télétravail' },
-  { value: 'HYBRID', label: 'Hybride' },
-];
 
 export default function ManageOpportunityScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
+  const opportunityStatusLabels = useOpportunityStatusLabels();
+  const opportunityTypeLabels = useOpportunityTypeLabels();
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -78,11 +78,11 @@ export default function ManageOpportunityScreen() {
         <View style={styles.headerRow}>
           <Text style={styles.title}>{opportunity.title}</Text>
           <Badge
-            label={OPPORTUNITY_STATUS_LABELS[opportunity.status]}
+            label={opportunityStatusLabels[opportunity.status]}
             tone={OPPORTUNITY_STATUS_TONE[opportunity.status]}
           />
         </View>
-        <Text style={typography.caption}>{OPPORTUNITY_TYPE_LABELS[opportunity.type]}</Text>
+        <Text style={typography.caption}>{opportunityTypeLabels[opportunity.type]}</Text>
 
         <LifecycleActions accessToken={accessToken} opportunity={opportunity} onChanged={reload} />
 
@@ -179,6 +179,7 @@ function LifecycleActions({
 
 function ReadOnlySummary({ opportunity }: { opportunity: Opportunity }) {
   const { t } = useTranslation();
+  const workModeOptions = useWorkModeOptions();
   return (
     <Section title={t('recruiter.manageOpportunity.detailsTitle')}>
       <Text style={typography.body}>{opportunity.description}</Text>
@@ -194,7 +195,7 @@ function ReadOnlySummary({ opportunity }: { opportunity: Opportunity }) {
       {!!opportunity.workMode && (
         <Text style={typography.caption}>
           {t('recruiter.manageOpportunity.modeLabel', {
-            mode: WORK_MODE_OPTIONS.find((o) => o.value === opportunity.workMode)?.label,
+            mode: workModeOptions.find((o) => o.value === opportunity.workMode)?.label,
           })}
         </Text>
       )}
@@ -227,6 +228,8 @@ function EditForm({
   onSaved: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const opportunityTypeOptions = useOpportunityTypeOptions();
+  const workModeOptions = useWorkModeOptions();
   const [title, setTitle] = useState(opportunity.title);
   const [description, setDescription] = useState(opportunity.description);
   const [type, setType] = useState<OpportunityType>(opportunity.type);
@@ -299,7 +302,7 @@ function EditForm({
         style={styles.multiline}
       />
       <Text style={typography.label}>{t('recruiter.opportunityForm.typeLabel')}</Text>
-      <ChipSelect options={OPPORTUNITY_TYPE_OPTIONS} value={type} onChange={(v) => setType(v as OpportunityType)} />
+      <ChipSelect options={opportunityTypeOptions} value={type} onChange={(v) => setType(v as OpportunityType)} />
       <FormInput
         placeholder={t('recruiter.opportunityForm.sectorPlaceholder')}
         value={sector}
@@ -316,7 +319,7 @@ function EditForm({
         onChangeText={setCity}
       />
       <Text style={typography.label}>{t('recruiter.opportunityForm.workModeLabel')}</Text>
-      <ChipSelect options={WORK_MODE_OPTIONS} value={workMode} onChange={(v) => setWorkMode(v as WorkMode)} />
+      <ChipSelect options={workModeOptions} value={workMode} onChange={(v) => setWorkMode(v as WorkMode)} />
       <Text style={typography.label}>{t('recruiter.opportunityForm.relocationLabel')}</Text>
       <ChipSelect
         options={yesNoOptions}

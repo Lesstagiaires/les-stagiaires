@@ -1,18 +1,22 @@
+import { useTranslation } from 'react-i18next';
 import type { ApplicationStatus } from './api';
 
-export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
-  SUBMITTED: 'Envoyée',
-  UNDER_REVIEW: "En cours d'examen",
-  ADDITIONAL_DOCUMENT_REQUESTED: 'Document complémentaire demandé',
-  INTERVIEW_PROPOSED: 'Entretien proposé',
-  INTERVIEW_CONFIRMED: 'Entretien confirmé',
-  ADMISSION_LETTER_SENT: "Lettre d'admission reçue",
-  ACCEPTED: 'Acceptée',
-  AWAITING_TRAVEL_CONSENT: "En attente d'accord parental",
-  REJECTED: 'Non retenue',
-  WITHDRAWN: 'Retirée',
-  COMPLETED: 'Terminée',
-};
+export function useApplicationStatusLabels(): Record<ApplicationStatus, string> {
+  const { t } = useTranslation();
+  return {
+    SUBMITTED: t('labels.applicationStatus.SUBMITTED'),
+    UNDER_REVIEW: t('labels.applicationStatus.UNDER_REVIEW'),
+    ADDITIONAL_DOCUMENT_REQUESTED: t('labels.applicationStatus.ADDITIONAL_DOCUMENT_REQUESTED'),
+    INTERVIEW_PROPOSED: t('labels.applicationStatus.INTERVIEW_PROPOSED'),
+    INTERVIEW_CONFIRMED: t('labels.applicationStatus.INTERVIEW_CONFIRMED'),
+    ADMISSION_LETTER_SENT: t('labels.applicationStatus.ADMISSION_LETTER_SENT'),
+    ACCEPTED: t('labels.applicationStatus.ACCEPTED'),
+    AWAITING_TRAVEL_CONSENT: t('labels.applicationStatus.AWAITING_TRAVEL_CONSENT'),
+    REJECTED: t('labels.applicationStatus.REJECTED'),
+    WITHDRAWN: t('labels.applicationStatus.WITHDRAWN'),
+    COMPLETED: t('labels.applicationStatus.COMPLETED'),
+  };
+}
 
 export type StatusTone = 'primary' | 'accent' | 'neutral' | 'success' | 'error';
 
@@ -30,8 +34,11 @@ export const APPLICATION_STATUS_TONE: Record<ApplicationStatus, StatusTone> = {
   COMPLETED: 'success',
 };
 
-export const ARTIFACT_KIND_LABELS = {
-  ADMISSION_LETTER: "Lettre d'admission",
-  CONVENTION: 'Convention de stage',
-  ATTESTATION: 'Attestation de fin de stage',
-} as const;
+export function useArtifactKindLabels(): Record<'ADMISSION_LETTER' | 'CONVENTION' | 'ATTESTATION', string> {
+  const { t } = useTranslation();
+  return {
+    ADMISSION_LETTER: t('labels.artifactKind.ADMISSION_LETTER'),
+    CONVENTION: t('labels.artifactKind.CONVENTION'),
+    ATTESTATION: t('labels.artifactKind.ATTESTATION'),
+  };
+}

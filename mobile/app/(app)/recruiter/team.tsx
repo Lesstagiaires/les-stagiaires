@@ -10,9 +10,9 @@ import { Section } from '../../../components/section';
 import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type OrganizationMember, type OrganizationMemberRole } from '../../../lib/api';
 import {
-  MEMBER_ROLE_LABELS,
-  MEMBER_ROLE_OPTIONS,
-  MEMBER_STATUS_LABELS,
+  useMemberRoleLabels,
+  useMemberRoleOptions,
+  useMemberStatusLabels,
   MEMBER_STATUS_TONE,
 } from '../../../lib/organization-labels';
 import { useAuth } from '../../../lib/auth-context';
@@ -99,6 +99,8 @@ function MemberRow({
   onChanged: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const memberStatusLabels = useMemberStatusLabels();
+  const memberRoleLabels = useMemberRoleLabels();
   const [isRevoking, setIsRevoking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -119,9 +121,9 @@ function MemberRow({
     <Card style={styles.memberCard}>
       <View style={styles.memberHeader}>
         <Text style={typography.bodyBold}>{member.user.lsId ?? member.userId}</Text>
-        <Badge label={MEMBER_STATUS_LABELS[member.status]} tone={MEMBER_STATUS_TONE[member.status]} />
+        <Badge label={memberStatusLabels[member.status]} tone={MEMBER_STATUS_TONE[member.status]} />
       </View>
-      <Text style={typography.caption}>{MEMBER_ROLE_LABELS[member.role]}</Text>
+      <Text style={typography.caption}>{memberRoleLabels[member.role]}</Text>
       {member.status !== 'REVOKED' && (
         <Text style={styles.revokeText} onPress={isRevoking ? undefined : handleRevoke}>
           {isRevoking ? t('recruiter.team.revoking') : t('recruiter.team.revoke')}
@@ -142,6 +144,7 @@ function InviteSection({
   onInvited: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const memberRoleOptions = useMemberRoleOptions();
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<OrganizationMemberRole>('RECRUITER');
   const [isSaving, setIsSaving] = useState(false);
@@ -170,7 +173,7 @@ function InviteSection({
         onChangeText={setPhone}
         keyboardType="phone-pad"
       />
-      <ChipSelect options={MEMBER_ROLE_OPTIONS} value={role} onChange={(v) => setRole(v as OrganizationMemberRole)} />
+      <ChipSelect options={memberRoleOptions} value={role} onChange={(v) => setRole(v as OrganizationMemberRole)} />
       <ErrorText>{error}</ErrorText>
       <SecondaryButton
         title={t('recruiter.team.sendInvite')}

@@ -647,5 +647,90 @@
     "lastActivity": "Última actividad: {{date}}",
     "disconnectDevice": "Desconectar este dispositivo",
     "revokeError": "No se pudo revocar."
+  },
+  "labels": {
+    "applicationStatus": {
+      "SUBMITTED": "Enviada",
+      "UNDER_REVIEW": "En revisión",
+      "ADDITIONAL_DOCUMENT_REQUESTED": "Documento complementario solicitado",
+      "INTERVIEW_PROPOSED": "Entrevista propuesta",
+      "INTERVIEW_CONFIRMED": "Entrevista confirmada",
+      "ADMISSION_LETTER_SENT": "Carta de admisión recibida",
+      "ACCEPTED": "Aceptada",
+      "AWAITING_TRAVEL_CONSENT": "Pendiente de consentimiento parental",
+      "REJECTED": "No seleccionada",
+      "WITHDRAWN": "Retirada",
+      "COMPLETED": "Finalizada"
+    },
+    "artifactKind": {
+      "ADMISSION_LETTER": "Carta de admisión",
+      "CONVENTION": "Convenio de pasantía",
+      "ATTESTATION": "Certificado de finalización de pasantía"
+    },
+    "organizationVerification": {
+      "PENDING": "Verificación pendiente",
+      "VERIFIED": "Verificada",
+      "REJECTED": "Verificación rechazada"
+    },
+    "opportunityStatus": {
+      "DRAFT": "Borrador",
+      "PENDING_REVIEW": "Pendiente de verificación",
+      "ACTIVE": "Publicada",
+      "PAUSED": "En pausa",
+      "FILLED": "Cubierta",
+      "EXPIRED": "Expirada",
+      "CANCELLED": "Cancelada",
+      "REPORTED": "Denunciada",
+      "SUSPENDED": "Suspendida",
+      "ARCHIVED": "Archivada"
+    },
+    "memberRole": {
+      "ADMIN": "Administrador",
+      "RECRUITER": "Reclutador",
+      "VIEWER": "Solo lectura"
+    },
+    "memberStatus": {
+      "PENDING": "Invitación pendiente",
+      "ACTIVE": "Activo",
+      "REVOKED": "Revocado"
+    },
+    "needRequestType": {
+      "SEASONAL": "Estacional",
+      "VOLUNTEER": "Voluntariado",
+      "TEMPORARY": "Temporal"
+    },
+    "needRequestStatus": {
+      "PENDING": "Pendiente",
+      "APPROVED": "Aprobada",
+      "REJECTED": "Rechazada"
+    },
+    "opportunityType": {
+      "ACADEMIC_INTERNSHIP": "Pasantía académica",
+      "PROFESSIONAL_INTERNSHIP": "Pasantía profesional",
+      "SEASONAL": "Estacional",
+      "WORK_STUDY": "Formación en alternancia",
+      "VOLUNTEER": "Voluntariado",
+      "TEMPORARY": "Temporal"
+    },
+    "workMode": {
+      "ON_SITE": "Presencial",
+      "REMOTE": "Teletrabajo",
+      "HYBRID": "Híbrido"
+    },
+    "learnerStatus": {
+      "PENDING": "Invitación pendiente",
+      "ACTIVE": "Vinculado",
+      "REVOKED": "Revocado"
+    },
+    "campaignStatus": {
+      "DRAFT": "Borrador",
+      "ACTIVE": "Activa",
+      "CLOSED": "Cerrada"
+    },
+    "reportStatus": {
+      "SUBMITTED": "Presentado",
+      "NEEDS_REVISION": "Corrección solicitada",
+      "VALIDATED": "Validado"
+    }
   }
 }

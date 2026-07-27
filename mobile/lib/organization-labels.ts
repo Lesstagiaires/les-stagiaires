@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type {
   NeedRequestStatus,
   NeedRequestType,
@@ -8,11 +9,14 @@ import type {
 } from './api';
 import type { StatusTone } from './application-labels';
 
-export const ORGANIZATION_VERIFICATION_LABELS: Record<OrganizationVerificationStatus, string> = {
-  PENDING: 'Vérification en attente',
-  VERIFIED: 'Vérifiée',
-  REJECTED: 'Vérification refusée',
-};
+export function useOrganizationVerificationLabels(): Record<OrganizationVerificationStatus, string> {
+  const { t } = useTranslation();
+  return {
+    PENDING: t('labels.organizationVerification.PENDING'),
+    VERIFIED: t('labels.organizationVerification.VERIFIED'),
+    REJECTED: t('labels.organizationVerification.REJECTED'),
+  };
+}
 
 export const ORGANIZATION_VERIFICATION_TONE: Record<OrganizationVerificationStatus, StatusTone> = {
   PENDING: 'accent',
@@ -20,18 +24,21 @@ export const ORGANIZATION_VERIFICATION_TONE: Record<OrganizationVerificationStat
   REJECTED: 'error',
 };
 
-export const OPPORTUNITY_STATUS_LABELS: Record<OpportunityStatus, string> = {
-  DRAFT: 'Brouillon',
-  PENDING_REVIEW: 'En attente de vérification',
-  ACTIVE: 'Publiée',
-  PAUSED: 'En pause',
-  FILLED: 'Pourvue',
-  EXPIRED: 'Expirée',
-  CANCELLED: 'Annulée',
-  REPORTED: 'Signalée',
-  SUSPENDED: 'Suspendue',
-  ARCHIVED: 'Archivée',
-};
+export function useOpportunityStatusLabels(): Record<OpportunityStatus, string> {
+  const { t } = useTranslation();
+  return {
+    DRAFT: t('labels.opportunityStatus.DRAFT'),
+    PENDING_REVIEW: t('labels.opportunityStatus.PENDING_REVIEW'),
+    ACTIVE: t('labels.opportunityStatus.ACTIVE'),
+    PAUSED: t('labels.opportunityStatus.PAUSED'),
+    FILLED: t('labels.opportunityStatus.FILLED'),
+    EXPIRED: t('labels.opportunityStatus.EXPIRED'),
+    CANCELLED: t('labels.opportunityStatus.CANCELLED'),
+    REPORTED: t('labels.opportunityStatus.REPORTED'),
+    SUSPENDED: t('labels.opportunityStatus.SUSPENDED'),
+    ARCHIVED: t('labels.opportunityStatus.ARCHIVED'),
+  };
+}
 
 export const OPPORTUNITY_STATUS_TONE: Record<OpportunityStatus, StatusTone> = {
   DRAFT: 'neutral',
@@ -46,23 +53,31 @@ export const OPPORTUNITY_STATUS_TONE: Record<OpportunityStatus, StatusTone> = {
   ARCHIVED: 'neutral',
 };
 
-export const MEMBER_ROLE_LABELS: Record<OrganizationMemberRole, string> = {
-  ADMIN: 'Administrateur',
-  RECRUITER: 'Recruteur',
-  VIEWER: 'Lecture seule',
-};
+export function useMemberRoleLabels(): Record<OrganizationMemberRole, string> {
+  const { t } = useTranslation();
+  return {
+    ADMIN: t('labels.memberRole.ADMIN'),
+    RECRUITER: t('labels.memberRole.RECRUITER'),
+    VIEWER: t('labels.memberRole.VIEWER'),
+  };
+}
 
-export const MEMBER_ROLE_OPTIONS: { value: OrganizationMemberRole; label: string }[] =
-  Object.entries(MEMBER_ROLE_LABELS).map(([value, label]) => ({
-    value: value as OrganizationMemberRole,
+export function useMemberRoleOptions(): { value: OrganizationMemberRole; label: string }[] {
+  const labels = useMemberRoleLabels();
+  return (Object.entries(labels) as [OrganizationMemberRole, string][]).map(([value, label]) => ({
+    value,
     label,
   }));
+}
 
-export const MEMBER_STATUS_LABELS: Record<OrganizationMemberStatus, string> = {
-  PENDING: 'Invitation en attente',
-  ACTIVE: 'Actif',
-  REVOKED: 'Révoqué',
-};
+export function useMemberStatusLabels(): Record<OrganizationMemberStatus, string> {
+  const { t } = useTranslation();
+  return {
+    PENDING: t('labels.memberStatus.PENDING'),
+    ACTIVE: t('labels.memberStatus.ACTIVE'),
+    REVOKED: t('labels.memberStatus.REVOKED'),
+  };
+}
 
 export const MEMBER_STATUS_TONE: Record<OrganizationMemberStatus, StatusTone> = {
   PENDING: 'accent',
@@ -70,23 +85,31 @@ export const MEMBER_STATUS_TONE: Record<OrganizationMemberStatus, StatusTone> = 
   REVOKED: 'error',
 };
 
-export const NEED_REQUEST_TYPE_LABELS: Record<NeedRequestType, string> = {
-  SEASONAL: 'Saisonnier',
-  VOLUNTEER: 'Bénévolat',
-  TEMPORARY: 'Temporaire',
-};
+export function useNeedRequestTypeLabels(): Record<NeedRequestType, string> {
+  const { t } = useTranslation();
+  return {
+    SEASONAL: t('labels.needRequestType.SEASONAL'),
+    VOLUNTEER: t('labels.needRequestType.VOLUNTEER'),
+    TEMPORARY: t('labels.needRequestType.TEMPORARY'),
+  };
+}
 
-export const NEED_REQUEST_TYPE_OPTIONS: { value: NeedRequestType; label: string }[] =
-  Object.entries(NEED_REQUEST_TYPE_LABELS).map(([value, label]) => ({
-    value: value as NeedRequestType,
+export function useNeedRequestTypeOptions(): { value: NeedRequestType; label: string }[] {
+  const labels = useNeedRequestTypeLabels();
+  return (Object.entries(labels) as [NeedRequestType, string][]).map(([value, label]) => ({
+    value,
     label,
   }));
+}
 
-export const NEED_REQUEST_STATUS_LABELS: Record<NeedRequestStatus, string> = {
-  PENDING: 'En attente',
-  APPROVED: 'Approuvé',
-  REJECTED: 'Refusé',
-};
+export function useNeedRequestStatusLabels(): Record<NeedRequestStatus, string> {
+  const { t } = useTranslation();
+  return {
+    PENDING: t('labels.needRequestStatus.PENDING'),
+    APPROVED: t('labels.needRequestStatus.APPROVED'),
+    REJECTED: t('labels.needRequestStatus.REJECTED'),
+  };
+}
 
 export const NEED_REQUEST_STATUS_TONE: Record<NeedRequestStatus, StatusTone> = {
   PENDING: 'accent',

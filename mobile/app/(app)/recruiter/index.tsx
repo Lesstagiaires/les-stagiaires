@@ -21,8 +21,8 @@ import {
   type OrganizationInvitation,
 } from '../../../lib/api';
 import {
-  MEMBER_ROLE_LABELS,
-  ORGANIZATION_VERIFICATION_LABELS,
+  useMemberRoleLabels,
+  useOrganizationVerificationLabels,
   ORGANIZATION_VERIFICATION_TONE,
 } from '../../../lib/organization-labels';
 import { useAuth } from '../../../lib/auth-context';
@@ -31,6 +31,7 @@ export default function RecruiterHomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
+  const organizationVerificationLabels = useOrganizationVerificationLabels();
   const [organizations, setOrganizations] = useState<Organization[] | null>(null);
   const [invitations, setInvitations] = useState<OrganizationInvitation[]>([]);
   const [heldRoles, setHeldRoles] = useState<HeldRole[]>([]);
@@ -107,7 +108,7 @@ export default function RecruiterHomeScreen() {
                 <View style={styles.orgHeader}>
                   <Text style={styles.orgName}>{organization.name}</Text>
                   <Badge
-                    label={ORGANIZATION_VERIFICATION_LABELS[organization.verificationStatus]}
+                    label={organizationVerificationLabels[organization.verificationStatus]}
                     tone={ORGANIZATION_VERIFICATION_TONE[organization.verificationStatus]}
                   />
                 </View>
@@ -159,6 +160,7 @@ function InvitationsSection({
   onChanged: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const memberRoleLabels = useMemberRoleLabels();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -186,7 +188,7 @@ function InvitationsSection({
         <Card key={invitation.id} style={styles.invitationCard}>
           <Text style={typography.bodyBold}>{invitation.organization.name}</Text>
           <Text style={typography.caption}>
-            {t('recruiter.home.roleProposed', { role: MEMBER_ROLE_LABELS[invitation.role] })}
+            {t('recruiter.home.roleProposed', { role: memberRoleLabels[invitation.role] })}
           </Text>
           <View style={styles.invitationActions}>
             <View style={styles.invitationButton}>

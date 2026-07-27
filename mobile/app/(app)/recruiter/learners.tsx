@@ -8,7 +8,7 @@ import { ErrorText, FormInput, SecondaryButton } from '../../../components/form'
 import { Section } from '../../../components/section';
 import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type EstablishmentLearner } from '../../../lib/api';
-import { LEARNER_STATUS_LABELS, LEARNER_STATUS_TONE } from '../../../lib/establishment-labels';
+import { useLearnerStatusLabels, LEARNER_STATUS_TONE } from '../../../lib/establishment-labels';
 import { useAuth } from '../../../lib/auth-context';
 
 export default function LearnersScreen() {
@@ -93,6 +93,7 @@ function LearnerRow({
   onChanged: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const learnerStatusLabels = useLearnerStatusLabels();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -126,7 +127,7 @@ function LearnerRow({
     <Card style={styles.learnerCard}>
       <View style={styles.learnerHeader}>
         <Text style={typography.bodyBold}>{learner.user.lsId ?? learner.userId}</Text>
-        <Badge label={LEARNER_STATUS_LABELS[learner.status]} tone={LEARNER_STATUS_TONE[learner.status]} />
+        <Badge label={learnerStatusLabels[learner.status]} tone={LEARNER_STATUS_TONE[learner.status]} />
       </View>
       {learner.status === 'ACTIVE' && (
         <Text style={typography.caption}>

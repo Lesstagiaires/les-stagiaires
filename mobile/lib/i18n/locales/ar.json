@@ -647,5 +647,90 @@
     "lastActivity": "آخر نشاط: {{date}}",
     "disconnectDevice": "فصل هذا الجهاز",
     "revokeError": "تعذّر الإلغاء."
+  },
+  "labels": {
+    "applicationStatus": {
+      "SUBMITTED": "مُرسَلة",
+      "UNDER_REVIEW": "قيد الدراسة",
+      "ADDITIONAL_DOCUMENT_REQUESTED": "مستند تكميلي مطلوب",
+      "INTERVIEW_PROPOSED": "مقابلة مقترحة",
+      "INTERVIEW_CONFIRMED": "مقابلة مؤكَّدة",
+      "ADMISSION_LETTER_SENT": "رسالة القبول مستلمة",
+      "ACCEPTED": "مقبولة",
+      "AWAITING_TRAVEL_CONSENT": "في انتظار موافقة الوالدين",
+      "REJECTED": "غير مقبولة",
+      "WITHDRAWN": "مسحوبة",
+      "COMPLETED": "منتهية"
+    },
+    "artifactKind": {
+      "ADMISSION_LETTER": "رسالة القبول",
+      "CONVENTION": "اتفاقية التدريب",
+      "ATTESTATION": "شهادة إتمام التدريب"
+    },
+    "organizationVerification": {
+      "PENDING": "التحقق قيد الانتظار",
+      "VERIFIED": "موثّقة",
+      "REJECTED": "تم رفض التحقق"
+    },
+    "opportunityStatus": {
+      "DRAFT": "مسودة",
+      "PENDING_REVIEW": "في انتظار التحقق",
+      "ACTIVE": "منشورة",
+      "PAUSED": "متوقفة مؤقتًا",
+      "FILLED": "مكتملة",
+      "EXPIRED": "منتهية الصلاحية",
+      "CANCELLED": "ملغاة",
+      "REPORTED": "تم الإبلاغ عنها",
+      "SUSPENDED": "معلَّقة",
+      "ARCHIVED": "مؤرشفة"
+    },
+    "memberRole": {
+      "ADMIN": "مسؤول",
+      "RECRUITER": "موظّف توظيف",
+      "VIEWER": "قراءة فقط"
+    },
+    "memberStatus": {
+      "PENDING": "دعوة قيد الانتظار",
+      "ACTIVE": "نشط",
+      "REVOKED": "ملغى"
+    },
+    "needRequestType": {
+      "SEASONAL": "موسمي",
+      "VOLUNTEER": "تطوّعي",
+      "TEMPORARY": "مؤقت"
+    },
+    "needRequestStatus": {
+      "PENDING": "قيد الانتظار",
+      "APPROVED": "موافَق عليه",
+      "REJECTED": "مرفوض"
+    },
+    "opportunityType": {
+      "ACADEMIC_INTERNSHIP": "تدريب أكاديمي",
+      "PROFESSIONAL_INTERNSHIP": "تدريب مهني",
+      "SEASONAL": "موسمي",
+      "WORK_STUDY": "تكوين بالتناوب",
+      "VOLUNTEER": "تطوّعي",
+      "TEMPORARY": "مؤقت"
+    },
+    "workMode": {
+      "ON_SITE": "حضوري",
+      "REMOTE": "عن بُعد",
+      "HYBRID": "مختلط"
+    },
+    "learnerStatus": {
+      "PENDING": "دعوة قيد الانتظار",
+      "ACTIVE": "مرتبط",
+      "REVOKED": "ملغى"
+    },
+    "campaignStatus": {
+      "DRAFT": "مسودة",
+      "ACTIVE": "نشطة",
+      "CLOSED": "مغلقة"
+    },
+    "reportStatus": {
+      "SUBMITTED": "مودَع",
+      "NEEDS_REVISION": "تصحيح مطلوب",
+      "VALIDATED": "تم التحقق منه"
+    }
   }
 }

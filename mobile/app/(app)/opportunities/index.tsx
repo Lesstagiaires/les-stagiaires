@@ -16,13 +16,14 @@ import { OpportunityCard } from '../../../components/opportunity-card';
 import { colors, radius, spacing, typography } from '../../../components/theme';
 import { FormInput } from '../../../components/form';
 import { api, ApiError, type Opportunity, type OpportunityType } from '../../../lib/api';
-import { OPPORTUNITY_TYPE_OPTIONS } from '../../../lib/opportunity-labels';
+import { useOpportunityTypeOptions } from '../../../lib/opportunity-labels';
 import { useAuth } from '../../../lib/auth-context';
 
 export default function OpportunitiesSearchScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { accessToken } = useAuth();
+  const opportunityTypeOptions = useOpportunityTypeOptions();
 
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
@@ -143,7 +144,7 @@ export default function OpportunitiesSearchScreen() {
             <ChipSelect
               options={[
                 { value: '__all__', label: t('opportunities.search.allTypes') },
-                ...OPPORTUNITY_TYPE_OPTIONS,
+                ...opportunityTypeOptions,
               ]}
               value={type ?? '__all__'}
               onChange={(value) =>

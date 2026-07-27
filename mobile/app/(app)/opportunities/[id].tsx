@@ -22,7 +22,7 @@ import {
   type Opportunity,
   type ReportCategory,
 } from '../../../lib/api';
-import { OPPORTUNITY_TYPE_LABELS, WORK_MODE_LABELS } from '../../../lib/opportunity-labels';
+import { useOpportunityTypeLabels, useWorkModeLabels } from '../../../lib/opportunity-labels';
 import { useAuth } from '../../../lib/auth-context';
 
 export default function OpportunityDetailScreen() {
@@ -30,6 +30,8 @@ export default function OpportunityDetailScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
+  const opportunityTypeLabels = useOpportunityTypeLabels();
+  const workModeLabels = useWorkModeLabels();
 
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -102,7 +104,7 @@ export default function OpportunityDetailScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
-          <Badge label={OPPORTUNITY_TYPE_LABELS[opportunity.type]} tone="primary" />
+          <Badge label={opportunityTypeLabels[opportunity.type]} tone="primary" />
           <Pressable onPress={handleToggleFavorite} disabled={isFavoriteBusy} hitSlop={8}>
             <Ionicons
               name={isFavorite ? 'heart' : 'heart-outline'}
@@ -122,7 +124,7 @@ export default function OpportunityDetailScreen() {
 
         <Card style={styles.infoCard}>
           <InfoRow icon="location-outline" label={`${opportunity.city}, ${opportunity.country}`} />
-          <InfoRow icon="briefcase-outline" label={WORK_MODE_LABELS[opportunity.workMode]} />
+          <InfoRow icon="briefcase-outline" label={workModeLabels[opportunity.workMode]} />
           <InfoRow icon="grid-outline" label={opportunity.sector} />
           {opportunity.relocationRequired && (
             <InfoRow icon="airplane-outline" label={t('opportunities.detail.relocationRequired')} />

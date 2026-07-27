@@ -9,7 +9,7 @@ import { Section } from '../../../components/section';
 import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type Organization } from '../../../lib/api';
 import {
-  ORGANIZATION_VERIFICATION_LABELS,
+  useOrganizationVerificationLabels,
   ORGANIZATION_VERIFICATION_TONE,
 } from '../../../lib/organization-labels';
 import { useAuth } from '../../../lib/auth-context';
@@ -19,6 +19,7 @@ export default function OrganizationScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
+  const organizationVerificationLabels = useOrganizationVerificationLabels();
   const [organization, setOrganization] = useState<Organization | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -73,7 +74,7 @@ export default function OrganizationScreen() {
         <View style={styles.headerRow}>
           <Text style={styles.title}>{organization.name}</Text>
           <Badge
-            label={ORGANIZATION_VERIFICATION_LABELS[organization.verificationStatus]}
+            label={organizationVerificationLabels[organization.verificationStatus]}
             tone={ORGANIZATION_VERIFICATION_TONE[organization.verificationStatus]}
           />
         </View>

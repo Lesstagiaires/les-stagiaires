@@ -14,13 +14,14 @@ import { PressableCard } from '../../../components/card';
 import { ErrorText } from '../../../components/form';
 import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type Application } from '../../../lib/api';
-import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_TONE } from '../../../lib/application-labels';
+import { useApplicationStatusLabels, APPLICATION_STATUS_TONE } from '../../../lib/application-labels';
 import { useAuth } from '../../../lib/auth-context';
 
 export default function ApplicationsListScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
+  const applicationStatusLabels = useApplicationStatusLabels();
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +63,7 @@ export default function ApplicationsListScreen() {
             >
               <View style={styles.cardHeader}>
                 <Badge
-                  label={APPLICATION_STATUS_LABELS[application.status]}
+                  label={applicationStatusLabels[application.status]}
                   tone={APPLICATION_STATUS_TONE[application.status]}
                 />
                 <Text style={styles.reference}>{application.reference}</Text>

@@ -21,7 +21,7 @@ import {
   type OpportunityAlert,
   type OpportunityType,
 } from '../../../lib/api';
-import { OPPORTUNITY_TYPE_LABELS, OPPORTUNITY_TYPE_OPTIONS } from '../../../lib/opportunity-labels';
+import { useOpportunityTypeLabels, useOpportunityTypeOptions } from '../../../lib/opportunity-labels';
 import { useAuth } from '../../../lib/auth-context';
 
 export default function AlertsScreen() {
@@ -93,6 +93,7 @@ function CreateAlertForm({
   onCreated: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const opportunityTypeOptions = useOpportunityTypeOptions();
   const [isOpen, setIsOpen] = useState(false);
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
@@ -152,7 +153,7 @@ function CreateAlertForm({
       <ChipSelect
         options={[
           { value: '__all__', label: t('opportunities.search.allTypes') },
-          ...OPPORTUNITY_TYPE_OPTIONS,
+          ...opportunityTypeOptions,
         ]}
         value={type ?? '__all__'}
         onChange={(value) => setType(value === '__all__' ? null : (value as OpportunityType))}
@@ -182,12 +183,13 @@ function AlertCard({
   onOpenOpportunity: (id: string) => void;
 }) {
   const { t } = useTranslation();
+  const opportunityTypeLabels = useOpportunityTypeLabels();
   const [isRemoving, setIsRemoving] = useState(false);
   const [matches, setMatches] = useState<Opportunity[] | null>(null);
   const [isLoadingMatches, setIsLoadingMatches] = useState(false);
 
   const criteriaLabel = [
-    alert.type ? OPPORTUNITY_TYPE_LABELS[alert.type] : null,
+    alert.type ? opportunityTypeLabels[alert.type] : null,
     alert.sector,
     alert.city,
     alert.country,

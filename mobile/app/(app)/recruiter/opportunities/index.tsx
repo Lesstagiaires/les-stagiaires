@@ -7,9 +7,9 @@ import { PressableCard } from '../../../../components/card';
 import { ErrorText, PrimaryButton } from '../../../../components/form';
 import { colors, spacing, typography } from '../../../../components/theme';
 import { api, ApiError, type Opportunity } from '../../../../lib/api';
-import { OPPORTUNITY_TYPE_LABELS } from '../../../../lib/opportunity-labels';
+import { useOpportunityTypeLabels } from '../../../../lib/opportunity-labels';
 import {
-  OPPORTUNITY_STATUS_LABELS,
+  useOpportunityStatusLabels,
   OPPORTUNITY_STATUS_TONE,
 } from '../../../../lib/organization-labels';
 import { useAuth } from '../../../../lib/auth-context';
@@ -18,6 +18,8 @@ export default function MyOpportunitiesScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
+  const opportunityStatusLabels = useOpportunityStatusLabels();
+  const opportunityTypeLabels = useOpportunityTypeLabels();
   const [opportunities, setOpportunities] = useState<Opportunity[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -70,11 +72,11 @@ export default function MyOpportunitiesScreen() {
                     {opportunity.title}
                   </Text>
                   <Badge
-                    label={OPPORTUNITY_STATUS_LABELS[opportunity.status]}
+                    label={opportunityStatusLabels[opportunity.status]}
                     tone={OPPORTUNITY_STATUS_TONE[opportunity.status]}
                   />
                 </View>
-                <Text style={typography.caption}>{OPPORTUNITY_TYPE_LABELS[opportunity.type]}</Text>
+                <Text style={typography.caption}>{opportunityTypeLabels[opportunity.type]}</Text>
                 <Text style={typography.caption}>
                   {opportunity.city}, {opportunity.country}
                 </Text>

@@ -10,10 +10,10 @@ import { Section } from '../../../components/section';
 import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type NeedRequestType, type OrganizationNeedRequest } from '../../../lib/api';
 import {
-  NEED_REQUEST_STATUS_LABELS,
+  useNeedRequestStatusLabels,
   NEED_REQUEST_STATUS_TONE,
-  NEED_REQUEST_TYPE_LABELS,
-  NEED_REQUEST_TYPE_OPTIONS,
+  useNeedRequestTypeLabels,
+  useNeedRequestTypeOptions,
 } from '../../../lib/organization-labels';
 import { useAuth } from '../../../lib/auth-context';
 
@@ -21,6 +21,8 @@ export default function NeedRequestsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const { accessToken, logout } = useAuth();
+  const needRequestTypeLabels = useNeedRequestTypeLabels();
+  const needRequestStatusLabels = useNeedRequestStatusLabels();
   const [requests, setRequests] = useState<OrganizationNeedRequest[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,10 +73,10 @@ export default function NeedRequestsScreen() {
                 <Card key={request.id} style={styles.requestCard}>
                   <View style={styles.requestHeader}>
                     <Text style={typography.bodyBold}>
-                      {NEED_REQUEST_TYPE_LABELS[request.type]} — {request.quantity}
+                      {needRequestTypeLabels[request.type]} — {request.quantity}
                     </Text>
                     <Badge
-                      label={NEED_REQUEST_STATUS_LABELS[request.status]}
+                      label={needRequestStatusLabels[request.status]}
                       tone={NEED_REQUEST_STATUS_TONE[request.status]}
                     />
                   </View>
@@ -108,6 +110,7 @@ function CreateNeedRequestSection({
   onCreated: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const needRequestTypeOptions = useNeedRequestTypeOptions();
   const [type, setType] = useState<NeedRequestType | null>(null);
   const [quantity, setQuantity] = useState('');
   const [description, setDescription] = useState('');
@@ -140,7 +143,7 @@ function CreateNeedRequestSection({
 
   return (
     <Section title={t('recruiter.needs.newRequestTitle')}>
-      <ChipSelect options={NEED_REQUEST_TYPE_OPTIONS} value={type} onChange={(v) => setType(v as NeedRequestType)} />
+      <ChipSelect options={needRequestTypeOptions} value={type} onChange={(v) => setType(v as NeedRequestType)} />
       <FormInput
         placeholder={t('recruiter.needs.quantityPlaceholder')}
         value={quantity}

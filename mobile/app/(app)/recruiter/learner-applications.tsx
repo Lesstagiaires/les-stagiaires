@@ -7,13 +7,14 @@ import { Card } from '../../../components/card';
 import { ErrorText } from '../../../components/form';
 import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type LearnerApplicationSummary } from '../../../lib/api';
-import { APPLICATION_STATUS_LABELS, APPLICATION_STATUS_TONE } from '../../../lib/application-labels';
+import { useApplicationStatusLabels, APPLICATION_STATUS_TONE } from '../../../lib/application-labels';
 import { useAuth } from '../../../lib/auth-context';
 
 export default function LearnerApplicationsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { accessToken, logout } = useAuth();
   const { t } = useTranslation();
+  const applicationStatusLabels = useApplicationStatusLabels();
   const [applications, setApplications] = useState<LearnerApplicationSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,7 +67,7 @@ export default function LearnerApplicationsScreen() {
                 <View style={styles.cardHeader}>
                   <Text style={typography.bodyBold}>{application.candidate.lsId ?? application.candidateId}</Text>
                   <Badge
-                    label={APPLICATION_STATUS_LABELS[application.status]}
+                    label={applicationStatusLabels[application.status]}
                     tone={APPLICATION_STATUS_TONE[application.status]}
                   />
                 </View>
