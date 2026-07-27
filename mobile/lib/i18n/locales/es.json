@@ -22,7 +22,8 @@
     "recruiter": "Reclutador",
     "digitalSafe": "Caja fuerte digital",
     "profile": "Perfil",
-    "security": "Seguridad"
+    "security": "Seguridad",
+    "moderation": "Moderación"
   },
   "auth": {
     "login": {
@@ -80,6 +81,7 @@
   "profile": {
     "title": "Mi perfil",
     "securityLink": "Seguridad — autenticación de dos factores y dispositivos",
+    "moderationLink": "Panel de moderación",
     "logout": "Cerrar sesión",
     "language": {
       "sectionTitle": "Idioma de la aplicación",
@@ -173,14 +175,7 @@
         "descriptionPlaceholder": "Describe el problema (10 caracteres mínimo)",
         "submit": "Enviar denuncia",
         "confirmation": "Denuncia enviada, gracias.",
-        "error": "No se pudo enviar.",
-        "categories": {
-          "HARASSMENT": "Acoso",
-          "ABUSE": "Abuso",
-          "DANGER": "Peligro",
-          "FRAUD": "Fraude",
-          "OTHER": "Otro"
-        }
+        "error": "No se pudo enviar."
       }
     },
     "alerts": {
@@ -731,6 +726,34 @@
       "SUBMITTED": "Presentado",
       "NEEDS_REVISION": "Corrección solicitada",
       "VALIDATED": "Validado"
+    },
+    "reportCategory": {
+      "HARASSMENT": "Acoso",
+      "ABUSE": "Abuso",
+      "DANGER": "Peligro",
+      "FRAUD": "Fraude",
+      "OTHER": "Otro"
+    },
+    "moderationStatus": {
+      "OPEN": "Abierto",
+      "REVIEWED": "Examinado",
+      "CLOSED": "Cerrado"
     }
+  },
+  "moderation": {
+    "title": "Moderación",
+    "loadError": "No se pudo cargar.",
+    "unavailable": "Acceso restringido a administradores.",
+    "filterAll": "Todos",
+    "empty": "Ninguna denuncia para este filtro.",
+    "reporterLabel": "Denunciado por: {{lsId}}",
+    "targetLabel": "Oferta afectada: {{title}}",
+    "resolvedByLabel": "Tratado por {{lsId}} el {{date}}",
+    "resolutionNoteLabel": "Nota: {{note}}",
+    "resolveAction": "Tratar",
+    "notePlaceholder": "Nota de tratamiento (opcional)",
+    "markReviewed": "Marcar como examinado",
+    "close": "Cerrar",
+    "resolveError": "No se pudo tratar."
   }
 }

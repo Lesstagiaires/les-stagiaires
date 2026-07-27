@@ -22,7 +22,8 @@
     "recruiter": "Recruiter",
     "digitalSafe": "Digital Safe",
     "profile": "Profile",
-    "security": "Security"
+    "security": "Security",
+    "moderation": "Moderation"
   },
   "auth": {
     "login": {
@@ -80,6 +81,7 @@
   "profile": {
     "title": "My profile",
     "securityLink": "Security — two-factor authentication and devices",
+    "moderationLink": "Moderation panel",
     "logout": "Sign out",
     "language": {
       "sectionTitle": "App language",
@@ -173,14 +175,7 @@
         "descriptionPlaceholder": "Describe the issue (10 characters minimum)",
         "submit": "Send report",
         "confirmation": "Report sent, thank you.",
-        "error": "Couldn't send.",
-        "categories": {
-          "HARASSMENT": "Harassment",
-          "ABUSE": "Abuse",
-          "DANGER": "Danger",
-          "FRAUD": "Fraud",
-          "OTHER": "Other"
-        }
+        "error": "Couldn't send."
       }
     },
     "alerts": {
@@ -731,6 +726,34 @@
       "SUBMITTED": "Submitted",
       "NEEDS_REVISION": "Revision requested",
       "VALIDATED": "Validated"
+    },
+    "reportCategory": {
+      "HARASSMENT": "Harassment",
+      "ABUSE": "Abuse",
+      "DANGER": "Danger",
+      "FRAUD": "Fraud",
+      "OTHER": "Other"
+    },
+    "moderationStatus": {
+      "OPEN": "Open",
+      "REVIEWED": "Reviewed",
+      "CLOSED": "Closed"
     }
+  },
+  "moderation": {
+    "title": "Moderation",
+    "loadError": "Couldn't load.",
+    "unavailable": "Access restricted to administrators.",
+    "filterAll": "All",
+    "empty": "No reports for this filter.",
+    "reporterLabel": "Reported by: {{lsId}}",
+    "targetLabel": "Listing concerned: {{title}}",
+    "resolvedByLabel": "Handled by {{lsId}} on {{date}}",
+    "resolutionNoteLabel": "Note: {{note}}",
+    "resolveAction": "Handle",
+    "notePlaceholder": "Resolution note (optional)",
+    "markReviewed": "Mark as reviewed",
+    "close": "Close",
+    "resolveError": "Couldn't resolve."
   }
 }

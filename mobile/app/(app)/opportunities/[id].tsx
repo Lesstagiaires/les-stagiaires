@@ -23,6 +23,7 @@ import {
   type ReportCategory,
 } from '../../../lib/api';
 import { useOpportunityTypeLabels, useWorkModeLabels } from '../../../lib/opportunity-labels';
+import { useReportCategoryLabels } from '../../../lib/report-labels';
 import { useAuth } from '../../../lib/auth-context';
 
 export default function OpportunityDetailScreen() {
@@ -260,6 +261,7 @@ function ReportSection({
   opportunityId: string;
 }) {
   const { t } = useTranslation();
+  const reportCategoryLabels = useReportCategoryLabels();
   const [isOpen, setIsOpen] = useState(false);
   const [category, setCategory] = useState<ReportCategory>('OTHER');
   const [description, setDescription] = useState('');
@@ -267,13 +269,9 @@ function ReportSection({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const categoryOptions: { value: ReportCategory; label: string }[] = [
-    { value: 'HARASSMENT', label: t('opportunities.detail.report.categories.HARASSMENT') },
-    { value: 'ABUSE', label: t('opportunities.detail.report.categories.ABUSE') },
-    { value: 'DANGER', label: t('opportunities.detail.report.categories.DANGER') },
-    { value: 'FRAUD', label: t('opportunities.detail.report.categories.FRAUD') },
-    { value: 'OTHER', label: t('opportunities.detail.report.categories.OTHER') },
-  ];
+  const categoryOptions = (
+    Object.entries(reportCategoryLabels) as [ReportCategory, string][]
+  ).map(([value, label]) => ({ value, label }));
 
   async function handleSubmit() {
     setError(null);

@@ -417,6 +417,34 @@ export interface CreateAlertInput {
 
 export type ReportCategory = 'HARASSMENT' | 'ABUSE' | 'DANGER' | 'FRAUD' | 'OTHER';
 
+// --- Modération (panneau ADMIN) ------------------------------------------------------------
+
+export type ReportStatus = 'OPEN' | 'REVIEWED' | 'CLOSED';
+
+export interface ModerationReport {
+  id: string;
+  category: ReportCategory;
+  description: string;
+  status: ReportStatus;
+  createdAt: string;
+  targetOpportunityId: string | null;
+  resolutionNote: string | null;
+  resolvedAt: string | null;
+  reporter: {
+    id: string;
+    lsId: string | null;
+    firstName: string | null;
+    lastName: string | null;
+  };
+  targetOpportunity: { id: string; title: string } | null;
+  resolvedBy: { id: string; lsId: string | null } | null;
+}
+
+export interface ResolveReportInput {
+  status: ReportStatus;
+  note?: string;
+}
+
 // --- Candidatures (module 5) ---------------------------------------------------------------
 
 export type ApplicationStatus =
@@ -1090,6 +1118,19 @@ export const api = {
     request<{ id: string }>(`/opportunities/${id}/report`, {
       method: 'POST',
       body: { category, description },
+      accessToken,
+    }),
+
+  // Panneau de modération — réservé ADMIN (2FA requise côté serveur).
+  listAllReports: (accessToken: string, status?: ReportStatus) =>
+    request<ModerationReport[]>(`/reports${buildQueryString({ status })}`, {
+      accessToken,
+    }),
+
+  resolveReport: (accessToken: string, id: string, input: ResolveReportInput) =>
+    request<ModerationReport>(`/reports/${id}/resolve`, {
+      method: 'PATCH',
+      body: input,
       accessToken,
     }),
 

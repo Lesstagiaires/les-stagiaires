@@ -114,6 +114,7 @@ model User {
   parentLinksAsParent ParentalLink[] @relation("ParentLinks")
   auditLogs           AuditLog[]
   reports             Report[]
+  reportsResolved     Report[] @relation("ReportResolvedBy")
   profile             Profile?
   profileShares       ProfileShare[]
   recommendationsGiven    Recommendation[] @relation("RecommendationGiver")
@@ -318,8 +319,15 @@ model Report {
   // référentielle réelle préférée à une abstraction prématurée.
   targetOpportunityId String?
 
+  // Traitement par un compte ADMIN (panneau de modération) — nul tant que le signalement
+  // reste OPEN.
+  resolvedById   String?
+  resolvedAt     DateTime?
+  resolutionNote String?
+
   reporter          User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
   targetOpportunity Opportunity? @relation(fields: [targetOpportunityId], references: [id], onDelete: Cascade)
+  resolvedBy        User?        @relation("ReportResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
 
   @@index([reporterId])
   @@index([status])

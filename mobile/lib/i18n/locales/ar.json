@@ -22,7 +22,8 @@
     "recruiter": "فضاء التوظيف",
     "digitalSafe": "الخزنة الرقمية",
     "profile": "الملف الشخصي",
-    "security": "الأمان"
+    "security": "الأمان",
+    "moderation": "الإشراف"
   },
   "auth": {
     "login": {
@@ -80,6 +81,7 @@
   "profile": {
     "title": "ملفي الشخصي",
     "securityLink": "الأمان — المصادقة الثنائية والأجهزة",
+    "moderationLink": "لوحة الإشراف",
     "logout": "تسجيل الخروج",
     "language": {
       "sectionTitle": "لغة التطبيق",
@@ -173,14 +175,7 @@
         "descriptionPlaceholder": "صف المشكلة (10 أحرف على الأقل)",
         "submit": "إرسال البلاغ",
         "confirmation": "تم إرسال البلاغ، شكرًا لك.",
-        "error": "تعذّر الإرسال.",
-        "categories": {
-          "HARASSMENT": "تحرّش",
-          "ABUSE": "إساءة",
-          "DANGER": "خطر",
-          "FRAUD": "احتيال",
-          "OTHER": "أخرى"
-        }
+        "error": "تعذّر الإرسال."
       }
     },
     "alerts": {
@@ -731,6 +726,34 @@
       "SUBMITTED": "مودَع",
       "NEEDS_REVISION": "تصحيح مطلوب",
       "VALIDATED": "تم التحقق منه"
+    },
+    "reportCategory": {
+      "HARASSMENT": "تحرّش",
+      "ABUSE": "إساءة",
+      "DANGER": "خطر",
+      "FRAUD": "احتيال",
+      "OTHER": "أخرى"
+    },
+    "moderationStatus": {
+      "OPEN": "مفتوح",
+      "REVIEWED": "تمت المراجعة",
+      "CLOSED": "مغلق"
     }
+  },
+  "moderation": {
+    "title": "الإشراف",
+    "loadError": "تعذّر التحميل.",
+    "unavailable": "الوصول مقتصر على المسؤولين.",
+    "filterAll": "الكل",
+    "empty": "لا توجد بلاغات لهذا الفلتر.",
+    "reporterLabel": "بلّغ عنه: {{lsId}}",
+    "targetLabel": "العرض المعني: {{title}}",
+    "resolvedByLabel": "عولج من قبل {{lsId}} بتاريخ {{date}}",
+    "resolutionNoteLabel": "ملاحظة: {{note}}",
+    "resolveAction": "معالجة",
+    "notePlaceholder": "ملاحظة المعالجة (اختياري)",
+    "markReviewed": "وضع علامة تمت المراجعة",
+    "close": "إغلاق",
+    "resolveError": "تعذّرت المعالجة."
   }
 }

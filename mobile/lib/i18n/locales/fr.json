@@ -22,7 +22,8 @@
     "recruiter": "Recruteur",
     "digitalSafe": "Coffre-fort",
     "profile": "Profil",
-    "security": "Sécurité"
+    "security": "Sécurité",
+    "moderation": "Modération"
   },
   "auth": {
     "login": {
@@ -80,6 +81,7 @@
   "profile": {
     "title": "Mon profil",
     "securityLink": "Sécurité — double authentification et appareils",
+    "moderationLink": "Panneau de modération",
     "logout": "Se déconnecter",
     "language": {
       "sectionTitle": "Langue de l'application",
@@ -173,14 +175,7 @@
         "descriptionPlaceholder": "Décrivez le problème (10 caractères minimum)",
         "submit": "Envoyer le signalement",
         "confirmation": "Signalement envoyé, merci.",
-        "error": "Envoi impossible.",
-        "categories": {
-          "HARASSMENT": "Harcèlement",
-          "ABUSE": "Abus",
-          "DANGER": "Danger",
-          "FRAUD": "Fraude",
-          "OTHER": "Autre"
-        }
+        "error": "Envoi impossible."
       }
     },
     "alerts": {
@@ -731,6 +726,34 @@
       "SUBMITTED": "Déposé",
       "NEEDS_REVISION": "Correction demandée",
       "VALIDATED": "Validé"
+    },
+    "reportCategory": {
+      "HARASSMENT": "Harcèlement",
+      "ABUSE": "Abus",
+      "DANGER": "Danger",
+      "FRAUD": "Fraude",
+      "OTHER": "Autre"
+    },
+    "moderationStatus": {
+      "OPEN": "Ouvert",
+      "REVIEWED": "Examiné",
+      "CLOSED": "Clôturé"
     }
+  },
+  "moderation": {
+    "title": "Modération",
+    "loadError": "Chargement impossible.",
+    "unavailable": "Accès réservé aux administrateurs.",
+    "filterAll": "Tous",
+    "empty": "Aucun signalement pour ce filtre.",
+    "reporterLabel": "Signalé par : {{lsId}}",
+    "targetLabel": "Offre concernée : {{title}}",
+    "resolvedByLabel": "Traité par {{lsId}} le {{date}}",
+    "resolutionNoteLabel": "Note : {{note}}",
+    "resolveAction": "Traiter",
+    "notePlaceholder": "Note de traitement (optionnelle)",
+    "markReviewed": "Marquer comme examiné",
+    "close": "Clôturer",
+    "resolveError": "Traitement impossible."
   }
 }

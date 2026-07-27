@@ -150,6 +150,12 @@ export default function ProfileScreen() {
           <Text style={styles.addText}>{t('profile.securityLink')}</Text>
         </Pressable>
 
+        {heldRoles.some((entry) => entry.role.name === 'ADMIN') && (
+          <Pressable onPress={() => router.push('/moderation')} style={styles.securityLink}>
+            <Text style={styles.addText}>{t('profile.moderationLink')}</Text>
+          </Pressable>
+        )}
+
         <Pressable onPress={() => void logout()} style={styles.logout}>
           <Text style={styles.logoutText}>{t('profile.logout')}</Text>
         </Pressable>

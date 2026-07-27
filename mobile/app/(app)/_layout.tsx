@@ -49,6 +49,10 @@ export default function AppLayout() {
         name="security"
         options={{ href: null, headerShown: true, title: t('nav.security') }}
       />
+      <Tabs.Screen
+        name="moderation"
+        options={{ href: null, headerShown: true, title: t('nav.moderation') }}
+      />
     </Tabs>
   );
 }
