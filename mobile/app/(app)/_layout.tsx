@@ -54,6 +54,10 @@ export default function AppLayout() {
         options={{ href: null, headerShown: true, title: t('nav.moderation') }}
       />
       <Tabs.Screen name="partnership-requests" options={{ href: null }} />
+      <Tabs.Screen
+        name="notifications"
+        options={{ href: null, headerShown: true, title: t('nav.notifications') }}
+      />
     </Tabs>
   );
 }

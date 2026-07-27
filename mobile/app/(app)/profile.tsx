@@ -165,6 +165,9 @@ export default function ProfileScreen() {
             >
               <Text style={styles.addText}>{t('profile.partnershipRequestsLink')}</Text>
             </Pressable>
+            <Pressable onPress={() => router.push('/notifications')} style={styles.securityLink}>
+              <Text style={styles.addText}>{t('profile.notificationsLink')}</Text>
+            </Pressable>
           </>
         )}
 

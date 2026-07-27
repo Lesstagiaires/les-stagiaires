@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '../../generated/prisma/client';
 import type {
@@ -23,6 +24,7 @@ export class PartnershipRequestsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async create(dto: CreatePartnershipRequestDto) {
@@ -34,6 +36,14 @@ export class PartnershipRequestsService {
       requestId: request.id,
       reason: request.reason,
       organizationName: request.organizationName,
+    });
+
+    // Notification interne à chaque compte ADMIN actif — canal in-app aujourd'hui, un canal
+    // SMS pourra s'ajouter plus tard sans toucher cet appel (voir NotificationsModule).
+    await this.notifications.notifyAdmins('PARTNERSHIP_REQUEST_NEW', {
+      requestId: request.id,
+      organizationName: request.organizationName,
+      reason: request.reason,
     });
 
     return {

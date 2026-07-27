@@ -132,6 +132,7 @@ model User {
   internshipReportsReviewed   InternshipReport[]
   partnershipRequestsAssigned PartnershipRequest[]      @relation("PartnershipRequestAssignee")
   partnershipRequestNotes     PartnershipRequestNote[]
+  notifications               Notification[]
 
   @@index([email])
   @@index([phone])
@@ -1264,4 +1265,30 @@ model PartnershipRequestNote {
   author  User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
   @@index([requestId])
+}
+
+// ============================================================================
+// Notifications internes — un seul type pour l'instant (nouvelle demande de
+// partenariat), la liste s'étend par migration au fil des besoins. Le canal de
+// diffusion (in-app aujourd'hui, SMS envisagé plus tard) est une préoccupation du
+// code applicatif (api/src/notifications/), pas du schéma : ce modèle représente
+// uniquement le canal in-app, quel que soit ce qui a par ailleurs été envoyé par SMS.
+// ============================================================================
+
+enum NotificationType {
+  PARTNERSHIP_REQUEST_NEW
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  metadata  Json?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, readAt])
 }

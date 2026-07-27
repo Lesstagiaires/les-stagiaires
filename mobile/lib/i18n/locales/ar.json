@@ -23,7 +23,8 @@
     "digitalSafe": "الخزنة الرقمية",
     "profile": "الملف الشخصي",
     "security": "الأمان",
-    "moderation": "الإشراف"
+    "moderation": "الإشراف",
+    "notifications": "الإشعارات"
   },
   "auth": {
     "login": {
@@ -85,6 +86,7 @@
     "contactLink": "تواصل معنا",
     "moderationLink": "لوحة الإشراف",
     "partnershipRequestsLink": "طلبات الشراكة",
+    "notificationsLink": "الإشعارات",
     "logout": "تسجيل الخروج",
     "language": {
       "sectionTitle": "لغة التطبيق",
@@ -834,5 +836,11 @@
       "assignmentNote": "مُسنَد إلى {{name}}",
       "unassignmentNote": "غير مُسنَد"
     }
+  },
+  "notifications": {
+    "title": "الإشعارات",
+    "loadError": "تعذّر التحميل.",
+    "empty": "لا توجد إشعارات بعد.",
+    "partnershipRequestNew": "طلب شراكة جديد: {{organizationName}}"
   }
 }

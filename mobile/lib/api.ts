@@ -531,6 +531,22 @@ export interface PartnershipRequestDetail extends PartnershipRequest {
   notes: PartnershipRequestNote[];
 }
 
+// --- Notifications internes -----------------------------------------------------------------
+
+// Un seul type existe pour l'instant ; la liste s'étend au fil des besoins, un type inconnu
+// côté client (notification plus récente que la version installée) doit s'afficher sans
+// crasher plutôt que de bloquer l'écran — voir notifications.tsx.
+export type NotificationType = 'PARTNERSHIP_REQUEST_NEW';
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  metadata: Record<string, unknown> | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
 // --- Candidatures (module 5) ---------------------------------------------------------------
 
 export type ApplicationStatus =
@@ -1677,6 +1693,15 @@ export const api = {
     request<PartnershipRequestDetail>(`/partnership-requests/${id}/notes`, {
       method: 'POST',
       body: { content },
+      accessToken,
+    }),
+
+  listNotifications: (accessToken: string) =>
+    request<AppNotification[]>('/notifications/mine', { accessToken }),
+
+  markNotificationRead: (accessToken: string, id: string) =>
+    request<AppNotification>(`/notifications/${id}/read`, {
+      method: 'PATCH',
       accessToken,
     }),
 };

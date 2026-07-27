@@ -23,7 +23,8 @@
     "digitalSafe": "Coffre-fort",
     "profile": "Profil",
     "security": "Sécurité",
-    "moderation": "Modération"
+    "moderation": "Modération",
+    "notifications": "Notifications"
   },
   "auth": {
     "login": {
@@ -85,6 +86,7 @@
     "contactLink": "Nous contacter",
     "moderationLink": "Panneau de modération",
     "partnershipRequestsLink": "Demandes de partenariat",
+    "notificationsLink": "Notifications",
     "logout": "Se déconnecter",
     "language": {
       "sectionTitle": "Langue de l'application",
@@ -834,5 +836,11 @@
       "assignmentNote": "Assigné à {{name}}",
       "unassignmentNote": "Désassigné"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "loadError": "Chargement impossible.",
+    "empty": "Aucune notification pour l'instant.",
+    "partnershipRequestNew": "Nouvelle demande de partenariat : {{organizationName}}"
   }
 }

@@ -23,7 +23,8 @@
     "digitalSafe": "Caja fuerte digital",
     "profile": "Perfil",
     "security": "Seguridad",
-    "moderation": "Moderación"
+    "moderation": "Moderación",
+    "notifications": "Notificaciones"
   },
   "auth": {
     "login": {
@@ -85,6 +86,7 @@
     "contactLink": "Contáctenos",
     "moderationLink": "Panel de moderación",
     "partnershipRequestsLink": "Solicitudes de asociación",
+    "notificationsLink": "Notificaciones",
     "logout": "Cerrar sesión",
     "language": {
       "sectionTitle": "Idioma de la aplicación",
@@ -834,5 +836,11 @@
       "assignmentNote": "Asignado a {{name}}",
       "unassignmentNote": "Sin asignar"
     }
+  },
+  "notifications": {
+    "title": "Notificaciones",
+    "loadError": "No se pudo cargar.",
+    "empty": "Aún no hay notificaciones.",
+    "partnershipRequestNew": "Nueva solicitud de asociación: {{organizationName}}"
   }
 }

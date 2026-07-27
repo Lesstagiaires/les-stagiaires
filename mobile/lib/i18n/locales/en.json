@@ -23,7 +23,8 @@
     "digitalSafe": "Digital Safe",
     "profile": "Profile",
     "security": "Security",
-    "moderation": "Moderation"
+    "moderation": "Moderation",
+    "notifications": "Notifications"
   },
   "auth": {
     "login": {
@@ -85,6 +86,7 @@
     "contactLink": "Contact us",
     "moderationLink": "Moderation panel",
     "partnershipRequestsLink": "Partnership requests",
+    "notificationsLink": "Notifications",
     "logout": "Sign out",
     "language": {
       "sectionTitle": "App language",
@@ -834,5 +836,11 @@
       "assignmentNote": "Assigned to {{name}}",
       "unassignmentNote": "Unassigned"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "loadError": "Couldn't load.",
+    "empty": "No notifications yet.",
+    "partnershipRequestNew": "New partnership request: {{organizationName}}"
   }
 }

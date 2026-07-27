@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { DigitalSafeModule } from './digital-safe/digital-safe.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { OpportunitiesModule } from './opportunities/opportunities.module';
 import { PartnershipRequestsModule } from './partnership-requests/partnership-requests.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -30,6 +31,7 @@ import { ReportsModule } from './reports/reports.module';
     DigitalSafeModule,
     OpportunitiesModule,
     ApplicationsModule,
+    NotificationsModule,
     PartnershipRequestsModule,
   ],
   controllers: [AppController],
