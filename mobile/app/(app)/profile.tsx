@@ -839,13 +839,7 @@ function AppLanguageSection() {
         onChange={handleChange}
       />
       {isChanging && <ActivityIndicator color={colors.primary} />}
-      {reloadNotice && (
-        <Text style={styles.hint}>
-          {i18n.language === 'ar'
-            ? 'أعد تشغيل التطبيق يدويًا لتطبيق اتجاه الكتابة الجديد بالكامل.'
-            : 'Redémarrez manuellement l’application pour appliquer le nouveau sens d’écriture.'}
-        </Text>
-      )}
+      {reloadNotice && <Text style={styles.hint}>{t('profile.language.reloadNotice')}</Text>}
     </Section>
   );
 }

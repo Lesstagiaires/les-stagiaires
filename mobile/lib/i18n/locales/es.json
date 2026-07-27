@@ -83,7 +83,8 @@
     "logout": "Cerrar sesión",
     "language": {
       "sectionTitle": "Idioma de la aplicación",
-      "hint": "Elige el idioma utilizado en la aplicación."
+      "hint": "Elige el idioma utilizado en la aplicación.",
+      "reloadNotice": "Reinicie manualmente la aplicación para aplicar por completo el nuevo sentido de escritura."
     },
     "header": {
       "fullNamePlaceholder": "Nombre completo",

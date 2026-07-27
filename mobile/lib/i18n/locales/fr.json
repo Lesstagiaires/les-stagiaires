@@ -83,7 +83,8 @@
     "logout": "Se déconnecter",
     "language": {
       "sectionTitle": "Langue de l'application",
-      "hint": "Choisissez la langue utilisée dans l'application."
+      "hint": "Choisissez la langue utilisée dans l'application.",
+      "reloadNotice": "Redémarrez manuellement l'application pour appliquer le nouveau sens d'écriture."
     },
     "header": {
       "fullNamePlaceholder": "Nom complet",
