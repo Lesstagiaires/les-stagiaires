@@ -551,6 +551,82 @@
           "title": "Historial"
         }
       }
+    },
+    "learners": {
+      "loadError": "No se pudo cargar.",
+      "unavailable": "Organización no disponible.",
+      "title": "Aprendices",
+      "empty": "Aún no hay aprendices.",
+      "verifyError": "No se pudo verificar.",
+      "revokeError": "No se pudo revocar.",
+      "verifiedStatus": "Vínculo verificado",
+      "pendingVerification": "Pendiente de verificación",
+      "verify": "Verificar",
+      "revoke": "Revocar",
+      "invite": {
+        "title": "Vincular un aprendiz",
+        "hint": "La persona ya debe tener una cuenta LES STAGIAIRES con este número.",
+        "phonePlaceholder": "Teléfono (ej.: +237670000000)",
+        "error": "No se pudo enviar la invitación.",
+        "submit": "Enviar la invitación"
+      }
+    },
+    "campaigns": {
+      "loadError": "No se pudo cargar.",
+      "unavailable": "Organización no disponible.",
+      "title": "Campañas de pasantías",
+      "empty": "Aún no hay campañas.",
+      "actionError": "Acción no disponible.",
+      "activate": "Activar",
+      "close": "Cerrar",
+      "create": {
+        "title": "Nueva campaña",
+        "namePlaceholder": "Nombre de la campaña",
+        "startDatePlaceholder": "Fecha de inicio",
+        "endDatePlaceholder": "Fecha de fin",
+        "error": "No se pudo crear.",
+        "submit": "Crear"
+      }
+    },
+    "learnerApplications": {
+      "loadError": "No se pudo cargar.",
+      "unavailable": "Organización no disponible.",
+      "title": "Convenios de los aprendices",
+      "subtitle": "Seguimiento de las candidaturas de los aprendices verificados de su institución.",
+      "empty": "Aún no hay candidaturas.",
+      "signedBy": "Convenio firmado por {{name}}",
+      "participationRequested": "Participación de la institución solicitada — sin firmar"
+    },
+    "reports": {
+      "loadError": "No se pudo cargar.",
+      "unavailable": "Organización no disponible.",
+      "title": "Informes de pasantía",
+      "empty": "Aún no hay informes.",
+      "noteLabel": "Nota: {{note}}",
+      "downloadError": "No se pudo descargar.",
+      "download": "Descargar el informe",
+      "actionError": "Acción no disponible.",
+      "notePlaceholder": "Nota (opcional)",
+      "validate": "Validar",
+      "requestRevision": "Solicitar una corrección"
+    },
+    "dashboard": {
+      "loadError": "No se pudo cargar.",
+      "unavailable": "Organización no disponible.",
+      "title": "Panel de inserción",
+      "totalLearners": "Aprendices",
+      "verifiedLearners": "Aprendices verificados",
+      "totalApplications": "Candidaturas",
+      "learnersWithInternship": "En pasantía / pasantía realizada",
+      "completedInternships": "Pasantías finalizadas",
+      "insertionRate": "Tasa de inserción"
+    },
+    "partners": {
+      "loadError": "No se pudo cargar.",
+      "unavailable": "Organización no disponible.",
+      "title": "Empresas asociadas",
+      "subtitle": "Organizaciones que han recibido al menos un aprendiz verificado de su institución.",
+      "empty": "Aún no hay empresas asociadas."
     }
   },
   "security": {

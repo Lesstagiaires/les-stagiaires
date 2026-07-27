@@ -551,6 +551,82 @@
           "title": "Historique"
         }
       }
+    },
+    "learners": {
+      "loadError": "Chargement impossible.",
+      "unavailable": "Organisation indisponible.",
+      "title": "Apprenants",
+      "empty": "Aucun apprenant pour l'instant.",
+      "verifyError": "Vérification impossible.",
+      "revokeError": "Révocation impossible.",
+      "verifiedStatus": "Rattachement vérifié",
+      "pendingVerification": "En attente de vérification",
+      "verify": "Vérifier",
+      "revoke": "Révoquer",
+      "invite": {
+        "title": "Rattacher un apprenant",
+        "hint": "La personne doit déjà avoir un compte LES STAGIAIRES avec ce numéro.",
+        "phonePlaceholder": "Téléphone (ex : +237670000000)",
+        "error": "Invitation impossible.",
+        "submit": "Envoyer l'invitation"
+      }
+    },
+    "campaigns": {
+      "loadError": "Chargement impossible.",
+      "unavailable": "Organisation indisponible.",
+      "title": "Campagnes de stage",
+      "empty": "Aucune campagne pour l'instant.",
+      "actionError": "Action impossible.",
+      "activate": "Activer",
+      "close": "Clôturer",
+      "create": {
+        "title": "Nouvelle campagne",
+        "namePlaceholder": "Nom de la campagne",
+        "startDatePlaceholder": "Date de début",
+        "endDatePlaceholder": "Date de fin",
+        "error": "Création impossible.",
+        "submit": "Créer"
+      }
+    },
+    "learnerApplications": {
+      "loadError": "Chargement impossible.",
+      "unavailable": "Organisation indisponible.",
+      "title": "Conventions des apprenants",
+      "subtitle": "Suivi des candidatures des apprenants vérifiés de votre établissement.",
+      "empty": "Aucune candidature pour l'instant.",
+      "signedBy": "Convention signée par {{name}}",
+      "participationRequested": "Participation de l'établissement demandée — non signée"
+    },
+    "reports": {
+      "loadError": "Chargement impossible.",
+      "unavailable": "Organisation indisponible.",
+      "title": "Rapports de stage",
+      "empty": "Aucun rapport pour l'instant.",
+      "noteLabel": "Note : {{note}}",
+      "downloadError": "Téléchargement impossible.",
+      "download": "Télécharger le rapport",
+      "actionError": "Action impossible.",
+      "notePlaceholder": "Note (optionnelle)",
+      "validate": "Valider",
+      "requestRevision": "Demander une correction"
+    },
+    "dashboard": {
+      "loadError": "Chargement impossible.",
+      "unavailable": "Organisation indisponible.",
+      "title": "Tableau de bord d'insertion",
+      "totalLearners": "Apprenants",
+      "verifiedLearners": "Apprenants vérifiés",
+      "totalApplications": "Candidatures",
+      "learnersWithInternship": "En stage / stage effectué",
+      "completedInternships": "Stages terminés",
+      "insertionRate": "Taux d'insertion"
+    },
+    "partners": {
+      "loadError": "Chargement impossible.",
+      "unavailable": "Organisation indisponible.",
+      "title": "Entreprises partenaires",
+      "subtitle": "Organisations ayant accueilli au moins un apprenant vérifié de votre établissement.",
+      "empty": "Aucune entreprise partenaire pour l'instant."
     }
   },
   "security": {

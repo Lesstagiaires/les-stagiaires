@@ -551,6 +551,82 @@
           "title": "History"
         }
       }
+    },
+    "learners": {
+      "loadError": "Couldn't load.",
+      "unavailable": "Organization unavailable.",
+      "title": "Learners",
+      "empty": "No learners yet.",
+      "verifyError": "Verification failed.",
+      "revokeError": "Revocation failed.",
+      "verifiedStatus": "Affiliation verified",
+      "pendingVerification": "Awaiting verification",
+      "verify": "Verify",
+      "revoke": "Revoke",
+      "invite": {
+        "title": "Attach a learner",
+        "hint": "The person must already have a LES STAGIAIRES account with this phone number.",
+        "phonePlaceholder": "Phone (e.g.: +237670000000)",
+        "error": "Couldn't send the invitation.",
+        "submit": "Send the invitation"
+      }
+    },
+    "campaigns": {
+      "loadError": "Couldn't load.",
+      "unavailable": "Organization unavailable.",
+      "title": "Internship campaigns",
+      "empty": "No campaigns yet.",
+      "actionError": "Action failed.",
+      "activate": "Activate",
+      "close": "Close",
+      "create": {
+        "title": "New campaign",
+        "namePlaceholder": "Campaign name",
+        "startDatePlaceholder": "Start date",
+        "endDatePlaceholder": "End date",
+        "error": "Couldn't create.",
+        "submit": "Create"
+      }
+    },
+    "learnerApplications": {
+      "loadError": "Couldn't load.",
+      "unavailable": "Organization unavailable.",
+      "title": "Learner agreements",
+      "subtitle": "Track the applications of your establishment's verified learners.",
+      "empty": "No applications yet.",
+      "signedBy": "Agreement signed by {{name}}",
+      "participationRequested": "Establishment participation requested — not signed"
+    },
+    "reports": {
+      "loadError": "Couldn't load.",
+      "unavailable": "Organization unavailable.",
+      "title": "Internship reports",
+      "empty": "No reports yet.",
+      "noteLabel": "Note: {{note}}",
+      "downloadError": "Couldn't download.",
+      "download": "Download the report",
+      "actionError": "Action failed.",
+      "notePlaceholder": "Note (optional)",
+      "validate": "Validate",
+      "requestRevision": "Request a revision"
+    },
+    "dashboard": {
+      "loadError": "Couldn't load.",
+      "unavailable": "Organization unavailable.",
+      "title": "Placement dashboard",
+      "totalLearners": "Learners",
+      "verifiedLearners": "Verified learners",
+      "totalApplications": "Applications",
+      "learnersWithInternship": "In internship / completed",
+      "completedInternships": "Completed internships",
+      "insertionRate": "Placement rate"
+    },
+    "partners": {
+      "loadError": "Couldn't load.",
+      "unavailable": "Organization unavailable.",
+      "title": "Partner companies",
+      "subtitle": "Organizations that hosted at least one verified learner from your establishment.",
+      "empty": "No partner companies yet."
     }
   },
   "security": {

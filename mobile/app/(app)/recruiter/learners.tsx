@@ -1,6 +1,7 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/badge';
 import { Card } from '../../../components/card';
 import { ErrorText, FormInput, SecondaryButton } from '../../../components/form';
@@ -13,6 +14,7 @@ import { useAuth } from '../../../lib/auth-context';
 export default function LearnersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { accessToken, logout } = useAuth();
+  const { t } = useTranslation();
   const [learners, setLearners] = useState<EstablishmentLearner[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,9 +28,9 @@ export default function LearnersScreen() {
         void logout();
         return;
       }
-      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.learners.loadError'));
     }
-  }, [id, accessToken, logout]);
+  }, [id, accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -40,7 +42,7 @@ export default function LearnersScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>Organisation indisponible.</ErrorText>
+          <ErrorText>{t('recruiter.learners.unavailable')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -49,14 +51,14 @@ export default function LearnersScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Apprenants</Text>
+        <Text style={styles.title}>{t('recruiter.learners.title')}</Text>
 
         {learners === null ? (
           <ActivityIndicator color={colors.primary} style={styles.loader} />
         ) : (
           <View style={styles.list}>
             {learners.length === 0 ? (
-              <Text style={styles.emptyText}>Aucun apprenant pour l'instant.</Text>
+              <Text style={styles.emptyText}>{t('recruiter.learners.empty')}</Text>
             ) : (
               learners.map((learner) => (
                 <LearnerRow
@@ -90,6 +92,7 @@ function LearnerRow({
   learner: EstablishmentLearner;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,7 +103,7 @@ function LearnerRow({
       await api.verifyLearner(accessToken, establishmentId, learner.id);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Vérification impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.learners.verifyError'));
     } finally {
       setBusy(false);
     }
@@ -113,7 +116,7 @@ function LearnerRow({
       await api.revokeLearner(accessToken, establishmentId, learner.id);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Révocation impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.learners.revokeError'));
     } finally {
       setBusy(false);
     }
@@ -127,16 +130,23 @@ function LearnerRow({
       </View>
       {learner.status === 'ACTIVE' && (
         <Text style={typography.caption}>
-          {learner.verifiedAt ? 'Rattachement vérifié' : 'En attente de vérification'}
+          {learner.verifiedAt
+            ? t('recruiter.learners.verifiedStatus')
+            : t('recruiter.learners.pendingVerification')}
         </Text>
       )}
       <View style={styles.learnerActions}>
         {learner.status === 'ACTIVE' && !learner.verifiedAt && (
-          <SecondaryButton title="Vérifier" onPress={handleVerify} loading={busy} disabled={busy} />
+          <SecondaryButton
+            title={t('recruiter.learners.verify')}
+            onPress={handleVerify}
+            loading={busy}
+            disabled={busy}
+          />
         )}
         {learner.status !== 'REVOKED' && (
           <Text style={styles.revokeText} onPress={busy ? undefined : handleRevoke}>
-            Révoquer
+            {t('recruiter.learners.revoke')}
           </Text>
         )}
       </View>
@@ -154,6 +164,7 @@ function InviteLearnerSection({
   establishmentId: string;
   onInvited: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [phone, setPhone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,26 +177,24 @@ function InviteLearnerSection({
       setPhone('');
       await onInvited();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Invitation impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.learners.invite.error'));
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <Section title="Rattacher un apprenant">
-      <Text style={typography.caption}>
-        La personne doit déjà avoir un compte LES STAGIAIRES avec ce numéro.
-      </Text>
+    <Section title={t('recruiter.learners.invite.title')}>
+      <Text style={typography.caption}>{t('recruiter.learners.invite.hint')}</Text>
       <FormInput
-        placeholder="Téléphone (ex : +237670000000)"
+        placeholder={t('recruiter.learners.invite.phonePlaceholder')}
         value={phone}
         onChangeText={setPhone}
         keyboardType="phone-pad"
       />
       <ErrorText>{error}</ErrorText>
       <SecondaryButton
-        title="Envoyer l'invitation"
+        title={t('recruiter.learners.invite.submit')}
         onPress={handleInvite}
         loading={isSaving}
         disabled={!phone.trim()}

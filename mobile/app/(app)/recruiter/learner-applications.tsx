@@ -1,6 +1,7 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/badge';
 import { Card } from '../../../components/card';
 import { ErrorText } from '../../../components/form';
@@ -12,6 +13,7 @@ import { useAuth } from '../../../lib/auth-context';
 export default function LearnerApplicationsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { accessToken, logout } = useAuth();
+  const { t } = useTranslation();
   const [applications, setApplications] = useState<LearnerApplicationSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,9 +27,9 @@ export default function LearnerApplicationsScreen() {
         void logout();
         return;
       }
-      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.learnerApplications.loadError'));
     }
-  }, [id, accessToken, logout]);
+  }, [id, accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -39,7 +41,7 @@ export default function LearnerApplicationsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>Organisation indisponible.</ErrorText>
+          <ErrorText>{t('recruiter.learnerApplications.unavailable')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -48,17 +50,15 @@ export default function LearnerApplicationsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Conventions des apprenants</Text>
-        <Text style={typography.caption}>
-          Suivi des candidatures des apprenants vérifiés de votre établissement.
-        </Text>
+        <Text style={styles.title}>{t('recruiter.learnerApplications.title')}</Text>
+        <Text style={typography.caption}>{t('recruiter.learnerApplications.subtitle')}</Text>
 
         {applications === null ? (
           <ActivityIndicator color={colors.primary} style={styles.loader} />
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : applications.length === 0 ? (
-          <Text style={styles.emptyText}>Aucune candidature pour l'instant.</Text>
+          <Text style={styles.emptyText}>{t('recruiter.learnerApplications.empty')}</Text>
         ) : (
           <View style={styles.list}>
             {applications.map((application) => (
@@ -71,14 +71,16 @@ export default function LearnerApplicationsScreen() {
                   />
                 </View>
                 <Text style={typography.body}>
-                  {application.opportunity?.title ?? 'Candidature spontanée'}
+                  {application.opportunity?.title ?? t('applications.list.spontaneous')}
                 </Text>
                 <Text style={typography.caption}>{application.organization.name}</Text>
                 {application.establishmentParticipationRequested && (
                   <Text style={typography.caption}>
                     {application.establishmentSignedAt
-                      ? `Convention signée par ${application.establishmentSignedName}`
-                      : "Participation de l'établissement demandée — non signée"}
+                      ? t('recruiter.learnerApplications.signedBy', {
+                          name: application.establishmentSignedName,
+                        })
+                      : t('recruiter.learnerApplications.participationRequested')}
                   </Text>
                 )}
               </Card>

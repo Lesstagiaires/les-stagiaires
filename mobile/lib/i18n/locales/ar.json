@@ -551,6 +551,82 @@
           "title": "السجل"
         }
       }
+    },
+    "learners": {
+      "loadError": "تعذّر التحميل.",
+      "unavailable": "المنظمة غير متاحة.",
+      "title": "المتدرّبون",
+      "empty": "لا يوجد متدرّبون بعد.",
+      "verifyError": "تعذّر التحقق.",
+      "revokeError": "تعذّر الإلغاء.",
+      "verifiedStatus": "تم التحقق من الانتساب",
+      "pendingVerification": "في انتظار التحقق",
+      "verify": "تحقق",
+      "revoke": "إلغاء",
+      "invite": {
+        "title": "ربط متدرّب",
+        "hint": "يجب أن يكون لدى الشخص بالفعل حساب LES STAGIAIRES بهذا الرقم.",
+        "phonePlaceholder": "الهاتف (مثال: +237670000000)",
+        "error": "تعذّر إرسال الدعوة.",
+        "submit": "إرسال الدعوة"
+      }
+    },
+    "campaigns": {
+      "loadError": "تعذّر التحميل.",
+      "unavailable": "المنظمة غير متاحة.",
+      "title": "حملات التدريب",
+      "empty": "لا توجد حملات بعد.",
+      "actionError": "تعذّر تنفيذ الإجراء.",
+      "activate": "تفعيل",
+      "close": "إغلاق",
+      "create": {
+        "title": "حملة جديدة",
+        "namePlaceholder": "اسم الحملة",
+        "startDatePlaceholder": "تاريخ البدء",
+        "endDatePlaceholder": "تاريخ الانتهاء",
+        "error": "تعذّر الإنشاء.",
+        "submit": "إنشاء"
+      }
+    },
+    "learnerApplications": {
+      "loadError": "تعذّر التحميل.",
+      "unavailable": "المنظمة غير متاحة.",
+      "title": "اتفاقيات المتدرّبين",
+      "subtitle": "متابعة ترشيحات المتدرّبين الموثّقين في مؤسستكم.",
+      "empty": "لا توجد ترشيحات بعد.",
+      "signedBy": "اتفاقية موقّعة من {{name}}",
+      "participationRequested": "مشاركة المؤسسة مطلوبة — غير موقّعة"
+    },
+    "reports": {
+      "loadError": "تعذّر التحميل.",
+      "unavailable": "المنظمة غير متاحة.",
+      "title": "تقارير التدريب",
+      "empty": "لا توجد تقارير بعد.",
+      "noteLabel": "ملاحظة: {{note}}",
+      "downloadError": "تعذّر التنزيل.",
+      "download": "تنزيل التقرير",
+      "actionError": "تعذّر تنفيذ الإجراء.",
+      "notePlaceholder": "ملاحظة (اختياري)",
+      "validate": "التحقق",
+      "requestRevision": "طلب تصحيح"
+    },
+    "dashboard": {
+      "loadError": "تعذّر التحميل.",
+      "unavailable": "المنظمة غير متاحة.",
+      "title": "لوحة قياس الإدماج المهني",
+      "totalLearners": "المتدرّبون",
+      "verifiedLearners": "المتدرّبون الموثّقون",
+      "totalApplications": "الترشيحات",
+      "learnersWithInternship": "قيد التدريب / تم التدريب",
+      "completedInternships": "تدريبات منتهية",
+      "insertionRate": "معدّل الإدماج المهني"
+    },
+    "partners": {
+      "loadError": "تعذّر التحميل.",
+      "unavailable": "المنظمة غير متاحة.",
+      "title": "الشركات الشريكة",
+      "subtitle": "المنظمات التي استقبلت متدرّبًا موثّقًا واحدًا على الأقل من مؤسستكم.",
+      "empty": "لا توجد شركات شريكة بعد."
     }
   },
   "security": {

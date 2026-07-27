@@ -1,6 +1,7 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Card } from '../../../components/card';
 import { ErrorText } from '../../../components/form';
 import { colors, spacing, typography } from '../../../components/theme';
@@ -10,6 +11,7 @@ import { useAuth } from '../../../lib/auth-context';
 export default function PartnerCompaniesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { accessToken, logout } = useAuth();
+  const { t } = useTranslation();
   const [partners, setPartners] = useState<PartnerCompany[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -23,9 +25,9 @@ export default function PartnerCompaniesScreen() {
         void logout();
         return;
       }
-      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.partners.loadError'));
     }
-  }, [id, accessToken, logout]);
+  }, [id, accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -37,7 +39,7 @@ export default function PartnerCompaniesScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>Organisation indisponible.</ErrorText>
+          <ErrorText>{t('recruiter.partners.unavailable')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -46,17 +48,15 @@ export default function PartnerCompaniesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Entreprises partenaires</Text>
-        <Text style={typography.caption}>
-          Organisations ayant accueilli au moins un apprenant vérifié de votre établissement.
-        </Text>
+        <Text style={styles.title}>{t('recruiter.partners.title')}</Text>
+        <Text style={typography.caption}>{t('recruiter.partners.subtitle')}</Text>
 
         {partners === null ? (
           <ActivityIndicator color={colors.primary} style={styles.loader} />
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : partners.length === 0 ? (
-          <Text style={styles.emptyText}>Aucune entreprise partenaire pour l'instant.</Text>
+          <Text style={styles.emptyText}>{t('recruiter.partners.empty')}</Text>
         ) : (
           <View style={styles.list}>
             {partners.map((partner) => (

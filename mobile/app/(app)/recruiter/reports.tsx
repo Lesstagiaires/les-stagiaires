@@ -1,6 +1,7 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/badge';
 import { Card } from '../../../components/card';
 import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../../components/form';
@@ -13,6 +14,7 @@ import { saveFile } from '../../../lib/save-file';
 export default function ReportsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { accessToken, logout } = useAuth();
+  const { t } = useTranslation();
   const [reports, setReports] = useState<InternshipReportWithApplication[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,9 +28,9 @@ export default function ReportsScreen() {
         void logout();
         return;
       }
-      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.reports.loadError'));
     }
-  }, [id, accessToken, logout]);
+  }, [id, accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -40,7 +42,7 @@ export default function ReportsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>Organisation indisponible.</ErrorText>
+          <ErrorText>{t('recruiter.reports.unavailable')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -49,14 +51,14 @@ export default function ReportsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Rapports de stage</Text>
+        <Text style={styles.title}>{t('recruiter.reports.title')}</Text>
 
         {reports === null ? (
           <ActivityIndicator color={colors.primary} style={styles.loader} />
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : reports.length === 0 ? (
-          <Text style={styles.emptyText}>Aucun rapport pour l'instant.</Text>
+          <Text style={styles.emptyText}>{t('recruiter.reports.empty')}</Text>
         ) : (
           <View style={styles.list}>
             {reports.map((report) => (
@@ -86,6 +88,7 @@ function ReportRow({
   report: InternshipReportWithApplication;
   onChanged: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [note, setNote] = useState('');
   const [busyAction, setBusyAction] = useState<'download' | 'validate' | 'revise' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +100,7 @@ function ReportRow({
       const { blob, fileName } = await api.downloadDocument(accessToken, report.digitalSafeDocumentId);
       await saveFile(blob, fileName);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Téléchargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.reports.downloadError'));
     } finally {
       setBusyAction(null);
     }
@@ -113,7 +116,7 @@ function ReportRow({
       });
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Action impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.reports.actionError'));
     } finally {
       setBusyAction(null);
     }
@@ -126,10 +129,14 @@ function ReportRow({
         <Badge label={REPORT_STATUS_LABELS[report.status]} tone={REPORT_STATUS_TONE[report.status]} />
       </View>
       <Text style={typography.caption}>{report.application.reference}</Text>
-      {!!report.reviewNote && <Text style={typography.caption}>Note : {report.reviewNote}</Text>}
+      {!!report.reviewNote && (
+        <Text style={typography.caption}>
+          {t('recruiter.reports.noteLabel', { note: report.reviewNote })}
+        </Text>
+      )}
 
       <SecondaryButton
-        title="Télécharger le rapport"
+        title={t('recruiter.reports.download')}
         onPress={handleDownload}
         loading={busyAction === 'download'}
         disabled={busyAction !== null}
@@ -138,7 +145,7 @@ function ReportRow({
       {report.status === 'SUBMITTED' && (
         <>
           <FormInput
-            placeholder="Note (optionnelle)"
+            placeholder={t('recruiter.reports.notePlaceholder')}
             value={note}
             onChangeText={setNote}
             multiline
@@ -147,7 +154,7 @@ function ReportRow({
           <View style={styles.reviewActions}>
             <View style={styles.reviewButton}>
               <PrimaryButton
-                title="Valider"
+                title={t('recruiter.reports.validate')}
                 onPress={() => handleReview('VALIDATED')}
                 loading={busyAction === 'validate'}
                 disabled={busyAction !== null}
@@ -155,7 +162,7 @@ function ReportRow({
             </View>
             <View style={styles.reviewButton}>
               <SecondaryButton
-                title="Demander une correction"
+                title={t('recruiter.reports.requestRevision')}
                 onPress={() => handleReview('NEEDS_REVISION')}
                 loading={busyAction === 'revise'}
                 disabled={busyAction !== null}

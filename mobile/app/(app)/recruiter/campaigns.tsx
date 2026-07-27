@@ -1,6 +1,7 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/badge';
 import { Card } from '../../../components/card';
 import { DateInput } from '../../../components/date-input';
@@ -15,6 +16,7 @@ import { toIsoDateString } from '../../../lib/date';
 export default function CampaignsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { accessToken, logout } = useAuth();
+  const { t } = useTranslation();
   const [campaigns, setCampaigns] = useState<InternshipCampaign[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,9 +30,9 @@ export default function CampaignsScreen() {
         void logout();
         return;
       }
-      setError(err instanceof ApiError ? err.message : 'Chargement impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.campaigns.loadError'));
     }
-  }, [id, accessToken, logout]);
+  }, [id, accessToken, logout, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -42,7 +44,7 @@ export default function CampaignsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ErrorText>Organisation indisponible.</ErrorText>
+          <ErrorText>{t('recruiter.campaigns.unavailable')}</ErrorText>
         </View>
       </SafeAreaView>
     );
@@ -51,14 +53,14 @@ export default function CampaignsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Campagnes de stage</Text>
+        <Text style={styles.title}>{t('recruiter.campaigns.title')}</Text>
 
         {campaigns === null ? (
           <ActivityIndicator color={colors.primary} style={styles.loader} />
         ) : (
           <View style={styles.list}>
             {campaigns.length === 0 ? (
-              <Text style={styles.emptyText}>Aucune campagne pour l'instant.</Text>
+              <Text style={styles.emptyText}>{t('recruiter.campaigns.empty')}</Text>
             ) : (
               campaigns.map((campaign) => (
                 <CampaignRow
@@ -92,6 +94,7 @@ function CampaignRow({
   campaign: InternshipCampaign;
   onChanged: () => Promise<void>;
 }) {
+  const { t, i18n } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,7 +105,7 @@ function CampaignRow({
       await api.updateCampaignStatus(accessToken, establishmentId, campaign.id, status);
       await onChanged();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Action impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.campaigns.actionError'));
     } finally {
       setBusy(false);
     }
@@ -115,14 +118,24 @@ function CampaignRow({
         <Badge label={CAMPAIGN_STATUS_LABELS[campaign.status]} tone={CAMPAIGN_STATUS_TONE[campaign.status]} />
       </View>
       <Text style={typography.caption}>
-        {new Date(campaign.startDate).toLocaleDateString('fr-FR')} —{' '}
-        {new Date(campaign.endDate).toLocaleDateString('fr-FR')}
+        {new Date(campaign.startDate).toLocaleDateString(i18n.language)} —{' '}
+        {new Date(campaign.endDate).toLocaleDateString(i18n.language)}
       </Text>
       {campaign.status === 'DRAFT' && (
-        <SecondaryButton title="Activer" onPress={() => transition('ACTIVE')} loading={busy} disabled={busy} />
+        <SecondaryButton
+          title={t('recruiter.campaigns.activate')}
+          onPress={() => transition('ACTIVE')}
+          loading={busy}
+          disabled={busy}
+        />
       )}
       {campaign.status === 'ACTIVE' && (
-        <SecondaryButton title="Clôturer" onPress={() => transition('CLOSED')} loading={busy} disabled={busy} />
+        <SecondaryButton
+          title={t('recruiter.campaigns.close')}
+          onPress={() => transition('CLOSED')}
+          loading={busy}
+          disabled={busy}
+        />
       )}
       <ErrorText>{error}</ErrorText>
     </Card>
@@ -138,6 +151,7 @@ function CreateCampaignSection({
   establishmentId: string;
   onCreated: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
@@ -159,20 +173,32 @@ function CreateCampaignSection({
       setEndDate(null);
       await onCreated();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Création impossible.');
+      setError(err instanceof ApiError ? err.message : t('recruiter.campaigns.create.error'));
     } finally {
       setIsSaving(false);
     }
   }
 
   return (
-    <Section title="Nouvelle campagne">
-      <FormInput placeholder="Nom de la campagne" value={name} onChangeText={setName} />
-      <DateInput placeholder="Date de début" value={startDate} onChange={setStartDate} />
-      <DateInput placeholder="Date de fin" value={endDate} onChange={setEndDate} />
+    <Section title={t('recruiter.campaigns.create.title')}>
+      <FormInput
+        placeholder={t('recruiter.campaigns.create.namePlaceholder')}
+        value={name}
+        onChangeText={setName}
+      />
+      <DateInput
+        placeholder={t('recruiter.campaigns.create.startDatePlaceholder')}
+        value={startDate}
+        onChange={setStartDate}
+      />
+      <DateInput
+        placeholder={t('recruiter.campaigns.create.endDatePlaceholder')}
+        value={endDate}
+        onChange={setEndDate}
+      />
       <ErrorText>{error}</ErrorText>
       <PrimaryButton
-        title="Créer"
+        title={t('recruiter.campaigns.create.submit')}
         onPress={handleCreate}
         loading={isSaving}
         disabled={!name.trim() || !startDate || !endDate}
