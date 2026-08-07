@@ -4,10 +4,18 @@ import { ConfigService } from '@nestjs/config';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { assertProductionReadiness } from './common/production-readiness';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
+
+  // AVANT TOUT LE RESTE. Chacune des valeurs contrôlées ici a un défaut de
+  // développement qui fonctionne sans rien casser : le service démarrerait,
+  // les journaux resteraient verts, et les SMS de consentement parental
+  // n'arriveraient nulle part. Le seul moment où quelqu'un regarde vraiment,
+  // c'est quand le service refuse de démarrer.
+  assertProductionReadiness(config);
 
   // Derrière un reverse proxy / CDN (ex. Cloudflare) en production, seule cette
   // configuration permet à express-rate-limit (ThrottlerGuard) de lire la vraie IP
