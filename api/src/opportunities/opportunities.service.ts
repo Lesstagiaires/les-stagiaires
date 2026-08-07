@@ -570,6 +570,27 @@ export class OpportunitiesService {
              OR similarity("city", ${terme}) > 0.35
              OR (${elargi}::text IS NOT NULL
                  AND "searchVector" @@ websearch_to_tsquery('french', ${elargi})))
+         -- ORDRE OBLIGATOIRE AVANT LA BORNE.
+         --
+         -- Un LIMIT sans ORDER BY laisse PostgreSQL rendre 500 lignes
+         -- QUELCONQUES parmi les correspondances — et deux exécutions de la
+         -- même recherche peuvent ne pas rendre les mêmes, selon le plan
+         -- choisi ou la parallélisation. Au-delà de 500 correspondances, le
+         -- classement cessait donc d'être reproductible, ce que le module
+         -- promet pourtant explicitement.
+         --
+         -- Par "publishedAt" puis "id" : le même ordre de chargement que la
+         -- fenêtre de 200 juste au-dessus, qui avait ce garde-fou alors que
+         -- celle-ci ne l'avait pas. On départage par identifiant parce qu'une
+         -- date seule laisse des ex aequo, et un ex aequo non départagé
+         -- réintroduit exactement le problème.
+         --
+         -- Ce n'est PAS un classement : cette requête choisit quelles offres
+         -- seront notées, pas dans quel ordre elles seront rendues. Trier ici
+         -- par pertinence textuelle ajouterait un second critère de classement
+         -- invisible, hors du barème configurable — précisément ce que le
+         -- module s'interdit.
+         ORDER BY "publishedAt" DESC NULLS LAST, id ASC
          LIMIT 500
       `,
       this.matchByReferential(synonymes),
@@ -630,6 +651,10 @@ export class OpportunitiesService {
         ],
       },
       select: { id: true },
+      // Même raison que la passe plein texte : une borne sans ordre rend des
+      // lignes quelconques, et le classement cesserait d'être reproductible
+      // au-delà de 500 correspondances.
+      orderBy: [{ publishedAt: 'desc' }, { id: 'asc' }],
       take: 500,
     });
 
