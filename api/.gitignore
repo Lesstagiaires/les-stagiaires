@@ -4,8 +4,18 @@ dist
 # Stockage local de dev pour les documents (jamais de fichier utilisateur en dépôt)
 storage-data/
 
-# Keep environment variables out of version control
-.env
+# ---------------------------------------------------------------------------
+# VARIABLES D'ENVIRONNEMENT — TOUTE LA FAMILLE, SAUF L'EXEMPLE
+#
+# Le motif est volontairement large. Énumérer les variantes (.env.local,
+# .env.production, .env.development.local…) revient à parier qu'on pensera à
+# ajouter la prochaine — et le jour où on l'oublie, ce sont des identifiants de
+# production qui partent au dépôt. Ici, tout ce qui commence par .env est exclu
+# par défaut, et seul .env.example est réintroduit explicitement.
+# ---------------------------------------------------------------------------
+.env*
+!.env.example
+
 
 /generated/prisma
 backups/

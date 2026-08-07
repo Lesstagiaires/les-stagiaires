@@ -6,9 +6,9 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Env
-.env
-.env.local
+# Env — toute la famille, sauf l’exemple
+.env*
+!.env.example
 
 # Logs
 *.log

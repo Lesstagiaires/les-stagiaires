@@ -24,7 +24,21 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    // Les variables d'environnement sont chargées au démarrage et disponibles
+    // partout (`isGlobal`) — aucun module n'a à les relire depuis le disque.
+    //
+    // DEUX FICHIERS, DANS CET ORDRE. `.env.local` l'emporte sur `.env` : le
+    // premier trouvé gagne, chez NestJS. C'est ce qui permet d'essayer des
+    // identifiants — un compte Africa's Talking, une passerelle de paiement —
+    // sans toucher au `.env` de l'équipe, et donc sans risquer de committer un
+    // secret en croyant committer un réglage.
+    //
+    // Les deux sont ignorés par git, comme toute la famille `.env*` sauf
+    // `.env.example`.
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
+    }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
     CryptoModule,
