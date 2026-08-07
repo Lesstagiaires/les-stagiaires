@@ -28,14 +28,30 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const racine = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const env = Object.fromEntries(
-  fs
-    .readFileSync(path.join(racine, '.env'), 'utf8')
-    .split('\n')
-    .map((ligne) => /^([A-Z_]+)="?([^"\n]*)"?/.exec(ligne))
-    .filter(Boolean)
-    .map((m) => [m[1], m[2]]),
-);
+
+// LES MÊMES DEUX FICHIERS QUE L'APPLICATION, DANS LE MÊME ORDRE.
+//
+// `.env.local` d'abord, `.env` ensuite, le premier trouvé l'emporte. Si cet
+// essai lisait un jeu de variables différent de celui que lit l'application, il
+// ne prouverait rien : il dirait « identifiants absents » alors qu'ils sont là,
+// ou — bien pire — « tout va bien » sur une configuration qui n'est pas celle
+// qui tournera.
+function lireEnv(fichier) {
+  const chemin = path.join(racine, fichier);
+  if (!fs.existsSync(chemin)) return {};
+  return Object.fromEntries(
+    fs
+      .readFileSync(chemin, 'utf8')
+      .split('\n')
+      .map((ligne) => /^([A-Z_]+)="?([^"\n]*)"?/.exec(ligne))
+      .filter(Boolean)
+      .map((m) => [m[1], m[2]]),
+  );
+}
+
+// L'ordre de l'étalement compte : ce qui vient en dernier écrase, donc `.env`
+// est posé d'abord et `.env.local` par-dessus.
+const env = { ...lireEnv('.env'), ...lireEnv('.env.local') };
 
 const destinataire = process.argv[2];
 if (!destinataire || !/^\+[1-9]\d{6,14}$/.test(destinataire)) {
@@ -51,9 +67,16 @@ const apiKey = process.env.AFRICASTALKING_API_KEY ?? env.AFRICASTALKING_API_KEY;
 const senderId = process.env.AFRICASTALKING_SENDER_ID ?? env.AFRICASTALKING_SENDER_ID;
 
 if (!username || !apiKey) {
+  console.error('');
+  console.error('  Identifiants incomplets :');
   console.error(
-    'AFRICASTALKING_USERNAME et AFRICASTALKING_API_KEY doivent être renseignés dans .env.',
+    `    AFRICASTALKING_USERNAME ${username ? 'OK' : 'MANQUANT'}`,
   );
+  console.error(`    AFRICASTALKING_API_KEY  ${apiKey ? 'OK' : 'MANQUANT'}`);
+  console.error('');
+  console.error('  À renseigner dans api/.env.local (lu avant .env, jamais commité).');
+  console.error('  Si la ligne existe, vérifiez qu’elle ne commence pas par un #.');
+  console.error('');
   process.exit(1);
 }
 
