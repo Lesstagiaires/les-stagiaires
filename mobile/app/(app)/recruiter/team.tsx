@@ -16,6 +16,7 @@ import {
   MEMBER_STATUS_TONE,
 } from '../../../lib/organization-labels';
 import { useAuth } from '../../../lib/auth-context';
+import { EmptyState } from '../../../components/empty-state';
 
 export default function TeamScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -64,7 +65,7 @@ export default function TeamScreen() {
         ) : (
           <View style={styles.list}>
             {members.length === 0 ? (
-              <Text style={styles.emptyText}>{t('recruiter.team.emptyMembers')}</Text>
+              <EmptyState message={t('recruiter.team.emptyMembers')} />
             ) : (
               members.map((member) => (
                 <MemberRow
@@ -206,9 +207,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxl,
-  },
-  emptyText: {
-    ...typography.caption,
   },
   list: {
     gap: spacing.sm,

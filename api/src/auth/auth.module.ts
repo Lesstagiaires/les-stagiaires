@@ -5,6 +5,7 @@ import { PassportModule } from '@nestjs/passport';
 import { SmsModule } from '../sms/sms.module';
 import { AccountCleanupProcessor } from './account-cleanup.processor';
 import { AccountCleanupScheduler } from './account-cleanup.scheduler';
+import { AmbassadorsModule } from '../ambassadors/ambassadors.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { CountryPolicyController } from './country-policy.controller';
@@ -19,6 +20,7 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 
 @Module({
   imports: [
+    AmbassadorsModule,
     PassportModule,
     JwtModule.register({}),
     SmsModule,

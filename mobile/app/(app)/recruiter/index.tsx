@@ -11,13 +11,17 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../components/badge';
 import { Card, PressableCard } from '../../../components/card';
+import { ChipSelect } from '../../../components/chip-select';
+import { EmptyState } from '../../../components/empty-state';
 import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../../components/form';
 import { colors, spacing, typography } from '../../../components/theme';
 import {
+  ACQUISITION_SOURCES,
   api,
   ApiError,
   type HeldRole,
   type Organization,
+  type OrganizationAcquisitionSource,
   type OrganizationInvitation,
 } from '../../../lib/api';
 import {
@@ -88,13 +92,11 @@ export default function RecruiterHomeScreen() {
         )}
 
         {organizations.length === 0 && invitations.length === 0 && !isOrgEligible && (
-          <View style={styles.emptyState}>
-            <Text style={typography.body}>{t('recruiter.home.noOrgNotice')}</Text>
-            <PrimaryButton
-              title={t('recruiter.home.addRoleButton')}
-              onPress={() => router.push('/profile')}
-            />
-          </View>
+          <EmptyState
+            message={t('recruiter.home.noOrgNotice')}
+            actionLabel={t('recruiter.home.addRoleButton')}
+            onAction={() => router.push('/profile')}
+          />
         )}
 
         {organizations.length > 0 && (
@@ -228,8 +230,16 @@ function CreateOrganizationSection({
   const [sector, setSector] = useState('');
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
+  const [acquisitionSource, setAcquisitionSource] =
+    useState<OrganizationAcquisitionSource | null>(null);
+  const [ambassadorCode, setAmbassadorCode] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const acquisitionSourceOptions = ACQUISITION_SOURCES.map((value) => ({
+    value,
+    label: t(`labels.acquisitionSource.${value}`),
+  }));
 
   async function handleCreate() {
     setError(null);
@@ -240,11 +250,15 @@ function CreateOrganizationSection({
         sector: sector || undefined,
         country,
         city,
+        acquisitionSource: acquisitionSource ?? undefined,
+        ambassadorCode: ambassadorCode.trim() || undefined,
       });
       setName('');
       setSector('');
       setCountry('');
       setCity('');
+      setAcquisitionSource(null);
+      setAmbassadorCode('');
       setIsOpen(false);
       await onCreated();
     } catch (err) {
@@ -283,6 +297,30 @@ function CreateOrganizationSection({
         value={city}
         onChangeText={setCity}
       />
+      {/* Deux champs qui se ressemblent et ne doivent JAMAIS être confondus.
+          Le premier est une statistique ; le second, et lui seul, crée un
+          rattachement ouvrant droit à commission (points 9 à 11 des arbitrages du
+          2026-07-31). Les libellés le disent explicitement à l'utilisateur. */}
+      <Text style={typography.label}>{t('recruiter.home.acquisitionSourceLabel')}</Text>
+      <ChipSelect
+        options={acquisitionSourceOptions}
+        value={acquisitionSource}
+        onChange={(value) =>
+          setAcquisitionSource(value as OrganizationAcquisitionSource)
+        }
+      />
+
+      <Text style={typography.label}>{t('recruiter.home.ambassadorCodeLabel')}</Text>
+      <FormInput
+        placeholder={t('recruiter.home.ambassadorCodePlaceholder')}
+        value={ambassadorCode}
+        onChangeText={setAmbassadorCode}
+        autoCapitalize="characters"
+        autoCorrect={false}
+        maxLength={20}
+      />
+      <Text style={styles.ambassadorHint}>{t('recruiter.home.ambassadorCodeHint')}</Text>
+
       <ErrorText>{error}</ErrorText>
       <PrimaryButton
         title={t('recruiter.home.createButton')}
@@ -315,9 +353,6 @@ const styles = StyleSheet.create({
   },
   screenTitle: {
     ...typography.h1,
-  },
-  emptyState: {
-    gap: spacing.md,
   },
   orgList: {
     gap: spacing.md,
@@ -360,6 +395,10 @@ const styles = StyleSheet.create({
   cancelText: {
     ...typography.caption,
     textAlign: 'center',
+  },
+  ambassadorHint: {
+    ...typography.caption,
+    color: colors.muted,
   },
   invitationsList: {
     gap: spacing.sm,

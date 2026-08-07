@@ -23,6 +23,7 @@ import {
 } from '../../../lib/api';
 import { useOpportunityTypeLabels, useOpportunityTypeOptions } from '../../../lib/opportunity-labels';
 import { useAuth } from '../../../lib/auth-context';
+import { EmptyState } from '../../../components/empty-state';
 
 export default function AlertsScreen() {
   const router = useRouter();
@@ -68,7 +69,7 @@ export default function AlertsScreen() {
         ) : loadError ? (
           <ErrorText>{loadError}</ErrorText>
         ) : alerts.length === 0 ? (
-          <Text style={styles.emptyText}>{t('opportunities.alerts.noAlerts')}</Text>
+          <EmptyState message={t('opportunities.alerts.noAlerts')} />
         ) : (
           alerts.map((alert) => (
             <AlertCard
@@ -246,7 +247,7 @@ function AlertCard({
       {matches !== null && !isLoadingMatches && (
         <View style={styles.matchesList}>
           {matches.length === 0 ? (
-            <Text style={styles.emptyText}>{t('opportunities.alerts.noMatches')}</Text>
+            <EmptyState message={t('opportunities.alerts.noMatches')} />
           ) : (
             matches.map((match) => (
               <Pressable
@@ -294,10 +295,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xl,
-  },
-  emptyText: {
-    ...typography.caption,
-    textAlign: 'center',
   },
   alertCard: {
     gap: spacing.sm,

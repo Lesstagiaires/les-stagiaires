@@ -4,6 +4,7 @@ import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } f
 import { useTranslation } from 'react-i18next';
 import { Badge } from '../../components/badge';
 import { Card } from '../../components/card';
+import { EmptyState } from '../../components/empty-state';
 import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../components/form';
 import { Section } from '../../components/section';
 import { colors, spacing, typography } from '../../components/theme';
@@ -64,7 +65,7 @@ export default function SecurityScreen() {
         <Section title={t('security.devicesTitle')}>
           <Text style={typography.caption}>{t('security.devicesDescription')}</Text>
           {sessions.length === 0 ? (
-            <Text style={typography.caption}>{t('security.noDevices')}</Text>
+            <EmptyState message={t('security.noDevices')} />
           ) : (
             sessions.map((session) => (
               <SessionRow

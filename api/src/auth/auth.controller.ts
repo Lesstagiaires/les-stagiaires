@@ -47,7 +47,11 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('verify-otp')
   verifyOtp(@Body() dto: VerifyOtpDto, @Req() req: Request) {
-    return this.auth.verifyRegistrationOtp(dto, req.headers['user-agent'], req.ip);
+    return this.auth.verifyRegistrationOtp(
+      dto,
+      req.headers['user-agent'],
+      req.ip,
+    );
   }
 
   @Public()
@@ -65,8 +69,15 @@ export class AuthController {
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Post('2fa/verify-login')
-  verifyLoginTwoFactor(@Body() dto: VerifyLoginTwoFactorDto, @Req() req: Request) {
-    return this.auth.verifyLoginTwoFactor(dto, req.headers['user-agent'], req.ip);
+  verifyLoginTwoFactor(
+    @Body() dto: VerifyLoginTwoFactorDto,
+    @Req() req: Request,
+  ) {
+    return this.auth.verifyLoginTwoFactor(
+      dto,
+      req.headers['user-agent'],
+      req.ip,
+    );
   }
 
   @Get('2fa/status')

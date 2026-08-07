@@ -26,6 +26,34 @@ export const colors = {
   success: '#0F6E56',
   successLight: '#E1F5EE',
   warning: '#C46E0A',
+
+  // Direction artistique "Le Passeport" (voir artifact de design system) — tokens
+  // additifs, jamais un remplacement des couleurs ci-dessus. `primary`/`accent` restent
+  // la source de vérité de la marque ; ceux-ci ne font qu'étendre le vocabulaire pour les
+  // surfaces sombres, les dégradés et les nouveaux composants (Étape 2/3 de la refonte).
+  inkDeep: '#0D1526',
+  gold: '#FFC24D', // n'existe jamais seul — uniquement en dégradé avec `accent`
+  paper: '#F6F7FA',
+  mist: '#EAECF2',
+  mistStrong: '#DCE0EA',
+  graphite: '#171B24',
+  graphiteSoft: '#4B5568',
+  graphiteMute: '#7B849B',
+} as const;
+
+// Familles de police enregistrées par useFonts() dans app/_layout.tsx (packages
+// @expo-google-fonts/*). Unbounded pour les titres/chiffres, IBM Plex Sans pour le
+// texte courant — IBM Plex Sans Arabic est chargée en parallèle mais pas encore câblée
+// ici (voir tâche de suivi "Basculer la famille de police en arabe").
+export const fonts = {
+  displayBold: 'Unbounded-Bold',
+  displayExtraBold: 'Unbounded-ExtraBold',
+  displaySemiBold: 'Unbounded-SemiBold',
+  bodyRegular: 'PlexSans-Regular',
+  bodyMedium: 'PlexSans-Medium',
+  bodySemiBold: 'PlexSans-SemiBold',
+  bodyBold: 'PlexSans-Bold',
+  mono: 'PlexMono-Medium',
 } as const;
 
 export const spacing = {
@@ -71,15 +99,19 @@ export const shadow: Record<'sm' | 'md' | 'lg', ViewStyle> = {
   },
 };
 
+// fontWeight reste renseigné en plus de fontFamily : tant qu'une police custom n'est pas
+// encore chargée (premier rendu avant que useFonts() résolve dans app/_layout.tsx), RN
+// retombe sur la police système et fontWeight garantit que la hiérarchie visuelle reste
+// correcte même pendant cette fraction de seconde.
 export const typography: Record<
   'h1' | 'h2' | 'h3' | 'body' | 'bodyBold' | 'caption' | 'label',
   TextStyle
 > = {
-  h1: { fontSize: 28, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
-  h2: { fontSize: 22, fontWeight: '700', color: colors.text, letterSpacing: -0.2 },
-  h3: { fontSize: 17, fontWeight: '700', color: colors.text },
-  body: { fontSize: 15, fontWeight: '400', color: colors.text },
-  bodyBold: { fontSize: 15, fontWeight: '600', color: colors.text },
-  caption: { fontSize: 13, fontWeight: '500', color: colors.textSecondary },
-  label: { fontSize: 12, fontWeight: '700', color: colors.muted, letterSpacing: 0.4 },
+  h1: { fontFamily: fonts.displayExtraBold, fontSize: 28, fontWeight: '800', color: colors.text, letterSpacing: -0.3 },
+  h2: { fontFamily: fonts.displayBold, fontSize: 22, fontWeight: '700', color: colors.text, letterSpacing: -0.2 },
+  h3: { fontFamily: fonts.bodySemiBold, fontSize: 17, fontWeight: '700', color: colors.text },
+  body: { fontFamily: fonts.bodyRegular, fontSize: 15, fontWeight: '400', color: colors.text },
+  bodyBold: { fontFamily: fonts.bodySemiBold, fontSize: 15, fontWeight: '600', color: colors.text },
+  caption: { fontFamily: fonts.bodyMedium, fontSize: 13, fontWeight: '500', color: colors.textSecondary },
+  label: { fontFamily: fonts.bodySemiBold, fontSize: 12, fontWeight: '700', color: colors.muted, letterSpacing: 0.4 },
 };

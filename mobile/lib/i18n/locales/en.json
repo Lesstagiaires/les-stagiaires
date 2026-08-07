@@ -24,7 +24,9 @@
     "profile": "Profile",
     "security": "Security",
     "moderation": "Moderation",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "subscriptions": "Subscriptions",
+    "subscriptionsAdmin": "Subscriptions (Admin)"
   },
   "auth": {
     "login": {
@@ -35,6 +37,7 @@
       "submit": "Sign in",
       "noAccount": "Don't have an account yet? Sign up",
       "contactLink": "Represent an organization? Contact us",
+      "forgotPasswordLink": "Forgot your password?",
       "genericError": "Couldn't sign in. Check your internet connection."
     },
     "twoFactor": {
@@ -51,25 +54,62 @@
       "lastName": "Last name",
       "male": "Male",
       "female": "Female",
-      "phone": "Phone (e.g. +237670000000)",
+      "countryPlaceholder": "Country of residence",
+      "countrySearchPlaceholder": "Search for a country",
+      "phoneNational": "Phone number",
       "email": "Email (optional)",
       "city": "City of residence",
-      "country": "Country of residence (code, e.g. CM)",
       "password": "Password (min. 10 characters, upper/lowercase, digit)",
+      "confirmPassword": "Confirm password",
       "dateOfBirth": "Date of birth",
       "minorNotice": "Depending on your country of residence, an account of this age may require a parent's or guardian's phone number, who will receive an SMS to give consent.",
-      "parentPhone": "Parent's/guardian's phone number",
+      "parentPhoneNational": "Parent's/guardian's phone number",
       "submit": "Sign up",
       "haveAccount": "Already have an account? Sign in",
       "missingDob": "Please enter your date of birth.",
-      "genericError": "Couldn't sign up. Check your internet connection."
+      "missingCountry": "Select your country of residence.",
+      "invalidPhone": "Invalid phone number for the selected country.",
+      "passwordMismatch": "Passwords don't match.",
+      "genericError": "Couldn't sign up. Check your internet connection.",
+      "ambassadorCodeLabel": "Referral code (optional)",
+      "ambassadorCodePlaceholder": "e.g. AB34CD",
+      "ambassadorCodeHint": "If an ambassador introduced you to LES STAGIAIRES, enter their code. An unknown code is simply ignored and never blocks your registration."
     },
     "verifyOtp": {
       "title": "Phone verification",
       "subtitleDefault": "A code was sent by SMS to {{phone}}.",
       "codePlaceholder": "6-digit code",
       "submit": "Confirm",
-      "genericError": "Couldn't verify. Check your internet connection."
+      "genericError": "Couldn't verify. Check your internet connection.",
+      "ambassador": {
+        "CODE_NOT_RECOGNIZED": "The ambassador code you entered is invalid or does not exist. Your registration has been recorded, but no ambassador will be linked to your account. You can continue normally.",
+        "SELF_REFERRAL_BLOCKED": "You cannot use your own referral code. Your registration has been recorded, but no ambassador will be linked to your account.",
+        "ALREADY_ATTRIBUTED": "An ambassador is already linked to your account. Your registration has been recorded, and that first link stays unchanged."
+      }
+    },
+    "forgotPassword": {
+      "title": "Forgot password",
+      "subtitle": "Enter your country and phone number. If an account exists, you'll receive a verification code by SMS.",
+      "countryPlaceholder": "Country",
+      "countrySearchPlaceholder": "Search for a country",
+      "phoneNational": "Phone number",
+      "submit": "Send code",
+      "back": "Back to sign in",
+      "missingCountry": "Select your country.",
+      "invalidPhone": "Invalid phone number for the selected country.",
+      "genericError": "Couldn't send the code. Check your internet connection.",
+      "sentMessage": "If an account exists for this number, a verification code was just sent by SMS."
+    },
+    "resetPassword": {
+      "title": "New password",
+      "subtitleDefault": "Enter the code sent by SMS to {{phone}} along with your new password.",
+      "codePlaceholder": "6-digit code",
+      "newPassword": "New password (min. 10 characters, upper/lowercase, digit)",
+      "confirmPassword": "Confirm new password",
+      "submit": "Reset password",
+      "passwordMismatch": "Passwords don't match.",
+      "genericError": "Couldn't reset the password. Check the code and try again.",
+      "successMessage": "Password changed. Sign in with your new password."
     }
   },
   "home": {
@@ -84,9 +124,11 @@
     "title": "My profile",
     "securityLink": "Security — two-factor authentication and devices",
     "contactLink": "Contact us",
+    "subscriptionsLink": "My subscription",
     "moderationLink": "Moderation panel",
     "partnershipRequestsLink": "Partnership requests",
     "notificationsLink": "Notifications",
+    "subscriptionsAdminLink": "All subscriptions",
     "logout": "Sign out",
     "language": {
       "sectionTitle": "App language",
@@ -143,7 +185,8 @@
       "hidden": "Hidden",
       "show": "Show on profile",
       "hide": "Hide"
-    }
+    },
+    "ambassadorLink": "Ambassador space"
   },
   "opportunities": {
     "detailTitle": "Listing details",
@@ -157,7 +200,10 @@
       "searchButton": "Search",
       "searchError": "Couldn't search.",
       "empty": "No listing matches these criteria.",
-      "loadMore": "See more listings"
+      "loadMore": "See more listings",
+      "keywordsPlaceholder": "Job, skill, company…",
+      "clearKeywords": "Clear search",
+      "emptyKeywords": "No opportunity for “{{keywords}}”. Try another word: the search already recognises abbreviations and typos."
     },
     "detail": {
       "notFound": "Listing unavailable.",
@@ -343,6 +389,8 @@
       "reports": "Internship reports",
       "dashboard": "Dashboard",
       "partners": "Partner companies",
+      "subscription": "Subscription",
+      "sponsor": "Sponsor a subscription",
       "myOpportunities": "My listings",
       "newOpportunity": "New listing",
       "manageOpportunity": "Manage listing",
@@ -366,7 +414,11 @@
       "countryPlaceholder": "Country",
       "cityPlaceholder": "City",
       "createButton": "Create",
-      "createError": "Couldn't create."
+      "createError": "Couldn't create.",
+      "acquisitionSourceLabel": "How did you hear about LES STAGIAIRES?",
+      "ambassadorCodeLabel": "Ambassador code (optional)",
+      "ambassadorCodePlaceholder": "e.g. AB34CD",
+      "ambassadorCodeHint": "The question above is a statistic. Only this code links your company to an ambassador."
     },
     "organization": {
       "notFound": "Organization not found.",
@@ -381,6 +433,7 @@
       "reportsHint": "Review and validate.",
       "dashboardHint": "Learner placement rate.",
       "partnersHint": "Directory of host organizations.",
+      "subscriptionHint": "Subscribe to a plan for the organization.",
       "page": {
         "sectionTitle": "Public page",
         "descriptionPlaceholder": "Organization description",
@@ -563,6 +616,7 @@
       "verifiedStatus": "Affiliation verified",
       "pendingVerification": "Awaiting verification",
       "verify": "Verify",
+      "sponsor": "Offer a subscription",
       "revoke": "Revoke",
       "invite": {
         "title": "Attach a learner",
@@ -614,6 +668,7 @@
     "dashboard": {
       "loadError": "Couldn't load.",
       "unavailable": "Organization unavailable.",
+      "eyebrow": "Overview",
       "title": "Placement dashboard",
       "totalLearners": "Learners",
       "verifiedLearners": "Verified learners",
@@ -628,6 +683,27 @@
       "title": "Partner companies",
       "subtitle": "Organizations that hosted at least one verified learner from your establishment.",
       "empty": "No partner companies yet."
+    },
+    "subscribe": {
+      "title": "Organization subscription",
+      "intro": "Subscribe this organization to the {{plan}} plan. Payment is made via Mobile Money — you will never be asked to enter your PIN in the app.",
+      "submit": "Subscribe",
+      "error": "Couldn't subscribe.",
+      "backToOrganization": "Back to organization"
+    },
+    "sponsor": {
+      "title": "Offer a subscription",
+      "intro": "Subscribe to an individual plan on behalf of {{name}}. If this beneficiary is a minor, a parent or guardian's active consent is required.",
+      "unavailable": "Beneficiary not found.",
+      "submit": "Continue to payment",
+      "error": "Couldn't subscribe.",
+      "backToLearners": "Back to learners"
+    },
+    "quality": {
+      "title": "Quality of your opportunity",
+      "intro": "This diagnosis concerns your opportunity alone. LES STAGIAIRES compares it to no other and gives it no score.",
+      "nothingToFix": "Nothing to fix on this opportunity.",
+      "loadError": "Diagnosis unavailable at the moment."
     }
   },
   "security": {
@@ -773,6 +849,341 @@
       "IN_PROGRESS": "In progress",
       "PROCESSED": "Processed",
       "CLOSED": "Closed"
+    },
+    "subscriptionStatus": {
+      "PENDING_PAYMENT": "Awaiting payment",
+      "ACTIVE": "Active",
+      "PAYMENT_FAILED": "Payment failed",
+      "EXPIRED": "Expired",
+      "CANCELLED": "Cancelled"
+    },
+    "subscriptionPlan": {
+      "BUSINESS": "Business",
+      "INSTITUTION": "Institution",
+      "GRATUIT": "Free",
+      "CARRIERE_SECURISEE": "Secured Career",
+      "CARRIERE_PLUS": "Career Plus"
+    },
+    "billingCycle": {
+      "ONE_TIME": "One-time",
+      "QUARTERLY": "Quarterly",
+      "ANNUAL": "Annual"
+    },
+    "ambassadorStatus": {
+      "PENDING": "Pending",
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "TERMINATED": "Left the programme"
+    },
+    "commissionStatus": {
+      "PENDING": "Pending",
+      "APPROVED": "Approved",
+      "PAYABLE": "Payable",
+      "PAID": "Paid",
+      "CANCELLED": "Cancelled",
+      "REVERSED": "Reversed",
+      "DISPUTED": "Disputed",
+      "BLOCKED": "Blocked"
+    },
+    "commissionNature": {
+      "ACQUISITION": "Acquisition",
+      "NEW_SERVICE": "New service",
+      "RENEWAL": "Renewal",
+      "BONUS": "Bonus"
+    },
+    "payoutStatus": {
+      "REQUESTED": "Requested",
+      "VALIDATED": "Validated",
+      "EXECUTED": "Paid out",
+      "REJECTED": "Rejected",
+      "CANCELLED": "Cancelled"
+    },
+    "acquisitionSource": {
+      "AMBASSADOR": "Ambassador",
+      "INTERNET": "Internet",
+      "SOCIAL_MEDIA": "Social media",
+      "UNIVERSITY": "University",
+      "SCHOOL": "School",
+      "TRAINING_CENTER": "Training centre",
+      "PARTNER_COMPANY": "Partner company",
+      "TRADE_SHOW": "Trade show",
+      "ADVERTISING": "Advertising",
+      "RECOMMENDATION": "Recommendation",
+      "OTHER": "Other"
+    },
+    "notificationType": {
+      "PARTNERSHIP_REQUEST_NEW": {
+        "title": "New partnership request",
+        "body": "{{organizationName}} submitted a request through the public form."
+      },
+      "PARTNERSHIP_APPLIED": {
+        "title": "Partnership application",
+        "body": "Your partnership programme application has been recorded."
+      },
+      "PARTNERSHIP_ADDITIONAL_INFORMATION_REQUIRED": {
+        "title": "Additional information required",
+        "body": "Your partnership file requires additional items. No decision has been taken."
+      },
+      "PARTNERSHIP_ADDITIONAL_INFORMATION_PROVIDED": {
+        "title": "File completed",
+        "body": "An organisation has completed its partnership file."
+      },
+      "PARTNERSHIP_APPROVED": {
+        "title": "Partnership approved",
+        "body": "Your organisation is now a LES STAGIAIRES partner."
+      },
+      "PARTNERSHIP_REFUSED": {
+        "title": "Partnership refused",
+        "body": "Your partnership programme application was not accepted."
+      },
+      "PARTNERSHIP_SUSPENDED": {
+        "title": "Partnership suspended",
+        "body": "Your partnership is suspended. The reason has been sent to you."
+      },
+      "PARTNERSHIP_REINSTATED": {
+        "title": "Partnership reinstated",
+        "body": "Your partnership is active again."
+      },
+      "PARTNERSHIP_TERMINATION_REQUESTED": {
+        "title": "Termination requested",
+        "body": "A partnership termination request has been recorded."
+      },
+      "PARTNERSHIP_TERMINATION_REQUEST_WITHDRAWN": {
+        "title": "Termination request withdrawn",
+        "body": "The termination request has been withdrawn. The partnership continues."
+      },
+      "PARTNERSHIP_TERMINATED": {
+        "title": "Partnership terminated",
+        "body": "Your partnership has ended. The reason has been sent to you."
+      },
+      "AMBASSADOR_APPROVED": {
+        "title": "Ambassador application accepted",
+        "body": "Welcome to the ambassador programme."
+      },
+      "AMBASSADOR_SUSPENDED": {
+        "title": "Ambassador account suspended",
+        "body": "Commissions already earned remain owed to you."
+      },
+      "AMBASSADOR_REINSTATED": {
+        "title": "Ambassador account reinstated",
+        "body": "You can recruit and earn again."
+      },
+      "AMBASSADOR_TERMINATED": {
+        "title": "Ambassador programme ended",
+        "body": "Your participation in the programme has ended."
+      },
+      "AMBASSADOR_COMMISSION_EARNED": {
+        "title": "New commission",
+        "body": "A commission has been recorded in your wallet."
+      },
+      "AMBASSADOR_COMMISSION_PAYABLE": {
+        "title": "Commission payable",
+        "body": "A commission is now available for payout."
+      },
+      "AMBASSADOR_PAYOUT_VALIDATED": {
+        "title": "Payout validated",
+        "body": "Your payout request has been validated by the administration."
+      },
+      "AMBASSADOR_PAYOUT_EXECUTED": {
+        "title": "Payout executed",
+        "body": "Your payout has been sent. Report it if you do not receive it."
+      },
+      "AMBASSADOR_PAYOUT_REJECTED": {
+        "title": "Payout rejected",
+        "body": "Your payout request was rejected. The reason is given."
+      },
+      "AMBASSADOR_PAYOUT_FAILED": {
+        "title": "Transfer did not go through",
+        "body": "The transfer could not be completed. The amount has returned to your available balance and remains owed to you."
+      },
+      "AMBASSADOR_PAYMENT_DETAILS_CHANGED": {
+        "title": "Payout details changed",
+        "body": "Your payout details have changed. If you did not make this change, report it immediately."
+      },
+      "AMBASSADOR_WALLET_DIVERGENCE": {
+        "title": "Accounting discrepancy detected",
+        "body": "An ambassador wallet diverges from the ledger. No automatic correction has been applied."
+      },
+      "AMBASSADOR_COMMISSION_REVIEW_REQUIRED": {
+        "title": "Commission under review",
+        "body": "A commission exceeds a configured cap. It awaits approval, correction or cancellation."
+      },
+      "AMBASSADOR_FRAUD_ALERT": {
+        "title": "Fraud alert",
+        "body": "Unusual behaviour has been detected on an ambassador file. A manual review is required."
+      },
+      "AMBASSADOR_PORTFOLIO_WARNING_9M": {
+        "title": "Portfolio — 9 months without a purchase",
+        "body": "Without a new purchase within three months, this company will leave your portfolio."
+      },
+      "AMBASSADOR_PORTFOLIO_WARNING_11M": {
+        "title": "Portfolio — one month left",
+        "body": "Only one month remains before this link expires."
+      },
+      "AMBASSADOR_PORTFOLIO_EXPIRED": {
+        "title": "Company released",
+        "body": "After twelve months without a purchase, this company has left your portfolio."
+      },
+      "APPLICATION_SUBMITTED": {
+        "title": "Application sent",
+        "body": "Your application {{reference}} has been recorded."
+      },
+      "APPLICATION_DOCUMENT_REQUESTED": {
+        "title": "Document requested",
+        "body": "An additional document is required for {{reference}}."
+      },
+      "APPLICATION_INTERVIEW_PROPOSED": {
+        "title": "Interview proposed",
+        "body": "An interview date has been proposed for {{reference}}."
+      },
+      "APPLICATION_REJECTED": {
+        "title": "Application not selected",
+        "body": "Your application {{reference}} was not selected."
+      },
+      "APPLICATION_ADMISSION_LETTER_ISSUED": {
+        "title": "Application accepted",
+        "body": "An admission letter awaits you for {{reference}}."
+      },
+      "APPLICATION_ACCEPTED_PENDING_TRAVEL_CONSENT": {
+        "title": "Parental consent needed",
+        "body": "Your application {{reference}} awaits your parent or guardian’s consent."
+      },
+      "APPLICATION_TRAVEL_CONSENT_CONFIRMED": {
+        "title": "Parental consent confirmed",
+        "body": "Your application {{reference}} is now accepted."
+      },
+      "APPLICATION_TRAVEL_CONSENT_EXPIRED": {
+        "title": "Application on hold",
+        "body": "Parental consent was not confirmed in time for {{reference}}."
+      },
+      "APPLICATION_AGREEMENT_FULLY_SIGNED": {
+        "title": "Agreement signed",
+        "body": "The agreement for {{reference}} is signed. Your internship can begin."
+      },
+      "APPLICATION_ESTABLISHMENT_SIGNED": {
+        "title": "School signed",
+        "body": "Your school has signed the agreement for {{reference}}."
+      },
+      "APPLICATION_INTERNSHIP_STARTING_SOON": {
+        "title": "Your internship is approaching",
+        "body": "Your internship {{reference}} starts soon."
+      },
+      "APPLICATION_CLOSED": {
+        "title": "Internship completed",
+        "body": "Your certificate for {{reference}} is available."
+      },
+      "APPLICATION_RECOMMENDATION_RECEIVED": {
+        "title": "Recommendation received",
+        "body": "{{organizationName}} left you a recommendation."
+      },
+      "APPLICATION_RECEIVED_ORG": {
+        "title": "New application",
+        "body": "Application {{reference}} has just been received."
+      },
+      "APPLICATION_DOCUMENT_SUBMITTED_ORG": {
+        "title": "Document received",
+        "body": "The document requested for {{reference}} has been uploaded."
+      },
+      "APPLICATION_INTERVIEW_CONFIRMED_ORG": {
+        "title": "Interview confirmed",
+        "body": "The candidate confirmed the interview for {{reference}}."
+      },
+      "APPLICATION_ADMISSION_ACCEPTED_ORG": {
+        "title": "Admission accepted",
+        "body": "The candidate accepted the admission letter for {{reference}}."
+      },
+      "APPLICATION_TRAVEL_CONSENT_CONFIRMED_ORG": {
+        "title": "Parental consent confirmed",
+        "body": "Travel consent is confirmed for {{reference}}."
+      },
+      "APPLICATION_AGREEMENT_FULLY_SIGNED_ORG": {
+        "title": "Agreement signed",
+        "body": "The agreement for {{reference}} is signed by both parties."
+      },
+      "APPLICATION_ESTABLISHMENT_SIGNED_ORG": {
+        "title": "School signed",
+        "body": "The school has signed the agreement for {{reference}}."
+      },
+      "APPLICATION_WITHDRAWN_ORG": {
+        "title": "Application withdrawn",
+        "body": "The candidate withdrew application {{reference}}."
+      },
+      "APPLICATION_ESTABLISHMENT_ASSOCIATION_REQUESTED": {
+        "title": "Agreement association request",
+        "body": "A company wants to associate your school with {{reference}}."
+      },
+      "LEARNER_INVITED": {
+        "title": "Attachment proposed",
+        "body": "A school wants to attach you to its account."
+      },
+      "LEARNER_VERIFIED": {
+        "title": "Attachment verified",
+        "body": "Your attachment to your school is confirmed."
+      },
+      "INTERNSHIP_REPORT_REVIEWED": {
+        "title": "Internship report reviewed",
+        "body": "Your report for {{reference}} has been reviewed."
+      },
+      "ORGANIZATION_INVITATION_RECEIVED": {
+        "title": "Team invitation",
+        "body": "{{organizationName}} invites you to join its team."
+      },
+      "ORGANIZATION_ACCESS_REVOKED": {
+        "title": "Access revoked",
+        "body": "Your access to this organisation has been removed."
+      },
+      "NEED_REQUEST_ANSWERED": {
+        "title": "Answer to your request",
+        "body": "The administration has answered your needs request."
+      }
+    },
+    "notificationCategory": {
+      "APPLICATIONS": "Applications",
+      "INTERVIEWS": "Interviews",
+      "INTERNSHIPS": "Internships",
+      "AGREEMENTS": "Agreements",
+      "ORGANIZATIONS": "Organisations",
+      "AMBASSADORS": "Ambassadors",
+      "MENTORING": "Mentoring",
+      "LEGAL": "Legal",
+      "PAYMENTS": "Payments",
+      "SUBSCRIPTIONS": "Subscriptions",
+      "PARTNERSHIPS": "Partnerships",
+      "ADMINISTRATION": "Administration",
+      "SECURITY": "Security",
+      "SYSTEM": "System"
+    },
+    "matchReason": {
+      "SKILLS": "Matches your skills",
+      "OCCUPATION": "Matches the job you are aiming for",
+      "LOCATION": "Close to you",
+      "EDUCATION": "Matches your level",
+      "AVAILABILITY": "Fits your availability"
+    },
+    "qualityLevel": {
+      "INCOMPLETE": "Incomplete opportunity",
+      "PERFECTIBLE": "Improvable opportunity",
+      "COMPLETE": "Complete opportunity"
+    },
+    "qualityCheck": {
+      "SKILLS_DECLARED": "Expected skills",
+      "OCCUPATION_LINKED": "Linked job",
+      "DESCRIPTION_SUBSTANTIAL": "Description",
+      "TITLE_INFORMATIVE": "Title",
+      "START_DATE_SET": "Start date",
+      "STILL_FRESH": "Age of the posting",
+      "EDUCATION_STATED": "Expected education level",
+      "LOCATION_USABLE": "Work location"
+    },
+    "qualityAdvice": {
+      "SKILLS_DECLARED": "Declare the expected skills: without them, your opportunity cannot be matched to any profile on what it actually requires.",
+      "OCCUPATION_LINKED": "Link a job: your opportunity does not reach candidates aiming for that job or its family.",
+      "DESCRIPTION_SUBSTANTIAL": "Describe the assignments more precisely: this is what candidates read before applying.",
+      "TITLE_INFORMATIVE": "Make the job title clearer: a two-word title does not say what the role is.",
+      "START_DATE_SET": "State the start date if you know it: candidates available then will see your opportunity more easily.",
+      "STILL_FRESH": "This opportunity has been published for over two months. Refresh it, or close it if the position is filled.",
+      "EDUCATION_STATED": "State the expected education level: candidates will know whether they can apply. Leaving it out excludes no one.",
+      "LOCATION_USABLE": "Give the city, or choose remote: candidates must know whether they can take this position."
     }
   },
   "moderation": {
@@ -842,5 +1253,144 @@
     "loadError": "Couldn't load.",
     "empty": "No notifications yet.",
     "partnershipRequestNew": "New partnership request: {{organizationName}}"
+  },
+  "subscriptions": {
+    "title": "My subscriptions",
+    "intro": "Secured Career and Career Plus: legal support and interview preparation.",
+    "loadError": "Couldn't load.",
+    "empty": "No subscriptions yet.",
+    "newLink": "+ Subscribe to a plan",
+    "startedLabel": "Active since {{date}}",
+    "periodEndLabel": "Renews on {{date}}",
+    "cancelledLabel": "Cancelled on {{date}}",
+    "new": {
+      "title": "Subscribe to a plan",
+      "intro": "Payment is made via Mobile Money — you will never be asked to enter your PIN in the app. You'll receive official instructions from the payment provider.",
+      "billingCycleLabel": "Plan",
+      "parentRedirectLabel": "Send the request to my parent/guardian",
+      "parentRedirectHint": "If you're a minor, you can choose to forward this request to your parent or guardian — this is never required to subscribe yourself.",
+      "submit": "Continue to payment",
+      "error": "Couldn't subscribe.",
+      "successTitle": "Subscription recorded",
+      "defaultInstructions": "Follow the payment instructions that will be sent by the provider.",
+      "viewSubscriptions": "View my subscriptions",
+      "planLabel": "Plan",
+      "planHint": "The price is set by LES STAGIAIRES based on the chosen plan."
+    },
+    "detail": {
+      "title": "Subscription",
+      "notFound": "Subscription unavailable.",
+      "planSection": "Plan",
+      "paymentSection": "Payment",
+      "pendingNotice": "Awaiting official confirmation from the payment provider — the status updates automatically once payment is confirmed.",
+      "refresh": "Refresh status",
+      "manageSection": "Manage",
+      "cancelButton": "Cancel subscription",
+      "cancelError": "Couldn't cancel."
+    }
+  },
+  "subscriptionsAdmin": {
+    "filterAll": "All",
+    "unavailable": "Restricted to administrators.",
+    "loadError": "Couldn't load.",
+    "empty": "No subscriptions for this filter.",
+    "beneficiaryUserLabel": "Beneficiary: {{name}}",
+    "beneficiaryOrganizationLabel": "Organization: {{name}}"
+  },
+  "ambassador": {
+    "title": "Ambassador space",
+    "loadError": "Could not load your ambassador space.",
+    "notAmbassador": "You are not an ambassador yet. The programme opens by invitation from the LES STAGIAIRES team.",
+    "codeLabel": "Your referral code",
+    "share": "Share",
+    "shareMessage": "Join LES STAGIAIRES with my referral code: {{code}}",
+    "contractPending": "Your commissions keep accruing normally. No payout can be made, however, until you sign your Business Introducer Agreement.",
+    "suspended": "Your ambassador account is suspended. Commissions already earned remain owed to you.",
+    "referralsSubtitle": "Young people you have referred",
+    "balance": {
+      "available": "Available",
+      "pending": "Pending",
+      "reserved": "On hold",
+      "paid": "Total paid",
+      "hint": "Pending amounts become available once the security period ends, which covers cancellations and failed payments."
+    },
+    "portfolio": {
+      "title": "Company portfolio",
+      "subtitle": "Companies you brought in",
+      "loadError": "Could not load your portfolio.",
+      "empty": "You have not brought in any company yet.",
+      "ruleTitle": "How the countdown works",
+      "ruleBody": "Every confirmed purchase resets a company clock to twelve months. Only a confirmed purchase does — not a note, a call, or a logged follow-up. After twelve months without a purchase, the company leaves your portfolio and becomes available again.",
+      "daysLeft": "{{count}} d",
+      "lastPurchase": "Last purchase",
+      "neverPurchased": "None",
+      "expiresAt": "Expires"
+    },
+    "commissions": {
+      "title": "My commissions",
+      "intro": "A commission only exists once a payment is confirmed. Amount and rate are frozen at calculation time: a statement issued today will still be true a year from now.",
+      "loadError": "Could not load your commissions.",
+      "empty": "No commission yet.",
+      "availableOn": "Payable from {{date}}"
+    },
+    "payouts": {
+      "title": "Payouts",
+      "subtitle": "Request a payout and track your requests",
+      "loadError": "Could not load your payouts.",
+      "lockedTitle": "Payouts unavailable",
+      "lockedBody": "Signing the Business Introducer Agreement is required before any payout. Your commissions remain earned and will be paid as soon as it is signed.",
+      "amountLabel": "Amount to pay out ({{currency}})",
+      "methodLabel": "Payout method",
+      "methodPlaceholder": "Mobile Money, bank transfer…",
+      "destinationLabel": "Destination",
+      "destinationPlaceholder": "e.g. MTN MoMo — First Last",
+      "privacyHint": "Never enter your full number or your PIN. A short reference is enough: an administrator will contact you to complete the transfer.",
+      "submit": "Request payout",
+      "requested": "Your request has been recorded. An administrator will review it.",
+      "error": "Could not record your request.",
+      "historyTitle": "History",
+      "empty": "No payout request.",
+      "reference": "Transfer reference: {{reference}}"
+    }
+  },
+  "ambassadorsAdmin": {
+    "title": "Ambassadors",
+    "unavailable": "This section is restricted to administrators.",
+    "loadError": "Could not load ambassadors.",
+    "actionError": "The operation failed.",
+    "tabAmbassadors": "Ambassadors",
+    "tabPayouts": "Payouts",
+    "emptyAmbassadors": "No ambassador registered.",
+    "emptyPayouts": "No payout request.",
+    "contract": "Introducer agreement",
+    "contractMissing": "Not signed",
+    "walletSummary": "Available {{available}} · Pending {{pending}}",
+    "approve": "Approve application",
+    "reinstate": "Reinstate",
+    "validate": "Validate request",
+    "executionReference": "Completed transfer reference",
+    "executionPlaceholder": "e.g. VIR-2026-0042",
+    "markExecuted": "Mark as paid out",
+    "reject": "Reject",
+    "rejectPlaceholder": "Reason for rejection (required, at least 10 characters)"
+  },
+  "notificationCentre": {
+    "title": "Notification centre",
+    "all": "All",
+    "unread": "Unread",
+    "starred": "Starred",
+    "archived": "Archived",
+    "searchPlaceholder": "Search a reference, a company…",
+    "empty": "No notifications.",
+    "emptyFiltered": "No notification matches this filter.",
+    "loadError": "Could not load your notifications.",
+    "markAllRead": "Mark all as read",
+    "star": "Add to starred",
+    "unstar": "Remove from starred",
+    "archive": "Archive",
+    "unarchive": "Restore",
+    "open": "Open",
+    "loadMore": "Load more",
+    "attachments": "Attachments"
   }
 }

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ChipSelect } from '../../../components/chip-select';
+import { EmptyState } from '../../../components/empty-state';
 import { colors, ErrorText, FormInput, PrimaryButton } from '../../../components/form';
 import {
   api,
@@ -83,7 +84,7 @@ export default function DigitalSafeListScreen() {
         ) : loadError ? (
           <ErrorText>{loadError}</ErrorText>
         ) : documents.length === 0 ? (
-          <Text style={styles.hint}>{t('digitalSafe.empty')}</Text>
+          <EmptyState message={t('digitalSafe.empty')} />
         ) : (
           documents.map((document) => (
             <Pressable
@@ -230,12 +231,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.muted,
-  },
-  hint: {
-    fontSize: 14,
-    color: colors.muted,
-    textAlign: 'center',
-    marginTop: 24,
   },
   addText: {
     fontSize: 15,

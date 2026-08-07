@@ -7,6 +7,7 @@ import { ErrorText } from '../../../components/form';
 import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type PartnerCompany } from '../../../lib/api';
 import { useAuth } from '../../../lib/auth-context';
+import { EmptyState } from '../../../components/empty-state';
 
 export default function PartnerCompaniesScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -56,7 +57,7 @@ export default function PartnerCompaniesScreen() {
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : partners.length === 0 ? (
-          <Text style={styles.emptyText}>{t('recruiter.partners.empty')}</Text>
+          <EmptyState message={t('recruiter.partners.empty')} />
         ) : (
           <View style={styles.list}>
             {partners.map((partner) => (
@@ -93,9 +94,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxl,
-  },
-  emptyText: {
-    ...typography.caption,
   },
   list: {
     gap: spacing.sm,

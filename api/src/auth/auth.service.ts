@@ -10,7 +10,13 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
-import { AccountStatus, MinorGatedAction, OtpPurpose } from '../../generated/prisma/enums';
+import { AmbassadorsService } from '../ambassadors/ambassadors.service';
+import { parsePhoneNumberFromString } from 'libphonenumber-js';
+import {
+  AccountStatus,
+  MinorGatedAction,
+  OtpPurpose,
+} from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { generateLsIdCandidate } from '../common/ls-id/ls-id.util';
 import { PrismaService } from '../prisma/prisma.service';
@@ -42,6 +48,7 @@ export class AuthService {
     private readonly tokens: TokenService,
     private readonly audit: AuditService,
     private readonly parentalConsent: ParentalConsentService,
+    private readonly ambassadors: AmbassadorsService,
     private readonly minorPolicy: MinorPolicyService,
     @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
   ) {}
@@ -71,11 +78,29 @@ export class AuthService {
     const dateOfBirth = new Date(dto.dateOfBirth);
     const countryOfResidence = dto.countryOfResidence.toUpperCase();
 
+    // @IsPhoneNumber côté DTO garantit un E.164 valide pour UN pays quelconque, mais pas
+    // que ce pays soit celui déclaré comme pays de résidence — un candidat pourrait sinon
+    // déclarer le Cameroun avec un numéro sénégalais. Le mobile envoie déjà un numéro
+    // reconstruit à partir du pays choisi (lib/countries.ts), mais l'API ne fait jamais
+    // confiance au client : la même vérification est reproduite ici.
+    const parsedPhone = parsePhoneNumberFromString(dto.phone);
+    if (!parsedPhone?.isValid() || parsedPhone.country !== countryOfResidence) {
+      throw new BadRequestException(
+        'Le numéro de téléphone ne correspond pas à un numéro valide pour le pays de résidence déclaré.',
+      );
+    }
+
     // Âge minimum du pays déclaré — avant toute autre vérification (moteur de règles
     // CountryPolicy, jamais un seuil fixe, cahier des charges).
-    await this.minorPolicy.assertMeetsMinimumAge(dateOfBirth, countryOfResidence);
+    await this.minorPolicy.assertMeetsMinimumAge(
+      dateOfBirth,
+      countryOfResidence,
+    );
 
-    const { isMinor } = await this.minorPolicy.classify(dateOfBirth, countryOfResidence);
+    const { isMinor } = await this.minorPolicy.classify(
+      dateOfBirth,
+      countryOfResidence,
+    );
     const registrationGated = await this.minorPolicy.isActionGated(
       { dateOfBirth, countryOfResidence },
       MinorGatedAction.REGISTRATION,
@@ -114,8 +139,22 @@ export class AuthService {
       data: { userId: user.id, fullName: `${dto.firstName} ${dto.lastName}` },
     });
 
+    // Rattachement à un ambassadeur, si un code valide a été saisi. Définitif : un
+    // filleul n'a qu'un parrain (contrainte d'unicité en base). Aucun droit à
+    // commission n'en découle par lui-même — il faudra un paiement confirmé, plus
+    // tard, pour que quoi que ce soit soit dû.
+    // Un code non reconnu ne fait JAMAIS échouer l'inscription (décision du
+    // promoteur), mais il n'est plus avalé en silence : le statut remonte au client,
+    // qui prévient l'utilisateur. Sans ce retour, il croirait son parrain rattaché.
+    const ambassadorAttribution = dto.ambassadorCode
+      ? await this.ambassadors.attributeUser(user.id, dto.ambassadorCode)
+      : null;
+
     await this.otp.generateAndSend(user.id, dto.phone, OtpPurpose.REGISTRATION);
-    await this.audit.record('ACCOUNT_REGISTERED', user.id, { isMinor, countryOfResidence });
+    await this.audit.record('ACCOUNT_REGISTERED', user.id, {
+      isMinor,
+      countryOfResidence,
+    });
 
     // Envoyé dès la saisie, en parallèle de l'OTP — jamais après coup
     // (FR-AUTH-004a : ne jamais bloquer l'inscription en attendant la validation).
@@ -129,6 +168,10 @@ export class AuthService {
       message: isMinor
         ? 'Code de vérification envoyé par SMS. Un SMS de consentement a également été envoyé au parent/tuteur déclaré.'
         : 'Code de vérification envoyé par SMS.',
+      // Statut brut, traduit par le client. `null` quand aucun code n'a été saisi —
+      // à ne pas confondre avec un code saisi puis rejeté, qui vaut
+      // CODE_NOT_RECOGNIZED et doit être annoncé à l'utilisateur.
+      ambassadorAttribution: ambassadorAttribution?.status ?? null,
     };
   }
 
@@ -155,7 +198,10 @@ export class AuthService {
     const lsId = await this.generateUniqueLsId();
     const registrationGated =
       user.dateOfBirth && user.countryOfResidence
-        ? await this.minorPolicy.isActionGated(user, MinorGatedAction.REGISTRATION)
+        ? await this.minorPolicy.isActionGated(
+            user,
+            MinorGatedAction.REGISTRATION,
+          )
         : false;
     const newStatus = registrationGated
       ? AccountStatus.AWAITING_PARENTAL_CONSENT
@@ -173,11 +219,8 @@ export class AuthService {
 
     // Premier appareil du compte — jamais de notification "nouvel appareil" ici, le
     // parcours d'inscription vient déjà de faire ses preuves via l'OTP.
-    const { accessToken, refreshToken } = await this.createSessionAndIssueTokens(
-      user.id,
-      userAgent,
-      ip,
-    );
+    const { accessToken, refreshToken } =
+      await this.createSessionAndIssueTokens(user.id, userAgent, ip);
 
     return {
       lsId,
@@ -281,10 +324,16 @@ export class AuthService {
     try {
       userId = this.tokens.verifyTwoFactorChallenge(dto.challengeToken);
     } catch {
-      throw new UnauthorizedException('Jeton de vérification invalide ou expiré.');
+      throw new UnauthorizedException(
+        'Jeton de vérification invalide ou expiré.',
+      );
     }
 
-    const isValid = await this.otp.verify(userId, dto.code, OtpPurpose.LOGIN_2FA);
+    const isValid = await this.otp.verify(
+      userId,
+      dto.code,
+      OtpPurpose.LOGIN_2FA,
+    );
     if (!isValid) throw new UnauthorizedException('Code invalide ou expiré.');
 
     await this.audit.record('LOGIN_2FA_VERIFIED', userId);
@@ -315,7 +364,9 @@ export class AuthService {
   }
 
   async enableTwoFactor(userId: string) {
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+    });
     if (!user.phone) {
       throw new BadRequestException(
         'Un numéro de téléphone est requis pour activer la double authentification.',
@@ -330,7 +381,9 @@ export class AuthService {
   }
 
   async disableTwoFactor(userId: string, dto: DisableTwoFactorDto) {
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+    });
     const passwordOk = await argon2.verify(user.password, dto.password);
     if (!passwordOk) {
       throw new UnauthorizedException('Mot de passe incorrect.');
@@ -369,9 +422,15 @@ export class AuthService {
       where: { userId },
     });
     const isNewDevice =
-      !!hasAnySession && !(await this.tokens.hasSeenDevice(userId, deviceLabel));
+      !!hasAnySession &&
+      !(await this.tokens.hasSeenDevice(userId, deviceLabel));
 
-    const session = await this.tokens.createSession(userId, deviceLabel, userAgent, ip);
+    const session = await this.tokens.createSession(
+      userId,
+      deviceLabel,
+      userAgent,
+      ip,
+    );
 
     if (isNewDevice) {
       const user = await this.prisma.user.findUnique({ where: { id: userId } });

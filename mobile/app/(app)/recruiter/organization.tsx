@@ -107,6 +107,16 @@ export default function OrganizationScreen() {
           </PressableCard>
         </View>
 
+        <View style={styles.quickLinks}>
+          <PressableCard
+            style={styles.quickLinkCard}
+            onPress={() => router.push(`/recruiter/subscribe?id=${organization.id}`)}
+          >
+            <Text style={styles.quickLinkTitle}>{t('recruiter.layout.subscription')}</Text>
+            <Text style={typography.caption}>{t('recruiter.organization.subscriptionHint')}</Text>
+          </PressableCard>
+        </View>
+
         {organization.type === 'ETABLISSEMENT' && (
           <>
             <View style={styles.quickLinks}>

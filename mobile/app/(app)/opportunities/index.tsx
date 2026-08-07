@@ -18,12 +18,18 @@ import { FormInput } from '../../../components/form';
 import { api, ApiError, type Opportunity, type OpportunityType } from '../../../lib/api';
 import { useOpportunityTypeOptions } from '../../../lib/opportunity-labels';
 import { useAuth } from '../../../lib/auth-context';
+import { EmptyState } from '../../../components/empty-state';
 
 export default function OpportunitiesSearchScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const opportunityTypeOptions = useOpportunityTypeOptions();
+
+  // Les MOTS-CLÉS. Hors du panneau « Filtres », parce que c'est l'entrée
+  // principale : chercher « développeur » est le geste attendu, filtrer par
+  // pays est un raffinement.
+  const [keywords, setKeywords] = useState('');
 
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
@@ -46,6 +52,7 @@ export default function OpportunitiesSearchScreen() {
       setError(null);
       try {
         const result = await api.searchOpportunities({
+          q: keywords.trim() || undefined,
           country: country || undefined,
           city: city || undefined,
           sector: sector || undefined,
@@ -63,7 +70,7 @@ export default function OpportunitiesSearchScreen() {
         setIsLoadingMore(false);
       }
     },
-    [country, city, sector, type, t],
+    [keywords, country, city, sector, type, t],
   );
 
   useFocusEffect(
@@ -119,6 +126,40 @@ export default function OpportunitiesSearchScreen() {
           </Pressable>
         </View>
 
+        {/*
+          La recherche par mots-clés. Le moteur la traite en trois passes :
+          plein texte, similarité (les fautes de frappe ne font pas perdre le
+          résultat), et synonymes — « RH » trouve « ressources humaines ».
+
+          `onSubmitEditing` plutôt qu'une recherche à chaque frappe : une
+          requête par lettre coûte cher sur une connexion mobile africaine, et
+          la plateforme est faite pour y fonctionner.
+        */}
+        <View style={styles.searchRow}>
+          <Ionicons name="search-outline" size={18} color={colors.muted} />
+          <FormInput
+            style={styles.searchField}
+            placeholder={t('opportunities.search.keywordsPlaceholder')}
+            value={keywords}
+            onChangeText={setKeywords}
+            onSubmitEditing={() => void runSearch(1, false)}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {keywords.length > 0 && (
+            <Pressable
+              onPress={() => {
+                setKeywords('');
+                void runSearch(1, false);
+              }}
+              hitSlop={8}
+              accessibilityLabel={t('opportunities.search.clearKeywords')}
+            >
+              <Ionicons name="close-circle" size={18} color={colors.muted} />
+            </Pressable>
+          )}
+        </View>
+
         <Pressable style={styles.filterToggle} onPress={() => setIsFilterOpen((v) => !v)}>
           <Ionicons name="options-outline" size={18} color={colors.primaryDark} />
           <Text style={styles.filterToggleText}>{t('opportunities.search.filters')}</Text>
@@ -162,7 +203,18 @@ export default function OpportunitiesSearchScreen() {
         ) : error ? (
           <Text style={styles.errorText}>{error}</Text>
         ) : items.length === 0 ? (
-          <Text style={styles.emptyText}>{t('opportunities.search.empty')}</Text>
+          // Deux messages distincts : « aucune offre ne correspond à ces
+          // critères » n'aide pas quelqu'un qui a tapé un mot. Le moteur
+          // reconnaît déjà les synonymes et les fautes de frappe — s'il ne
+          // trouve rien, c'est le mot lui-même qu'il faut changer, et il faut
+          // le dire.
+          <EmptyState
+            message={
+              keywords.trim()
+                ? t('opportunities.search.emptyKeywords', { keywords: keywords.trim() })
+                : t('opportunities.search.empty')
+            }
+          />
         ) : (
           <View style={styles.list}>
             {items.map((opportunity) => (
@@ -214,6 +266,22 @@ const styles = StyleSheet.create({
   title: {
     ...typography.h1,
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.full,
+  },
+  searchField: {
+    flex: 1,
+    // Le champ hérite déjà du cadre arrondi de la rangée : un second cadre
+    // ferait une boîte dans une boîte.
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
+  },
   filterToggle: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -253,11 +321,6 @@ const styles = StyleSheet.create({
   errorText: {
     ...typography.caption,
     color: colors.error,
-    textAlign: 'center',
-    marginTop: spacing.xl,
-  },
-  emptyText: {
-    ...typography.caption,
     textAlign: 'center',
     marginTop: spacing.xl,
   },

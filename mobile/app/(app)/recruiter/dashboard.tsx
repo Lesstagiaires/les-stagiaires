@@ -1,10 +1,10 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Card } from '../../../components/card';
 import { ErrorText } from '../../../components/form';
-import { colors, spacing, typography } from '../../../components/theme';
+import { colors, fonts, radius, spacing } from '../../../components/theme';
 import { api, ApiError, type EstablishmentDashboard } from '../../../lib/api';
 import { useAuth } from '../../../lib/auth-context';
 
@@ -38,6 +38,7 @@ export default function DashboardScreen() {
   if (!accessToken || !id) {
     return (
       <SafeAreaView style={styles.container}>
+        <StatusBar style="light" />
         <View style={styles.centered}>
           <ErrorText>{t('recruiter.dashboard.unavailable')}</ErrorText>
         </View>
@@ -47,11 +48,13 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar style="light" />
       <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.eyebrow}>{t('recruiter.dashboard.eyebrow')}</Text>
         <Text style={styles.title}>{t('recruiter.dashboard.title')}</Text>
 
         {dashboard === null ? (
-          error ? <ErrorText>{error}</ErrorText> : <ActivityIndicator color={colors.primary} style={styles.loader} />
+          error ? <ErrorText>{error}</ErrorText> : <ActivityIndicator color={colors.gold} style={styles.loader} />
         ) : (
           <View style={styles.grid}>
             <StatCard label={t('recruiter.dashboard.totalLearners')} value={dashboard.totalLearners} />
@@ -77,6 +80,9 @@ export default function DashboardScreen() {
   );
 }
 
+// Esthétique "tableau des départs" (voir artifact de design system, section Écrans) : des
+// chiffres qui comptent — jamais un graphique décoratif pour un tableau de bord dont le
+// seul rôle est de répondre vite à "combien, sur quoi, avec quel résultat".
 function StatCard({
   label,
   value,
@@ -87,17 +93,17 @@ function StatCard({
   highlight?: boolean;
 }) {
   return (
-    <Card style={styles.statCard}>
+    <View style={[styles.statCard, highlight && styles.statCardHighlight]}>
       <Text style={[styles.statValue, highlight && styles.statValueHighlight]}>{value}</Text>
-      <Text style={typography.caption}>{label}</Text>
-    </Card>
+      <Text style={styles.statLabel}>{label}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.inkDeep,
   },
   centered: {
     flex: 1,
@@ -110,8 +116,21 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
     gap: spacing.lg,
   },
+  eyebrow: {
+    fontFamily: fonts.bodySemiBold,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.gold,
+  },
   title: {
-    ...typography.h1,
+    fontFamily: fonts.displayExtraBold,
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    marginTop: -spacing.xs,
   },
   loader: {
     marginTop: spacing.xxl,
@@ -120,16 +139,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
+    marginTop: spacing.md,
   },
   statCard: {
     width: '47%',
     gap: spacing.xs,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+  },
+  statCardHighlight: {
+    backgroundColor: 'rgba(255,194,77,0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,194,77,0.4)',
   },
   statValue: {
-    ...typography.h1,
-    color: colors.primary,
+    fontFamily: fonts.mono,
+    fontSize: 26,
+    fontWeight: '500',
+    color: colors.gold,
+    fontVariant: ['tabular-nums'],
   },
   statValueHighlight: {
-    color: colors.accentDark,
+    color: colors.gold,
+  },
+  statLabel: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12.5,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.65)',
   },
 });

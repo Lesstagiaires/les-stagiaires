@@ -2,15 +2,17 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { OrganizationMemberStatus } from '../../generated/prisma/enums';
+import type { Prisma } from '../../generated/prisma/client';
+import {
+  NotificationType,
+  OrganizationMemberStatus,
+} from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { SMS_PROVIDER } from '../sms/sms-provider.interface';
-import type { SmsProvider } from '../sms/sms-provider.interface';
 import { InviteMemberDto } from './dto/invite-member.dto';
 import { OrganizationAccessService } from './organization-access.service';
 
@@ -23,7 +25,7 @@ export class OrganizationMembersService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly access: OrganizationAccessService,
-    @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async invite(
@@ -85,7 +87,12 @@ export class OrganizationMembersService {
 
     await this.notify(
       invitee.id,
-      `LES STAGIAIRES — vous êtes invité(e) à rejoindre l'organisation ${organization.name} (rôle : ${dto.role}). Connectez-vous pour accepter ou refuser.`,
+      NotificationType.ORGANIZATION_INVITATION_RECEIVED,
+      {
+        organizationId,
+        organizationName: organization.name,
+        role: dto.role,
+      },
     );
     await this.audit.record('ORGANIZATION_MEMBER_INVITED', inviterId, {
       organizationId,
@@ -157,6 +164,10 @@ export class OrganizationMembersService {
     await this.access.assertCanManageTeam(organizationId, actorId);
     const member = await this.prisma.organizationMember.findUnique({
       where: { id: memberId },
+      // Le nom accompagne la révocation : « votre accès a été révoqué » sans dire
+      // de quelle organisation est inexploitable pour qui en gère plusieurs — et
+      // se lit comme une tentative d'hameçonnage.
+      include: { organization: { select: { name: true } } },
     });
     if (!member || member.organizationId !== organizationId) {
       throw new NotFoundException(
@@ -176,7 +187,11 @@ export class OrganizationMembersService {
     });
     await this.notify(
       member.userId,
-      "LES STAGIAIRES — votre accès à l'organisation a été révoqué.",
+      NotificationType.ORGANIZATION_ACCESS_REVOKED,
+      {
+        organizationId: member.organizationId,
+        organizationName: member.organization.name,
+      },
     );
     return updated;
   }
@@ -191,9 +206,11 @@ export class OrganizationMembersService {
     return member;
   }
 
-  private async notify(userId: string, message: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user?.phone) return;
-    await this.sms.send(user.phone, message);
+  private async notify(
+    userId: string,
+    type: NotificationType,
+    metadata?: Prisma.InputJsonValue,
+  ) {
+    await this.notifications.notifyUser(userId, type, metadata);
   }
 }

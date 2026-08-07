@@ -122,12 +122,27 @@ export interface RegisterInput {
   language: Language;
   dateOfBirth: string; // ISO 8601
   parentPhone?: string;
+  // Code d'un ambassadeur (point 10 des arbitrages du 2026-07-31). Un code inconnu,
+  // expiré ou appartenant à un ambassadeur suspendu est ignoré EN SILENCE côté serveur :
+  // une inscription ne doit jamais échouer à cause d'un code de parrainage.
+  ambassadorCode?: string;
 }
+
+// Issue de la tentative de rattachement à un ambassadeur. Un STATUT, jamais une
+// phrase : c'est le client qui la formule, dans la langue de l'utilisateur.
+// `null` = aucun code saisi. À ne pas confondre avec CODE_NOT_RECOGNIZED, qui
+// signale un code saisi PUIS rejeté et doit être annoncé à l'utilisateur.
+export type AmbassadorAttributionStatus =
+  | 'ATTRIBUTED'
+  | 'CODE_NOT_RECOGNIZED'
+  | 'SELF_REFERRAL_BLOCKED'
+  | 'ALREADY_ATTRIBUTED';
 
 export interface RegisterResult {
   userId: string;
   isMinor: boolean;
   message: string;
+  ambassadorAttribution: AmbassadorAttributionStatus | null;
 }
 
 export interface VerifyOtpResult {
@@ -374,9 +389,65 @@ export interface Opportunity {
   expiresAt: string | null;
   createdAt: string;
   organization: OpportunityOrganization;
+
+  // POURQUOI cette offre remonte — jamais À QUEL POINT.
+  //
+  // Arbitrage du promoteur : « Le score numérique ne doit être affiché ni aux
+  // candidats ni aux entreprises. Les candidats verront uniquement les raisons
+  // de la correspondance. » L'API ne transmet donc que ces codes ; le score
+  // reste de l'autre côté. Absent quand la recherche n'a pas de contexte de
+  // profil (visiteur non connecté).
+  matchReasons?: MatchReason[];
+}
+
+// Des CODES, traduits par l'application — jamais des phrases construites côté
+// serveur : LES STAGIAIRES existe en cinq langues.
+export type MatchReason =
+  | 'SKILLS'
+  | 'OCCUPATION'
+  | 'LOCATION'
+  | 'EDUCATION'
+  | 'AVAILABILITY';
+
+// --- Diagnostic de qualité d'une offre (côté entreprise) --------------------
+//
+// Le pendant des raisons de correspondance, pour celui qui publie. Ni score, ni
+// rang, ni comparaison avec les autres offres : le service qui le calcule n'a
+// accès à aucune autre offre, précisément pour ne pas pouvoir en parler.
+
+export type QualityCheck =
+  | 'SKILLS_DECLARED'
+  | 'OCCUPATION_LINKED'
+  | 'DESCRIPTION_SUBSTANTIAL'
+  | 'TITLE_INFORMATIVE'
+  | 'START_DATE_SET'
+  | 'STILL_FRESH'
+  | 'EDUCATION_STATED'
+  | 'LOCATION_USABLE';
+
+export type CheckVerdict = 'OK' | 'A_AMELIORER' | 'MANQUANT';
+
+// Trois niveaux NOMMÉS, pas une note : une note se compare, donc se poursuit.
+export type QualityLevel = 'INCOMPLETE' | 'PERFECTIBLE' | 'COMPLETE';
+
+export interface QualityPoint {
+  check: QualityCheck;
+  verdict: CheckVerdict;
+  recommendation?: QualityCheck;
+}
+
+export interface OfferQualityReport {
+  opportunityId: string;
+  level: QualityLevel;
+  points: QualityPoint[];
 }
 
 export interface SearchOpportunitiesInput {
+  // Les MOTS-CLÉS. Le moteur les traite en trois passes : plein texte,
+  // similarité (fautes de frappe), puis synonymes — « RH » trouve « ressources
+  // humaines ». Le champ existait côté API sans que l'application l'envoie
+  // jamais : tout ce moteur était inatteignable.
+  q?: string;
   country?: string;
   city?: string;
   sector?: string;
@@ -531,6 +602,245 @@ export interface PartnershipRequestDetail extends PartnershipRequest {
   notes: PartnershipRequestNote[];
 }
 
+// --- Abonnements / Paiement -----------------------------------------------------------------
+
+// Formules nommées par le promoteur le 2026-07-31. GRATUIT est l'état par défaut d'un
+// compte, pas quelque chose qu'on souscrit : il n'apparaît jamais dans un formulaire de
+// souscription. BUSINESS et INSTITUTION ne sont jamais choisis par le client non plus —
+// ils se déduisent du type d'organisation, côté serveur.
+export type SubscriptionPlan =
+  | 'GRATUIT'
+  | 'CARRIERE_SECURISEE'
+  | 'CARRIERE_PLUS'
+  | 'BUSINESS'
+  | 'INSTITUTION';
+
+// Les deux seules formules qu'un individu souscrit lui-même.
+export type IndividualPlan = 'CARRIERE_SECURISEE' | 'CARRIERE_PLUS';
+
+export const INDIVIDUAL_PLANS: IndividualPlan[] = [
+  'CARRIERE_SECURISEE',
+  'CARRIERE_PLUS',
+];
+export type SubscriptionBillingCycle = 'ONE_TIME' | 'QUARTERLY' | 'ANNUAL';
+export type SubscriptionStatus =
+  | 'PENDING_PAYMENT'
+  | 'ACTIVE'
+  | 'PAYMENT_FAILED'
+  | 'EXPIRED'
+  | 'CANCELLED';
+export type SubscriptionOriginType = 'SELF' | 'ORGANIZATION';
+
+export interface Subscription {
+  id: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  beneficiaryUserId: string | null;
+  beneficiaryOrganizationId: string | null;
+  originType: SubscriptionOriginType;
+  initiatingOrganizationId: string | null;
+  parentRedirectRequested: boolean;
+  billingCycle: SubscriptionBillingCycle;
+  amountMinor: number;
+  currency: string;
+  countryCode: string;
+  startedAt: string | null;
+  currentPeriodEnd: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SubscriptionBeneficiaryUser {
+  id: string;
+  lsId: string | null;
+  firstName: string | null;
+  lastName: string | null;
+}
+
+export interface SubscriptionBeneficiaryOrganization {
+  id: string;
+  name: string;
+}
+
+// Retourné uniquement par le back-office ADMIN (listAllSubscriptions) — les relations ne
+// sont jamais chargées pour listMySubscriptions/getSubscription.
+export interface AdminSubscription extends Subscription {
+  beneficiaryUser: SubscriptionBeneficiaryUser | null;
+  beneficiaryOrganization: SubscriptionBeneficiaryOrganization | null;
+}
+
+export interface SubscribeResult {
+  subscription: {
+    id: string;
+    plan: SubscriptionPlan;
+    status: SubscriptionStatus;
+    amountMinor: number;
+    currency: string;
+  };
+  payment: {
+    id: string;
+    providerReference: string | null;
+    instructions?: string;
+  };
+}
+
+// --- Programme d'Ambassadeurs ---------------------------------------------------------------
+
+export type AmbassadorStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'TERMINATED';
+export type AmbassadorCategory = 'CAMPUS' | 'BUSINESS';
+export type AmbassadorTier =
+  | 'STANDARD'
+  | 'BRONZE'
+  | 'ARGENT'
+  | 'OR'
+  | 'PLATINE'
+  | 'DIAMANT';
+export type AttributionSource = 'CODE' | 'LINK' | 'QR' | 'ADMIN';
+export type CommissionNature =
+  | 'ACQUISITION'
+  | 'NEW_SERVICE'
+  | 'RENEWAL'
+  | 'BONUS';
+export type CommissionStatus =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'PAYABLE'
+  | 'PAID'
+  | 'CANCELLED'
+  | 'REVERSED'
+  | 'DISPUTED'
+  | 'BLOCKED';
+export type PayoutRequestStatus =
+  | 'REQUESTED'
+  | 'VALIDATED'
+  | 'EXECUTED'
+  | 'REJECTED'
+  | 'CANCELLED';
+
+export interface AmbassadorWallet {
+  id: string;
+  currency: string;
+  // Commissions nées mais pas encore exigibles (période de sécurité en cours).
+  pendingMinor: number;
+  availableMinor: number;
+  // Immobilisé dans une demande de versement en cours d'instruction.
+  reservedMinor: number;
+  paidTotalMinor: number;
+}
+
+export interface Ambassador {
+  id: string;
+  userId: string;
+  status: AmbassadorStatus;
+  code: string;
+  categories: AmbassadorCategory[];
+  tier: AmbassadorTier;
+  countryCode: string;
+  // Verrou du premier versement : tant que cette date est nulle, aucune demande de
+  // versement n'est recevable (décision du promoteur du 2026-07-31).
+  contractSignedAt: string | null;
+  contractReference: string | null;
+  approvedAt: string | null;
+  suspendedAt: string | null;
+  suspensionReason: string | null;
+  terminatedAt: string | null;
+  terminationReason: string | null;
+  createdAt: string;
+  wallet: AmbassadorWallet | null;
+}
+
+export interface MyAmbassador extends Ambassador {
+  referralCount: number;
+  portfolioCount: number;
+}
+
+export interface PortfolioOrganization {
+  id: string;
+  name: string;
+  sector: string | null;
+  city: string;
+  country: string;
+}
+
+export interface PortfolioEntry {
+  id: string;
+  organizationId: string;
+  source: AttributionSource;
+  attributedAt: string;
+  // Dernier paiement CONFIRMÉ. Null si l'entreprise n'a jamais acheté : le compte à
+  // rebours court alors depuis attributedAt.
+  lastConfirmedPurchaseAt: string | null;
+  // Échéance des douze mois. SEUL un achat confirmé la repousse — ni note, ni appel,
+  // ni suivi déclaré (point 7 des arbitrages du 2026-07-31).
+  expiresAt: string;
+  warnedAt9m: string | null;
+  warnedAt11m: string | null;
+  organization: PortfolioOrganization;
+}
+
+export interface Commission {
+  id: string;
+  status: CommissionStatus;
+  nature: CommissionNature;
+  productType: 'SUBSCRIPTION' | 'SERVICE';
+  productKey: string;
+  // Figés au calcul, jamais recalculés : un relevé émis en janvier reste vrai en
+  // décembre, même si le barème change entre-temps.
+  basisAmountMinor: number;
+  rateBasisPoints: number;
+  amountMinor: number;
+  currency: string;
+  securityPeriodEndsAt: string;
+  payableAt: string | null;
+  paidAt: string | null;
+  createdAt: string;
+}
+
+export interface WalletTransaction {
+  id: string;
+  type:
+    | 'COMMISSION_ACCRUED'
+    | 'COMMISSION_AVAILABLE'
+    | 'COMMISSION_CANCELLED'
+    | 'COMMISSION_REVERSED'
+    | 'PAYOUT_RESERVED'
+    | 'PAYOUT_RELEASED'
+    | 'PAYOUT_EXECUTED'
+    | 'ADJUSTMENT';
+  amountMinor: number;
+  availableAfterMinor: number;
+  pendingAfterMinor: number;
+  reason: string | null;
+  createdAt: string;
+}
+
+export interface WalletLedger {
+  wallet: AmbassadorWallet | null;
+  transactions: WalletTransaction[];
+}
+
+export interface PayoutRequest {
+  id: string;
+  status: PayoutRequestStatus;
+  amountMinor: number;
+  currency: string;
+  method: string;
+  destinationLabel: string;
+  requestedAt: string;
+  validatedAt: string | null;
+  executedAt: string | null;
+  executionReference: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+}
+
+// Réponse volontairement pauvre : savoir qu'un code est valide ne donne pas le droit
+// de connaître la personne derrière (CLAUDE.md §1, niveau Public).
+export type AmbassadorCodeCheck =
+  | { valid: true; code: string }
+  | { valid: false };
+
 // --- Notifications internes -----------------------------------------------------------------
 
 // Un seul type existe pour l'instant ; la liste s'étend au fil des besoins, un type inconnu
@@ -538,13 +848,68 @@ export interface PartnershipRequestDetail extends PartnershipRequest {
 // crasher plutôt que de bloquer l'écran — voir notifications.tsx.
 export type NotificationType = 'PARTNERSHIP_REQUEST_NEW';
 
+export type NotificationCategory =
+  | 'APPLICATIONS'
+  | 'INTERVIEWS'
+  | 'INTERNSHIPS'
+  | 'AGREEMENTS'
+  | 'ORGANIZATIONS'
+  | 'AMBASSADORS'
+  | 'MENTORING'
+  | 'LEGAL'
+  | 'PAYMENTS'
+  | 'SUBSCRIPTIONS'
+  | 'PARTNERSHIPS'
+  | 'ADMINISTRATION'
+  | 'SECURITY'
+  | 'SYSTEM';
+
+export type NotificationChannelKind = 'IN_APP' | 'EMAIL' | 'SMS' | 'PUSH';
+
+// Pièce jointe : une RÉFÉRENCE vers le coffre-fort numérique, jamais un fichier.
+// Le document reste chiffré dans le coffre, avec sa journalisation d'accès
+// (CLAUDE.md §6).
+export interface NotificationAttachment {
+  id: string;
+  digitalSafeDocumentId: string;
+  label: string | null;
+}
+
 export interface AppNotification {
   id: string;
   userId: string;
   type: NotificationType;
+  category: NotificationCategory;
   metadata: Record<string, unknown> | null;
+  // Chemin vers l'écran concerné, calculé par le serveur à la création. Null
+  // quand la notification ne mène nulle part — mieux qu'un lien mort.
+  linkPath: string | null;
   readAt: string | null;
+  starredAt: string | null;
+  archivedAt: string | null;
   createdAt: string;
+  attachments: NotificationAttachment[];
+}
+
+export interface NotificationPage {
+  items: AppNotification[];
+  // Pagination par curseur : l'historique grossit pendant la lecture, une
+  // pagination par numéro de page ferait sauter des lignes.
+  nextCursor: string | null;
+}
+
+export interface NotificationCounts {
+  unreadTotal: number;
+  unreadByCategory: Partial<Record<NotificationCategory, number>>;
+}
+
+export interface NotificationPreferenceRow {
+  category: NotificationCategory;
+  channel: NotificationChannelKind;
+  enabled: boolean;
+  // Catégories qui protègent ou qui engagent : l'interface les affiche
+  // verrouillées plutôt que de laisser découvrir le refus à la soumission.
+  locked: boolean;
 }
 
 // --- Candidatures (module 5) ---------------------------------------------------------------
@@ -708,11 +1073,47 @@ export interface Organization {
   updatedAt: string;
 }
 
+// Origine déclarée d'une organisation. STATISTIQUE MARKETING UNIQUEMENT (point 11 des
+// arbitrages du 2026-07-31) : répondre « AMBASSADOR » ici ne rattache personne et
+// n'ouvre aucun droit à commission. Seul `ambassadorCode` crée une attribution.
+export type OrganizationAcquisitionSource =
+  | 'AMBASSADOR'
+  | 'INTERNET'
+  | 'SOCIAL_MEDIA'
+  | 'UNIVERSITY'
+  | 'SCHOOL'
+  | 'TRAINING_CENTER'
+  | 'PARTNER_COMPANY'
+  | 'TRADE_SHOW'
+  | 'ADVERTISING'
+  | 'RECOMMENDATION'
+  | 'OTHER';
+
+export const ACQUISITION_SOURCES: OrganizationAcquisitionSource[] = [
+  'AMBASSADOR',
+  'INTERNET',
+  'SOCIAL_MEDIA',
+  'UNIVERSITY',
+  'SCHOOL',
+  'TRAINING_CENTER',
+  'PARTNER_COMPANY',
+  'TRADE_SHOW',
+  'ADVERTISING',
+  'RECOMMENDATION',
+  'OTHER',
+];
+
 export interface CreateOrganizationInput {
   name: string;
   sector?: string;
   country: string;
   city: string;
+  // Déclaratif, à visée statistique. Ne déclenche jamais de commission.
+  acquisitionSource?: OrganizationAcquisitionSource;
+  acquisitionSourceNote?: string;
+  // Le SEUL mécanisme d'attribution. Un code invalide est ignoré en silence côté
+  // serveur : il ne doit jamais faire échouer la création de l'organisation.
+  ambassadorCode?: string;
 }
 
 export interface UpdateOrganizationPageInput {
@@ -948,7 +1349,13 @@ export interface PartnerCompany {
   logoUrl: string | null;
 }
 
-function buildQueryString(params: Record<string, string | number | undefined>): string {
+// Les booléens sont acceptés et sérialisés en "true"/"false" : côté serveur, le
+// DTO les valide comme chaînes puis les convertit. Sans cette conversion
+// explicite, `Boolean('false')` vaudrait `true` — le piège classique, silencieux,
+// qui renverrait ici la liste complète au lieu des seules non lues.
+function buildQueryString(
+  params: Record<string, string | number | boolean | undefined>,
+): string {
   const entries = Object.entries(params).filter(([, value]) => value !== undefined);
   if (entries.length === 0) return '';
   const search = new URLSearchParams(entries.map(([key, value]) => [key, String(value)]));
@@ -975,6 +1382,20 @@ export const api = {
     request<RefreshResult>('/auth/2fa/verify-login', {
       method: 'POST',
       body: { challengeToken, code },
+    }),
+
+  // Réponse identique que le numéro existe ou non (pas d'énumération de comptes côté
+  // serveur) — l'écran appelant affiche toujours le même message de confirmation.
+  forgotPassword: (phone: string) =>
+    request<{ message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: { phone },
+    }),
+
+  resetPassword: (phone: string, code: string, newPassword: string) =>
+    request<{ message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: { phone, code, newPassword },
     }),
 
   getTwoFactorStatus: (accessToken: string) =>
@@ -1210,6 +1631,11 @@ export const api = {
 
   getOpportunity: (id: string, accessToken?: string) =>
     request<Opportunity>(`/opportunities/${id}`, { accessToken }),
+
+  // Réservé aux membres de l'organisation qui publie l'offre : le diagnostic
+  // dit ce qui manque à une offre, ce qu'un concurrent n'a pas à savoir.
+  getOpportunityQuality: (accessToken: string, id: string) =>
+    request<OfferQualityReport>(`/opportunities/${id}/quality`, { accessToken }),
 
   reportOpportunity: (
     accessToken: string,
@@ -1696,12 +2122,290 @@ export const api = {
       accessToken,
     }),
 
-  listNotifications: (accessToken: string) =>
-    request<AppNotification[]>('/notifications/mine', { accessToken }),
+  // --- Centre de Notifications ---------------------------------------------------------------
+
+  listNotifications: (
+    accessToken: string,
+    filters?: {
+      category?: NotificationCategory;
+      unreadOnly?: boolean;
+      starredOnly?: boolean;
+      includeArchived?: boolean;
+      search?: string;
+      cursor?: string;
+      limit?: number;
+    },
+  ) =>
+    request<NotificationPage>(
+      `/notifications/mine${buildQueryString(filters ?? {})}`,
+      { accessToken },
+    ),
+
+  notificationCounts: (accessToken: string) =>
+    request<NotificationCounts>('/notifications/counts', { accessToken }),
 
   markNotificationRead: (accessToken: string, id: string) =>
     request<AppNotification>(`/notifications/${id}/read`, {
       method: 'PATCH',
+      accessToken,
+    }),
+
+  markNotificationUnread: (accessToken: string, id: string) =>
+    request<AppNotification>(`/notifications/${id}/unread`, {
+      method: 'PATCH',
+      accessToken,
+    }),
+
+  markAllNotificationsRead: (
+    accessToken: string,
+    category?: NotificationCategory,
+  ) =>
+    request<{ updated: number }>('/notifications/read-all', {
+      method: 'POST',
+      body: category ? { category } : {},
+      accessToken,
+    }),
+
+  setNotificationStarred: (
+    accessToken: string,
+    id: string,
+    starred: boolean,
+  ) =>
+    request<AppNotification>(
+      `/notifications/${id}/${starred ? 'star' : 'unstar'}`,
+      { method: 'PATCH', accessToken },
+    ),
+
+  // Archiver n'est pas supprimer : la notification reste retrouvable avec
+  // includeArchived. L'historique complet ne souffre aucune suppression.
+  setNotificationArchived: (
+    accessToken: string,
+    id: string,
+    archived: boolean,
+  ) =>
+    request<AppNotification>(
+      `/notifications/${id}/${archived ? 'archive' : 'unarchive'}`,
+      { method: 'PATCH', accessToken },
+    ),
+
+  listNotificationPreferences: (accessToken: string) =>
+    request<NotificationPreferenceRow[]>('/notifications/preferences', {
+      accessToken,
+    }),
+
+  updateNotificationPreference: (
+    accessToken: string,
+    input: {
+      category: NotificationCategory;
+      channel: NotificationChannelKind;
+      enabled: boolean;
+    },
+  ) =>
+    request<NotificationPreferenceRow>('/notifications/preferences', {
+      method: 'PUT',
+      body: input,
+      accessToken,
+    }),
+
+  // --- Abonnements / Paiement ---------------------------------------------------------------
+
+  // Auto-souscription — accessible à tout compte, y compris mineur (CLAUDE.md §6 : jamais
+  // bloquée en attendant un parent). Le PRIX est toujours résolu côté serveur à partir de
+  // la formule : le client dit laquelle il veut, jamais combien elle coûte. Aucun PIN
+  // Mobile Money n'est collecté ici — `payment.instructions` ne fait que restituer ce que
+  // le prestataire (simulé pour l'instant) a renvoyé.
+  subscribeSelf: (
+    accessToken: string,
+    input: {
+      plan: IndividualPlan;
+      billingCycle: SubscriptionBillingCycle;
+      parentRedirectRequested?: boolean;
+    },
+  ) =>
+    request<SubscribeResult>('/subscriptions/me', {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  listMySubscriptions: (accessToken: string) =>
+    request<Subscription[]>('/subscriptions/mine', { accessToken }),
+
+  getSubscription: (accessToken: string, id: string) =>
+    request<Subscription>(`/subscriptions/${id}`, { accessToken }),
+
+  cancelSubscription: (accessToken: string, id: string) =>
+    request<Subscription>(`/subscriptions/${id}/cancel`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  // Une organisation souscrit pour elle-même — BUSINESS/INSTITUTION dérivé
+  // automatiquement de son type côté serveur, jamais choisi par le client.
+  subscribeOrganization: (
+    accessToken: string,
+    organizationId: string,
+    input: { billingCycle: SubscriptionBillingCycle },
+  ) =>
+    request<SubscribeResult>(`/subscriptions/organizations/${organizationId}`, {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  // Un établissement/entreprise souscrit une formule individuelle pour un bénéficiaire —
+  // soumis à l'accord parental actif côté serveur si ce dernier est mineur (CLAUDE.md §6).
+  sponsorSubscription: (
+    accessToken: string,
+    organizationId: string,
+    beneficiaryUserId: string,
+    input: { plan: IndividualPlan; billingCycle: SubscriptionBillingCycle },
+  ) =>
+    request<SubscribeResult>(
+      `/subscriptions/organizations/${organizationId}/sponsor/${beneficiaryUserId}`,
+      { method: 'POST', body: input, accessToken },
+    ),
+
+  // Back-office — réservé ADMIN.
+  listAllSubscriptions: (
+    accessToken: string,
+    filters?: { status?: SubscriptionStatus; plan?: SubscriptionPlan },
+  ) =>
+    request<AdminSubscription[]>(
+      `/subscriptions${buildQueryString(filters ?? {})}`,
+      { accessToken },
+    ),
+
+  // --- Programme d'Ambassadeurs -------------------------------------------------------------
+
+  getMyAmbassador: (accessToken: string) =>
+    request<MyAmbassador>('/ambassadors/me', { accessToken }),
+
+  getMyPortfolio: (accessToken: string) =>
+    request<PortfolioEntry[]>('/ambassadors/me/portfolio', { accessToken }),
+
+  getMyCommissions: (accessToken: string) =>
+    request<Commission[]>('/ambassadors/me/commissions', { accessToken }),
+
+  getMyAmbassadorWallet: (accessToken: string) =>
+    request<WalletLedger>('/ambassadors/me/wallet', { accessToken }),
+
+  listMyPayouts: (accessToken: string) =>
+    request<PayoutRequest[]>('/ambassadors/me/payouts', { accessToken }),
+
+  // Trois verrous côté serveur avant qu'un franc parte : contrat d'apporteur d'affaires
+  // signé, versements ouverts pour le pays, validation administrative nominative. Le
+  // client n'en contourne aucun — il se contente de restituer le refus s'il vient.
+  requestPayout: (
+    accessToken: string,
+    input: { amountMinor: number; method: string; destinationLabel: string },
+  ) =>
+    request<PayoutRequest>('/ambassadors/me/payouts', {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  // Vérifie un code d'affiliation avant de s'en servir, sans rien révéler du titulaire.
+  verifyAmbassadorCode: (code: string) =>
+    request<AmbassadorCodeCheck>('/ambassadors/verify-code', {
+      method: 'POST',
+      body: { code },
+    }),
+
+  // --- Back-office ambassadeurs — réservé ADMIN ---------------------------------------------
+
+  listAmbassadors: (accessToken: string, status?: AmbassadorStatus) =>
+    request<Ambassador[]>(
+      `/ambassadors${buildQueryString(status ? { status } : {})}`,
+      { accessToken },
+    ),
+
+  getAmbassador: (accessToken: string, id: string) =>
+    request<Ambassador>(`/ambassadors/${id}`, { accessToken }),
+
+  createAmbassador: (
+    accessToken: string,
+    input: {
+      userId: string;
+      categories: AmbassadorCategory[];
+      countryCode: string;
+    },
+  ) =>
+    request<Ambassador>('/ambassadors', {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  approveAmbassador: (accessToken: string, id: string) =>
+    request<Ambassador>(`/ambassadors/${id}/approve`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  suspendAmbassador: (accessToken: string, id: string, reason: string) =>
+    request<Ambassador>(`/ambassadors/${id}/suspend`, {
+      method: 'POST',
+      body: { reason },
+      accessToken,
+    }),
+
+  reinstateAmbassador: (accessToken: string, id: string) =>
+    request<Ambassador>(`/ambassadors/${id}/reinstate`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  terminateAmbassador: (accessToken: string, id: string, reason: string) =>
+    request<Ambassador>(`/ambassadors/${id}/terminate`, {
+      method: 'POST',
+      body: { reason },
+      accessToken,
+    }),
+
+  // Enregistre la signature du Contrat d'Apporteur d'Affaires — le fait qui lève le
+  // verrou du premier versement dans un pays.
+  signAmbassadorContract: (
+    accessToken: string,
+    id: string,
+    input: { signedAt: string; contractReference: string },
+  ) =>
+    request<Ambassador>(`/ambassadors/${id}/contract`, {
+      method: 'POST',
+      body: input,
+      accessToken,
+    }),
+
+  listAllPayouts: (accessToken: string, status?: PayoutRequestStatus) =>
+    request<PayoutRequest[]>(
+      `/ambassadors/payouts${buildQueryString(status ? { status } : {})}`,
+      { accessToken },
+    ),
+
+  validatePayout: (accessToken: string, id: string) =>
+    request<PayoutRequest>(`/ambassadors/payouts/${id}/validate`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  // Constate qu'un virement est réellement parti. Le virement lui-même se fait hors
+  // application : la plateforme ne détient aucun moyen de paiement (CLAUDE.md §6).
+  executePayout: (
+    accessToken: string,
+    id: string,
+    executionReference: string,
+  ) =>
+    request<PayoutRequest>(`/ambassadors/payouts/${id}/execute`, {
+      method: 'POST',
+      body: { executionReference },
+      accessToken,
+    }),
+
+  rejectPayout: (accessToken: string, id: string, reason: string) =>
+    request<PayoutRequest>(`/ambassadors/payouts/${id}/reject`, {
+      method: 'POST',
+      body: { reason },
       accessToken,
     }),
 };

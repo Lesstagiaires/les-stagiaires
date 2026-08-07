@@ -16,6 +16,7 @@ import {
   useNeedRequestTypeOptions,
 } from '../../../lib/organization-labels';
 import { useAuth } from '../../../lib/auth-context';
+import { EmptyState } from '../../../components/empty-state';
 
 export default function NeedRequestsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -67,7 +68,7 @@ export default function NeedRequestsScreen() {
         ) : (
           <View style={styles.list}>
             {requests.length === 0 ? (
-              <Text style={styles.emptyText}>{t('recruiter.needs.empty')}</Text>
+              <EmptyState message={t('recruiter.needs.empty')} />
             ) : (
               requests.map((request) => (
                 <Card key={request.id} style={styles.requestCard}>
@@ -190,9 +191,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxl,
-  },
-  emptyText: {
-    ...typography.caption,
   },
   list: {
     gap: spacing.sm,

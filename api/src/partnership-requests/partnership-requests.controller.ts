@@ -23,7 +23,9 @@ import { PartnershipRequestsService } from './partnership-requests.service';
 
 @Controller('partnership-requests')
 export class PartnershipRequestsController {
-  constructor(private readonly partnershipRequests: PartnershipRequestsService) {}
+  constructor(
+    private readonly partnershipRequests: PartnershipRequestsService,
+  ) {}
 
   // Formulaire public "Nous contacter" (entreprises, ONG, administrations,
   // organisations internationales, universités, écoles, centres de formation,

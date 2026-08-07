@@ -38,7 +38,11 @@ export class CountryPolicyController {
     @Param('countryCode') countryCode: string,
     @Body() dto: UpsertCountryPolicyDto,
   ) {
-    return this.countryPolicies.upsert(admin.sub, countryCode.toUpperCase(), dto);
+    return this.countryPolicies.upsert(
+      admin.sub,
+      countryCode.toUpperCase(),
+      dto,
+    );
   }
 
   @HttpCode(HttpStatus.OK)

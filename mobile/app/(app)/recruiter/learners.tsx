@@ -1,4 +1,4 @@
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type EstablishmentLearner } from '../../../lib/api';
 import { useLearnerStatusLabels, LEARNER_STATUS_TONE } from '../../../lib/establishment-labels';
 import { useAuth } from '../../../lib/auth-context';
+import { EmptyState } from '../../../components/empty-state';
 
 export default function LearnersScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -58,7 +59,7 @@ export default function LearnersScreen() {
         ) : (
           <View style={styles.list}>
             {learners.length === 0 ? (
-              <Text style={styles.emptyText}>{t('recruiter.learners.empty')}</Text>
+              <EmptyState message={t('recruiter.learners.empty')} />
             ) : (
               learners.map((learner) => (
                 <LearnerRow
@@ -92,6 +93,7 @@ function LearnerRow({
   learner: EstablishmentLearner;
   onChanged: () => Promise<void>;
 }) {
+  const router = useRouter();
   const { t } = useTranslation();
   const learnerStatusLabels = useLearnerStatusLabels();
   const [busy, setBusy] = useState(false);
@@ -142,6 +144,18 @@ function LearnerRow({
             title={t('recruiter.learners.verify')}
             onPress={handleVerify}
             loading={busy}
+            disabled={busy}
+          />
+        )}
+        {learner.status === 'ACTIVE' && !!learner.verifiedAt && (
+          <SecondaryButton
+            title={t('recruiter.learners.sponsor')}
+            onPress={() =>
+              router.push(
+                `/recruiter/sponsor?id=${establishmentId}&beneficiaryUserId=${learner.userId}&label=${encodeURIComponent(learner.user.lsId ?? learner.userId)}`,
+              )
+            }
+            loading={false}
             disabled={busy}
           />
         )}
@@ -225,9 +239,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxl,
-  },
-  emptyText: {
-    ...typography.caption,
   },
   list: {
     gap: spacing.sm,

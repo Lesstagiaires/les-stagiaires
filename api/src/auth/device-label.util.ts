@@ -17,8 +17,10 @@ export function deriveDeviceLabel(userAgent: string | undefined): string {
   if (ua.includes('edg/')) browser = 'Edge';
   else if (ua.includes('chrome/') && !ua.includes('okhttp')) browser = 'Chrome';
   else if (ua.includes('firefox/')) browser = 'Firefox';
-  else if (ua.includes('safari/') && !ua.includes('chrome/')) browser = 'Safari';
-  else if (ua.includes('okhttp') || ua.includes('cfnetwork')) browser = "Application mobile";
+  else if (ua.includes('safari/') && !ua.includes('chrome/'))
+    browser = 'Safari';
+  else if (ua.includes('okhttp') || ua.includes('cfnetwork'))
+    browser = 'Application mobile';
 
   return browser ? `${browser} sur ${os}` : os;
 }

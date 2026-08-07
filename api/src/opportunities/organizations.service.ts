@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { AmbassadorsService } from '../ambassadors/ambassadors.service';
 import {
   OrganizationMemberStatus,
   OrganizationType,
@@ -42,6 +43,7 @@ export class OrganizationsService {
     private readonly config: ConfigService,
     private readonly audit: AuditService,
     private readonly access: OrganizationAccessService,
+    private readonly ambassadors: AmbassadorsService,
   ) {}
 
   // FR-M4-001 / EDU-FR-001 : seule une "organisation autorisée" peut publier —
@@ -72,13 +74,31 @@ export class OrganizationsService {
         sector: dto.sector,
         country: dto.country,
         city: dto.city,
+        // Donnée marketing déclarative — jamais consultée par le moteur de
+        // commission (point 9 des arbitrages du 2026-07-31).
+        acquisitionSource: dto.acquisitionSource,
+        acquisitionSourceNote: dto.acquisitionSourceNote,
       },
     });
     await this.audit.record('ORGANIZATION_CREATED', userId, {
       organizationId: organization.id,
       orgId,
       type,
+      acquisitionSource: dto.acquisitionSource,
     });
+
+    // Attribution à un ambassadeur : mécanisme SÉPARÉ de la statistique
+    // ci-dessus. Il n'agit que sur un code valide appartenant à un ambassadeur
+    // actif ; sinon il ne fait rien, sans bruit. Un code mal recopié ne doit
+    // jamais faire échouer la création d'une organisation — l'entreprise
+    // perdrait son inscription pour une raison qui ne la concerne pas.
+    if (dto.ambassadorCode) {
+      await this.ambassadors.attributeOrganization(
+        organization.id,
+        dto.ambassadorCode,
+      );
+    }
+
     return organization;
   }
 

@@ -1,0 +1,29 @@
+-- ============================================================================
+-- GRAND LIVRE — EFFET SUR LA POCHE « DISPONIBLE »
+--
+-- DÉFAUT TROUVÉ LE 2026-08-04 par la première recette de versement menée de bout
+-- en bout contre l'API réelle. Aucun test unitaire ne pouvait le voir : il fallait
+-- qu'une immobilisation soit réellement écrite au grand livre.
+--
+-- CE QUI N'ALLAIT PAS. `ReconciliationService.availableDelta()` attendait que
+-- PAYOUT_RESERVED, PAYOUT_RELEASED et COMMISSION_AVAILABLE portent le montant
+-- déplacé dans `amountMinor`. Or ces écritures y inscrivent ZÉRO — et c'est
+-- correct : `amountMinor` mesure ce qui ENTRE ou SORT du patrimoine de
+-- l'ambassadeur, et un déplacement entre poches ne fait ni l'un ni l'autre. La
+-- somme de cette colonne donne ce qui est dû ; casser cette propriété pour
+-- satisfaire un contrôle serait échanger une vérité comptable contre un test vert.
+--
+-- Le contrôle de continuité signalait donc une rupture à CHAQUE immobilisation.
+-- Un contrôle qui crie au loup en permanence est un contrôle qu'on finit par
+-- ignorer — c'est-à-dire pire que pas de contrôle du tout.
+--
+-- LA CORRECTION. Une colonne dédiée, qui porte l'effet sur la seule poche
+-- « disponible ». Le contrôle dispose enfin d'une source INDÉPENDANTE des
+-- photographies de solde qu'il vérifie.
+--
+-- Nullable, et NON rétro-remplie. Reconstituer l'effet des écritures passées
+-- exigerait de deviner, pour chaque ligne, à quelle poche elle a touché. Le
+-- contrôle s'abstient de conclure sur ces lignes-là — ce qui est la seule chose
+-- honnête à faire, et déjà le comportement prévu pour les types indéterminables.
+-- ============================================================================
+ALTER TABLE "WalletTransaction" ADD COLUMN "availableDeltaMinor" INTEGER;

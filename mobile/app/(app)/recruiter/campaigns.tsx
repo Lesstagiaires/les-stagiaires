@@ -12,6 +12,7 @@ import { api, ApiError, type InternshipCampaign } from '../../../lib/api';
 import { useCampaignStatusLabels, CAMPAIGN_STATUS_TONE } from '../../../lib/establishment-labels';
 import { useAuth } from '../../../lib/auth-context';
 import { toIsoDateString } from '../../../lib/date';
+import { EmptyState } from '../../../components/empty-state';
 
 export default function CampaignsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -60,7 +61,7 @@ export default function CampaignsScreen() {
         ) : (
           <View style={styles.list}>
             {campaigns.length === 0 ? (
-              <Text style={styles.emptyText}>{t('recruiter.campaigns.empty')}</Text>
+              <EmptyState message={t('recruiter.campaigns.empty')} />
             ) : (
               campaigns.map((campaign) => (
                 <CampaignRow
@@ -229,9 +230,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxl,
-  },
-  emptyText: {
-    ...typography.caption,
   },
   list: {
     gap: spacing.sm,

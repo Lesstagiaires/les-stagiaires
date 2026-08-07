@@ -24,7 +24,9 @@
     "profile": "Profil",
     "security": "Sécurité",
     "moderation": "Modération",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "subscriptions": "Abonnements",
+    "subscriptionsAdmin": "Abonnements (Admin)"
   },
   "auth": {
     "login": {
@@ -35,6 +37,7 @@
       "submit": "Se connecter",
       "noAccount": "Pas encore de compte ? Inscrivez-vous",
       "contactLink": "Vous représentez une organisation ? Contactez-nous",
+      "forgotPasswordLink": "Mot de passe oublié ?",
       "genericError": "Connexion impossible. Vérifiez votre connexion internet."
     },
     "twoFactor": {
@@ -51,25 +54,62 @@
       "lastName": "Nom",
       "male": "Homme",
       "female": "Femme",
-      "phone": "Téléphone (ex: +237670000000)",
+      "countryPlaceholder": "Pays de résidence",
+      "countrySearchPlaceholder": "Rechercher un pays",
+      "phoneNational": "Numéro de téléphone",
       "email": "Email (facultatif)",
       "city": "Ville de résidence",
-      "country": "Pays de résidence (code, ex : CM)",
       "password": "Mot de passe (10 caractères min., majuscule, minuscule, chiffre)",
+      "confirmPassword": "Confirmer le mot de passe",
       "dateOfBirth": "Date de naissance",
       "minorNotice": "Selon votre pays de résidence, un compte de cet âge peut nécessiter le numéro d'un parent ou tuteur, qui recevra un SMS pour donner son accord.",
-      "parentPhone": "Téléphone du parent/tuteur",
+      "parentPhoneNational": "Numéro du parent/tuteur",
       "submit": "S'inscrire",
       "haveAccount": "Déjà un compte ? Connectez-vous",
       "missingDob": "Indiquez votre date de naissance.",
-      "genericError": "Inscription impossible. Vérifiez votre connexion internet."
+      "missingCountry": "Sélectionnez votre pays de résidence.",
+      "invalidPhone": "Numéro de téléphone invalide pour le pays sélectionné.",
+      "passwordMismatch": "Les mots de passe ne correspondent pas.",
+      "genericError": "Inscription impossible. Vérifiez votre connexion internet.",
+      "ambassadorCodeLabel": "Code de parrainage (facultatif)",
+      "ambassadorCodePlaceholder": "Ex. AB34CD",
+      "ambassadorCodeHint": "Si un ambassadeur vous a fait connaître LES STAGIAIRES, saisissez son code. Un code inconnu est simplement ignoré et n'empêche jamais votre inscription."
     },
     "verifyOtp": {
       "title": "Vérification du téléphone",
       "subtitleDefault": "Un code a été envoyé par SMS au {{phone}}.",
       "codePlaceholder": "Code à 6 chiffres",
       "submit": "Valider",
-      "genericError": "Vérification impossible. Vérifiez votre connexion internet."
+      "genericError": "Vérification impossible. Vérifiez votre connexion internet.",
+      "ambassador": {
+        "CODE_NOT_RECOGNIZED": "Le code ambassadeur renseigné est invalide ou n'existe pas. Votre inscription est bien enregistrée, mais aucun ambassadeur ne sera associé à votre compte. Vous pouvez poursuivre normalement.",
+        "SELF_REFERRAL_BLOCKED": "Vous ne pouvez pas utiliser votre propre code de parrainage. Votre inscription est bien enregistrée, mais aucun ambassadeur ne sera associé à votre compte.",
+        "ALREADY_ATTRIBUTED": "Un ambassadeur est déjà associé à votre compte. Votre inscription est bien enregistrée, et ce premier rattachement reste inchangé."
+      }
+    },
+    "forgotPassword": {
+      "title": "Mot de passe oublié",
+      "subtitle": "Indiquez votre pays et votre numéro de téléphone. Si un compte existe, vous recevrez un code de vérification par SMS.",
+      "countryPlaceholder": "Pays",
+      "countrySearchPlaceholder": "Rechercher un pays",
+      "phoneNational": "Numéro de téléphone",
+      "submit": "Envoyer le code",
+      "back": "Retour à la connexion",
+      "missingCountry": "Sélectionnez votre pays.",
+      "invalidPhone": "Numéro de téléphone invalide pour le pays sélectionné.",
+      "genericError": "Envoi impossible. Vérifiez votre connexion internet.",
+      "sentMessage": "Si un compte existe pour ce numéro, un code de vérification vient d'être envoyé par SMS."
+    },
+    "resetPassword": {
+      "title": "Nouveau mot de passe",
+      "subtitleDefault": "Saisissez le code reçu par SMS au {{phone}} ainsi que votre nouveau mot de passe.",
+      "codePlaceholder": "Code à 6 chiffres",
+      "newPassword": "Nouveau mot de passe (10 caractères min., majuscule, minuscule, chiffre)",
+      "confirmPassword": "Confirmer le nouveau mot de passe",
+      "submit": "Réinitialiser le mot de passe",
+      "passwordMismatch": "Les mots de passe ne correspondent pas.",
+      "genericError": "Réinitialisation impossible. Vérifiez le code et réessayez.",
+      "successMessage": "Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe."
     }
   },
   "home": {
@@ -84,9 +124,11 @@
     "title": "Mon profil",
     "securityLink": "Sécurité — double authentification et appareils",
     "contactLink": "Nous contacter",
+    "subscriptionsLink": "Mon abonnement",
     "moderationLink": "Panneau de modération",
     "partnershipRequestsLink": "Demandes de partenariat",
     "notificationsLink": "Notifications",
+    "subscriptionsAdminLink": "Tous les abonnements",
     "logout": "Se déconnecter",
     "language": {
       "sectionTitle": "Langue de l'application",
@@ -143,7 +185,8 @@
       "hidden": "Masquée",
       "show": "Afficher sur le profil",
       "hide": "Masquer"
-    }
+    },
+    "ambassadorLink": "Espace ambassadeur"
   },
   "opportunities": {
     "detailTitle": "Détail de l'offre",
@@ -157,7 +200,10 @@
       "searchButton": "Rechercher",
       "searchError": "Recherche impossible.",
       "empty": "Aucune offre ne correspond à ces critères.",
-      "loadMore": "Voir plus d'offres"
+      "loadMore": "Voir plus d'offres",
+      "keywordsPlaceholder": "Métier, compétence, entreprise…",
+      "clearKeywords": "Effacer la recherche",
+      "emptyKeywords": "Aucune offre pour « {{keywords}} ». Essayez un autre mot : la recherche reconnaît déjà les abréviations et les fautes de frappe."
     },
     "detail": {
       "notFound": "Offre indisponible.",
@@ -343,6 +389,8 @@
       "reports": "Rapports de stage",
       "dashboard": "Tableau de bord",
       "partners": "Entreprises partenaires",
+      "subscription": "Abonnement",
+      "sponsor": "Parrainer un abonnement",
       "myOpportunities": "Mes offres",
       "newOpportunity": "Nouvelle offre",
       "manageOpportunity": "Gérer l'offre",
@@ -366,7 +414,11 @@
       "countryPlaceholder": "Pays",
       "cityPlaceholder": "Ville",
       "createButton": "Créer",
-      "createError": "Création impossible."
+      "createError": "Création impossible.",
+      "acquisitionSourceLabel": "Comment avez-vous connu LES STAGIAIRES ?",
+      "ambassadorCodeLabel": "Code ambassadeur (facultatif)",
+      "ambassadorCodePlaceholder": "Ex. AB34CD",
+      "ambassadorCodeHint": "La question ci-dessus est une statistique. Seul ce code rattache votre entreprise à un ambassadeur."
     },
     "organization": {
       "notFound": "Organisation introuvable.",
@@ -381,6 +433,7 @@
       "reportsHint": "Correction et validation.",
       "dashboardHint": "Taux d'insertion des apprenants.",
       "partnersHint": "Répertoire des organisations d'accueil.",
+      "subscriptionHint": "Souscrire un abonnement pour l'organisation.",
       "page": {
         "sectionTitle": "Page publique",
         "descriptionPlaceholder": "Présentation de l'organisation",
@@ -563,6 +616,7 @@
       "verifiedStatus": "Rattachement vérifié",
       "pendingVerification": "En attente de vérification",
       "verify": "Vérifier",
+      "sponsor": "Offrir un abonnement",
       "revoke": "Révoquer",
       "invite": {
         "title": "Rattacher un apprenant",
@@ -614,6 +668,7 @@
     "dashboard": {
       "loadError": "Chargement impossible.",
       "unavailable": "Organisation indisponible.",
+      "eyebrow": "Vue d'ensemble",
       "title": "Tableau de bord d'insertion",
       "totalLearners": "Apprenants",
       "verifiedLearners": "Apprenants vérifiés",
@@ -628,6 +683,27 @@
       "title": "Entreprises partenaires",
       "subtitle": "Organisations ayant accueilli au moins un apprenant vérifié de votre établissement.",
       "empty": "Aucune entreprise partenaire pour l'instant."
+    },
+    "subscribe": {
+      "title": "Abonnement de l'organisation",
+      "intro": "Souscrire l'abonnement {{plan}} pour cette organisation. Le paiement se fait par Mobile Money, sans jamais saisir votre code PIN dans l'application.",
+      "submit": "Souscrire",
+      "error": "Souscription impossible.",
+      "backToOrganization": "Retour à l'organisation"
+    },
+    "sponsor": {
+      "title": "Offrir un abonnement",
+      "intro": "Souscrire une formule individuelle au nom de {{name}}. Si ce bénéficiaire est mineur, l'accord actif d'un parent ou tuteur est requis.",
+      "unavailable": "Bénéficiaire introuvable.",
+      "submit": "Continuer vers le paiement",
+      "error": "Souscription impossible.",
+      "backToLearners": "Retour aux apprenants"
+    },
+    "quality": {
+      "title": "Qualité de votre offre",
+      "intro": "Ce diagnostic porte sur votre offre seule. LES STAGIAIRES ne la compare à aucune autre et ne lui attribue aucune note.",
+      "nothingToFix": "Rien à corriger sur cette offre.",
+      "loadError": "Diagnostic indisponible pour le moment."
     }
   },
   "security": {
@@ -773,6 +849,341 @@
       "IN_PROGRESS": "En cours",
       "PROCESSED": "Traité",
       "CLOSED": "Clos"
+    },
+    "subscriptionStatus": {
+      "PENDING_PAYMENT": "En attente de paiement",
+      "ACTIVE": "Actif",
+      "PAYMENT_FAILED": "Paiement échoué",
+      "EXPIRED": "Expiré",
+      "CANCELLED": "Annulé"
+    },
+    "subscriptionPlan": {
+      "BUSINESS": "Entreprise",
+      "INSTITUTION": "Établissement",
+      "GRATUIT": "Gratuit",
+      "CARRIERE_SECURISEE": "Carrière Sécurisée",
+      "CARRIERE_PLUS": "Carrière Plus"
+    },
+    "billingCycle": {
+      "ONE_TIME": "À l'acte",
+      "QUARTERLY": "Trimestriel",
+      "ANNUAL": "Annuel"
+    },
+    "ambassadorStatus": {
+      "PENDING": "En attente",
+      "ACTIVE": "Actif",
+      "SUSPENDED": "Suspendu",
+      "TERMINATED": "Sorti du programme"
+    },
+    "commissionStatus": {
+      "PENDING": "En attente",
+      "APPROVED": "Approuvée",
+      "PAYABLE": "Exigible",
+      "PAID": "Versée",
+      "CANCELLED": "Annulée",
+      "REVERSED": "Reprise",
+      "DISPUTED": "Contestée",
+      "BLOCKED": "Bloquée"
+    },
+    "commissionNature": {
+      "ACQUISITION": "Acquisition",
+      "NEW_SERVICE": "Nouvelle prestation",
+      "RENEWAL": "Renouvellement",
+      "BONUS": "Prime"
+    },
+    "payoutStatus": {
+      "REQUESTED": "Demandé",
+      "VALIDATED": "Validé",
+      "EXECUTED": "Versé",
+      "REJECTED": "Refusé",
+      "CANCELLED": "Annulé"
+    },
+    "acquisitionSource": {
+      "AMBASSADOR": "Ambassadeur",
+      "INTERNET": "Internet",
+      "SOCIAL_MEDIA": "Réseaux sociaux",
+      "UNIVERSITY": "Université",
+      "SCHOOL": "École",
+      "TRAINING_CENTER": "Centre de formation",
+      "PARTNER_COMPANY": "Entreprise partenaire",
+      "TRADE_SHOW": "Salon",
+      "ADVERTISING": "Publicité",
+      "RECOMMENDATION": "Recommandation",
+      "OTHER": "Autre"
+    },
+    "notificationType": {
+      "PARTNERSHIP_REQUEST_NEW": {
+        "title": "Nouvelle demande de partenariat",
+        "body": "{{organizationName}} a déposé une demande via le formulaire public."
+      },
+      "PARTNERSHIP_APPLIED": {
+        "title": "Candidature au partenariat",
+        "body": "Votre candidature au programme de partenariat est enregistrée."
+      },
+      "PARTNERSHIP_ADDITIONAL_INFORMATION_REQUIRED": {
+        "title": "Complément demandé",
+        "body": "Votre dossier de partenariat appelle des éléments complémentaires. Aucune décision n’est prise."
+      },
+      "PARTNERSHIP_ADDITIONAL_INFORMATION_PROVIDED": {
+        "title": "Dossier complété",
+        "body": "Une organisation a complété son dossier de partenariat."
+      },
+      "PARTNERSHIP_APPROVED": {
+        "title": "Partenariat accepté",
+        "body": "Votre organisation est désormais partenaire de LES STAGIAIRES."
+      },
+      "PARTNERSHIP_REFUSED": {
+        "title": "Partenariat refusé",
+        "body": "Votre candidature au programme de partenariat n’a pas été retenue."
+      },
+      "PARTNERSHIP_SUSPENDED": {
+        "title": "Partenariat suspendu",
+        "body": "Votre partenariat est suspendu. Le motif vous a été communiqué."
+      },
+      "PARTNERSHIP_REINSTATED": {
+        "title": "Partenariat rétabli",
+        "body": "Votre partenariat est de nouveau actif."
+      },
+      "PARTNERSHIP_TERMINATION_REQUESTED": {
+        "title": "Demande de résiliation",
+        "body": "Une demande de résiliation du partenariat a été enregistrée."
+      },
+      "PARTNERSHIP_TERMINATION_REQUEST_WITHDRAWN": {
+        "title": "Demande de résiliation retirée",
+        "body": "La demande de résiliation a été retirée. Le partenariat continue."
+      },
+      "PARTNERSHIP_TERMINATED": {
+        "title": "Partenariat résilié",
+        "body": "Votre partenariat a pris fin. Le motif vous a été communiqué."
+      },
+      "AMBASSADOR_APPROVED": {
+        "title": "Candidature ambassadeur acceptée",
+        "body": "Bienvenue dans le programme d’ambassadeurs."
+      },
+      "AMBASSADOR_SUSPENDED": {
+        "title": "Compte ambassadeur suspendu",
+        "body": "Vos commissions déjà acquises restent dues."
+      },
+      "AMBASSADOR_REINSTATED": {
+        "title": "Compte ambassadeur rétabli",
+        "body": "Vous pouvez de nouveau recruter et percevoir."
+      },
+      "AMBASSADOR_TERMINATED": {
+        "title": "Fin du programme ambassadeur",
+        "body": "Votre participation au programme a pris fin."
+      },
+      "AMBASSADOR_COMMISSION_EARNED": {
+        "title": "Nouvelle commission",
+        "body": "Une commission a été enregistrée sur votre portefeuille."
+      },
+      "AMBASSADOR_COMMISSION_PAYABLE": {
+        "title": "Commission exigible",
+        "body": "Une commission est devenue disponible au retrait."
+      },
+      "AMBASSADOR_PAYOUT_VALIDATED": {
+        "title": "Versement validé",
+        "body": "Votre demande de versement a été validée par l’administration."
+      },
+      "AMBASSADOR_PAYOUT_EXECUTED": {
+        "title": "Versement exécuté",
+        "body": "Votre versement est parti. Signalez-le si vous ne le recevez pas."
+      },
+      "AMBASSADOR_PAYOUT_REJECTED": {
+        "title": "Versement refusé",
+        "body": "Votre demande de versement a été refusée. Le motif est indiqué."
+      },
+      "AMBASSADOR_PAYOUT_FAILED": {
+        "title": "Virement non abouti",
+        "body": "Le virement n’a pas pu être effectué. La somme est revenue à votre solde disponible et reste due."
+      },
+      "AMBASSADOR_PAYMENT_DETAILS_CHANGED": {
+        "title": "Coordonnées de versement modifiées",
+        "body": "Vos coordonnées de versement ont changé. Si vous n’êtes pas à l’origine de ce changement, signalez-le immédiatement."
+      },
+      "AMBASSADOR_WALLET_DIVERGENCE": {
+        "title": "Écart comptable détecté",
+        "body": "Un portefeuille d’ambassadeur diverge du grand livre. Aucune correction automatique n’a été appliquée."
+      },
+      "AMBASSADOR_COMMISSION_REVIEW_REQUIRED": {
+        "title": "Commission en contrôle",
+        "body": "Une commission dépasse un plafond configuré. Elle attend une validation, une correction ou une annulation."
+      },
+      "AMBASSADOR_FRAUD_ALERT": {
+        "title": "Alerte antifraude",
+        "body": "Un comportement inhabituel a été détecté sur un dossier d’ambassadeur. Un contrôle manuel est requis."
+      },
+      "AMBASSADOR_PORTFOLIO_WARNING_9M": {
+        "title": "Portefeuille — 9 mois sans achat",
+        "body": "Sans nouvel achat sous trois mois, cette entreprise quittera votre portefeuille."
+      },
+      "AMBASSADOR_PORTFOLIO_WARNING_11M": {
+        "title": "Portefeuille — un mois restant",
+        "body": "Il ne reste qu’un mois avant l’expiration de ce rattachement."
+      },
+      "AMBASSADOR_PORTFOLIO_EXPIRED": {
+        "title": "Entreprise libérée",
+        "body": "Faute d’achat depuis douze mois, cette entreprise a quitté votre portefeuille."
+      },
+      "APPLICATION_SUBMITTED": {
+        "title": "Candidature envoyée",
+        "body": "Votre candidature {{reference}} est enregistrée."
+      },
+      "APPLICATION_DOCUMENT_REQUESTED": {
+        "title": "Document demandé",
+        "body": "Un document complémentaire vous est demandé pour {{reference}}."
+      },
+      "APPLICATION_INTERVIEW_PROPOSED": {
+        "title": "Entretien proposé",
+        "body": "Une date d’entretien vous est proposée pour {{reference}}."
+      },
+      "APPLICATION_REJECTED": {
+        "title": "Candidature non retenue",
+        "body": "Votre candidature {{reference}} n’a pas été retenue."
+      },
+      "APPLICATION_ADMISSION_LETTER_ISSUED": {
+        "title": "Candidature acceptée",
+        "body": "Une lettre d’admission vous attend pour {{reference}}."
+      },
+      "APPLICATION_ACCEPTED_PENDING_TRAVEL_CONSENT": {
+        "title": "Accord parental attendu",
+        "body": "Votre candidature {{reference}} attend l’accord de votre parent ou tuteur."
+      },
+      "APPLICATION_TRAVEL_CONSENT_CONFIRMED": {
+        "title": "Accord parental confirmé",
+        "body": "Votre candidature {{reference}} est désormais acceptée."
+      },
+      "APPLICATION_TRAVEL_CONSENT_EXPIRED": {
+        "title": "Candidature bloquée",
+        "body": "L’accord parental n’a pas été confirmé à temps pour {{reference}}."
+      },
+      "APPLICATION_AGREEMENT_FULLY_SIGNED": {
+        "title": "Convention signée",
+        "body": "La convention de {{reference}} est signée. Votre stage peut démarrer."
+      },
+      "APPLICATION_ESTABLISHMENT_SIGNED": {
+        "title": "Établissement signataire",
+        "body": "Votre établissement a signé la convention de {{reference}}."
+      },
+      "APPLICATION_INTERNSHIP_STARTING_SOON": {
+        "title": "Votre stage approche",
+        "body": "Votre stage {{reference}} commence bientôt."
+      },
+      "APPLICATION_CLOSED": {
+        "title": "Stage clôturé",
+        "body": "Votre attestation pour {{reference}} est disponible."
+      },
+      "APPLICATION_RECOMMENDATION_RECEIVED": {
+        "title": "Recommandation reçue",
+        "body": "{{organizationName}} vous a laissé une recommandation."
+      },
+      "APPLICATION_RECEIVED_ORG": {
+        "title": "Nouvelle candidature",
+        "body": "Une candidature {{reference}} vient d’être reçue."
+      },
+      "APPLICATION_DOCUMENT_SUBMITTED_ORG": {
+        "title": "Document reçu",
+        "body": "Le document demandé pour {{reference}} a été déposé."
+      },
+      "APPLICATION_INTERVIEW_CONFIRMED_ORG": {
+        "title": "Entretien confirmé",
+        "body": "Le candidat a confirmé l’entretien pour {{reference}}."
+      },
+      "APPLICATION_ADMISSION_ACCEPTED_ORG": {
+        "title": "Admission acceptée",
+        "body": "Le candidat a accepté la lettre d’admission pour {{reference}}."
+      },
+      "APPLICATION_TRAVEL_CONSENT_CONFIRMED_ORG": {
+        "title": "Accord parental confirmé",
+        "body": "L’accord de déplacement est confirmé pour {{reference}}."
+      },
+      "APPLICATION_AGREEMENT_FULLY_SIGNED_ORG": {
+        "title": "Convention signée",
+        "body": "La convention de {{reference}} est signée par les deux parties."
+      },
+      "APPLICATION_ESTABLISHMENT_SIGNED_ORG": {
+        "title": "Établissement signataire",
+        "body": "L’établissement a signé la convention de {{reference}}."
+      },
+      "APPLICATION_WITHDRAWN_ORG": {
+        "title": "Candidature retirée",
+        "body": "Le candidat a retiré sa candidature {{reference}}."
+      },
+      "APPLICATION_ESTABLISHMENT_ASSOCIATION_REQUESTED": {
+        "title": "Association à une convention",
+        "body": "Une entreprise souhaite associer votre établissement à {{reference}}."
+      },
+      "LEARNER_INVITED": {
+        "title": "Rattachement proposé",
+        "body": "Un établissement souhaite vous rattacher à son compte."
+      },
+      "LEARNER_VERIFIED": {
+        "title": "Rattachement vérifié",
+        "body": "Votre rattachement à votre établissement est confirmé."
+      },
+      "INTERNSHIP_REPORT_REVIEWED": {
+        "title": "Rapport de stage corrigé",
+        "body": "Votre rapport pour {{reference}} a été examiné."
+      },
+      "ORGANIZATION_INVITATION_RECEIVED": {
+        "title": "Invitation à rejoindre une équipe",
+        "body": "{{organizationName}} vous invite à rejoindre son équipe."
+      },
+      "ORGANIZATION_ACCESS_REVOKED": {
+        "title": "Accès révoqué",
+        "body": "Votre accès à cette organisation a été retiré."
+      },
+      "NEED_REQUEST_ANSWERED": {
+        "title": "Réponse à votre besoin",
+        "body": "L’administration a répondu à votre demande de besoin."
+      }
+    },
+    "notificationCategory": {
+      "APPLICATIONS": "Candidatures",
+      "INTERVIEWS": "Entretiens",
+      "INTERNSHIPS": "Stages",
+      "AGREEMENTS": "Conventions",
+      "ORGANIZATIONS": "Entreprises",
+      "AMBASSADORS": "Ambassadeurs",
+      "MENTORING": "Mentorat",
+      "LEGAL": "Juridique",
+      "PAYMENTS": "Paiements",
+      "SUBSCRIPTIONS": "Abonnements",
+      "PARTNERSHIPS": "Partenariats",
+      "ADMINISTRATION": "Administration",
+      "SECURITY": "Sécurité",
+      "SYSTEM": "Système"
+    },
+    "matchReason": {
+      "SKILLS": "Correspond à vos compétences",
+      "OCCUPATION": "Correspond au métier que vous visez",
+      "LOCATION": "Proche de vous",
+      "EDUCATION": "Correspond à votre niveau",
+      "AVAILABILITY": "Compatible avec vos disponibilités"
+    },
+    "qualityLevel": {
+      "INCOMPLETE": "Offre incomplète",
+      "PERFECTIBLE": "Offre perfectible",
+      "COMPLETE": "Offre complète"
+    },
+    "qualityCheck": {
+      "SKILLS_DECLARED": "Compétences attendues",
+      "OCCUPATION_LINKED": "Métier rattaché",
+      "DESCRIPTION_SUBSTANTIAL": "Description",
+      "TITLE_INFORMATIVE": "Intitulé",
+      "START_DATE_SET": "Date de début",
+      "STILL_FRESH": "Ancienneté de l’offre",
+      "EDUCATION_STATED": "Niveau d’études attendu",
+      "LOCATION_USABLE": "Lieu de travail"
+    },
+    "qualityAdvice": {
+      "SKILLS_DECLARED": "Déclarez les compétences attendues : sans elles, votre offre ne peut être rapprochée d’aucun profil sur ce qu’elle demande vraiment.",
+      "OCCUPATION_LINKED": "Rattachez un métier : votre offre ne remonte pas aux candidats qui visent ce métier ni sa famille.",
+      "DESCRIPTION_SUBSTANTIAL": "Décrivez les missions plus précisément : c’est ce que lit le candidat avant de postuler.",
+      "TITLE_INFORMATIVE": "Précisez l’intitulé du poste : un titre de deux mots ne dit pas de quoi il s’agit.",
+      "START_DATE_SET": "Indiquez la date de début si vous la connaissez : les candidats disponibles à cette date verront mieux votre offre.",
+      "STILL_FRESH": "Cette offre est publiée depuis plus de deux mois. Actualisez-la ou clôturez-la si le poste est pourvu.",
+      "EDUCATION_STATED": "Précisez le niveau d’études attendu : le candidat saura s’il peut postuler. Ne pas le renseigner n’exclut personne.",
+      "LOCATION_USABLE": "Indiquez la ville, ou choisissez le mode à distance : le candidat doit savoir s’il peut prendre ce poste."
     }
   },
   "moderation": {
@@ -842,5 +1253,144 @@
     "loadError": "Chargement impossible.",
     "empty": "Aucune notification pour l'instant.",
     "partnershipRequestNew": "Nouvelle demande de partenariat : {{organizationName}}"
+  },
+  "subscriptions": {
+    "title": "Mes abonnements",
+    "intro": "Carrière Sécurisée et Carrière Plus : accompagnement juridique et préparation à l’entretien.",
+    "loadError": "Chargement impossible.",
+    "empty": "Aucun abonnement pour l'instant.",
+    "newLink": "+ Souscrire à une formule",
+    "startedLabel": "Actif depuis le {{date}}",
+    "periodEndLabel": "Renouvellement le {{date}}",
+    "cancelledLabel": "Annulé le {{date}}",
+    "new": {
+      "title": "Souscrire à une formule",
+      "intro": "Le paiement se fait par Mobile Money, sans jamais saisir votre code PIN dans l'application — vous recevrez des instructions officielles du prestataire.",
+      "billingCycleLabel": "Formule",
+      "parentRedirectLabel": "Envoyer la demande à mon parent/tuteur",
+      "parentRedirectHint": "Si vous êtes mineur(e), vous pouvez choisir de faire suivre cette demande à votre parent ou tuteur — ce n'est jamais obligatoire pour souscrire vous-même.",
+      "submit": "Continuer vers le paiement",
+      "error": "Souscription impossible.",
+      "successTitle": "Souscription enregistrée",
+      "defaultInstructions": "Suivez les instructions de paiement qui vous seront communiquées par le prestataire.",
+      "viewSubscriptions": "Voir mes abonnements",
+      "planLabel": "Formule",
+      "planHint": "Le prix est calculé par LES STAGIAIRES selon la formule choisie."
+    },
+    "detail": {
+      "title": "Abonnement",
+      "notFound": "Abonnement introuvable.",
+      "planSection": "Plan",
+      "paymentSection": "Paiement",
+      "pendingNotice": "En attente de la confirmation officielle du prestataire de paiement — le statut se met à jour automatiquement une fois le paiement confirmé.",
+      "refresh": "Actualiser le statut",
+      "manageSection": "Gestion",
+      "cancelButton": "Annuler l'abonnement",
+      "cancelError": "Annulation impossible."
+    }
+  },
+  "subscriptionsAdmin": {
+    "filterAll": "Tous",
+    "unavailable": "Accès réservé aux administrateurs.",
+    "loadError": "Chargement impossible.",
+    "empty": "Aucun abonnement pour ce filtre.",
+    "beneficiaryUserLabel": "Bénéficiaire : {{name}}",
+    "beneficiaryOrganizationLabel": "Organisation : {{name}}"
+  },
+  "ambassador": {
+    "title": "Espace ambassadeur",
+    "loadError": "Impossible de charger votre espace ambassadeur.",
+    "notAmbassador": "Vous n'êtes pas encore ambassadeur. Le programme s'ouvre sur invitation de l'équipe LES STAGIAIRES.",
+    "codeLabel": "Votre code d'affiliation",
+    "share": "Partager",
+    "shareMessage": "Rejoignez LES STAGIAIRES avec mon code de parrainage : {{code}}",
+    "contractPending": "Vos commissions s'accumulent normalement. Aucun versement ne pourra toutefois être effectué avant la signature de votre Contrat d'Apporteur d'Affaires.",
+    "suspended": "Votre compte ambassadeur est suspendu. Vos commissions déjà acquises restent dues.",
+    "referralsSubtitle": "Jeunes que vous avez parrainés",
+    "balance": {
+      "available": "Disponible",
+      "pending": "En attente",
+      "reserved": "Immobilisé",
+      "paid": "Total versé",
+      "hint": "« En attente » devient « disponible » à l'issue de la période de sécurité, qui couvre les annulations et impayés."
+    },
+    "portfolio": {
+      "title": "Portefeuille d'entreprises",
+      "subtitle": "Entreprises que vous avez apportées",
+      "loadError": "Impossible de charger votre portefeuille.",
+      "empty": "Vous n'avez encore apporté aucune entreprise.",
+      "ruleTitle": "Comment fonctionne le compte à rebours",
+      "ruleBody": "Chaque achat confirmé d'une entreprise remet son compteur à zéro pour douze mois. Seul un achat confirmé le fait : ni note, ni appel, ni suivi déclaré. Passé douze mois sans achat, l'entreprise quitte votre portefeuille et redevient libre.",
+      "daysLeft": "{{count}} j",
+      "lastPurchase": "Dernier achat",
+      "neverPurchased": "Aucun",
+      "expiresAt": "Échéance"
+    },
+    "commissions": {
+      "title": "Mes commissions",
+      "intro": "Une commission naît uniquement d'un paiement confirmé. Le montant et le taux sont figés au moment du calcul : un relevé émis aujourd'hui restera vrai dans un an.",
+      "loadError": "Impossible de charger vos commissions.",
+      "empty": "Aucune commission pour l'instant.",
+      "availableOn": "Exigible à partir du {{date}}"
+    },
+    "payouts": {
+      "title": "Versements",
+      "subtitle": "Demander un versement et suivre vos demandes",
+      "loadError": "Impossible de charger vos versements.",
+      "lockedTitle": "Versements non disponibles",
+      "lockedBody": "La signature du Contrat d'Apporteur d'Affaires est nécessaire avant tout versement. Vos commissions restent acquises et vous seront versées dès la signature.",
+      "amountLabel": "Montant à verser ({{currency}})",
+      "methodLabel": "Moyen de versement",
+      "methodPlaceholder": "Mobile Money, virement bancaire…",
+      "destinationLabel": "Destination",
+      "destinationPlaceholder": "Ex. MTN MoMo — Prénom Nom",
+      "privacyHint": "N'indiquez jamais votre numéro complet ni votre code secret. Un repère suffit : l'administration vous contactera pour finaliser le virement.",
+      "submit": "Demander le versement",
+      "requested": "Votre demande a été enregistrée. Elle sera examinée par un administrateur.",
+      "error": "Impossible d'enregistrer votre demande.",
+      "historyTitle": "Historique",
+      "empty": "Aucune demande de versement.",
+      "reference": "Référence du virement : {{reference}}"
+    }
+  },
+  "ambassadorsAdmin": {
+    "title": "Ambassadeurs",
+    "unavailable": "Cette section est réservée aux administrateurs.",
+    "loadError": "Impossible de charger les ambassadeurs.",
+    "actionError": "L'opération a échoué.",
+    "tabAmbassadors": "Ambassadeurs",
+    "tabPayouts": "Versements",
+    "emptyAmbassadors": "Aucun ambassadeur enregistré.",
+    "emptyPayouts": "Aucune demande de versement.",
+    "contract": "Contrat d'apporteur",
+    "contractMissing": "Non signé",
+    "walletSummary": "Disponible {{available}} · En attente {{pending}}",
+    "approve": "Accepter la candidature",
+    "reinstate": "Réintégrer",
+    "validate": "Valider la demande",
+    "executionReference": "Référence du virement effectué",
+    "executionPlaceholder": "Ex. VIR-2026-0042",
+    "markExecuted": "Marquer comme versé",
+    "reject": "Refuser",
+    "rejectPlaceholder": "Motif du refus (obligatoire, 10 caractères minimum)"
+  },
+  "notificationCentre": {
+    "title": "Centre de notifications",
+    "all": "Tout",
+    "unread": "Non lues",
+    "starred": "Favoris",
+    "archived": "Archivées",
+    "searchPlaceholder": "Rechercher une référence, une entreprise…",
+    "empty": "Aucune notification.",
+    "emptyFiltered": "Aucune notification ne correspond à ce filtre.",
+    "loadError": "Impossible de charger vos notifications.",
+    "markAllRead": "Tout marquer comme lu",
+    "star": "Ajouter aux favoris",
+    "unstar": "Retirer des favoris",
+    "archive": "Archiver",
+    "unarchive": "Restaurer",
+    "open": "Ouvrir",
+    "loadMore": "Voir plus",
+    "attachments": "Pièces jointes"
   }
 }

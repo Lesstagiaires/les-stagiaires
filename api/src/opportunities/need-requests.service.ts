@@ -1,14 +1,15 @@
 import {
   BadRequestException,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { NeedRequestStatus } from '../../generated/prisma/enums';
+import {
+  NeedRequestStatus,
+  NotificationType,
+} from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { SMS_PROVIDER } from '../sms/sms-provider.interface';
-import type { SmsProvider } from '../sms/sms-provider.interface';
 import {
   NeedRequestDecision,
   RespondNeedRequestDto,
@@ -26,7 +27,7 @@ export class NeedRequestsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly access: OrganizationAccessService,
-    @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async submit(
@@ -117,16 +118,20 @@ export class NeedRequestsService {
       status,
     });
 
-    const owner = await this.prisma.user.findUnique({
-      where: { id: request.organization.ownerId },
-    });
-    if (owner?.phone) {
-      const message =
-        status === NeedRequestStatus.APPROVED
-          ? `LES STAGIAIRES — la direction a approuvé votre besoin (${request.type}, ${request.quantity}). Vous pouvez désormais publier vos offres.${dto.note ? ` Modalités : ${dto.note}` : ''}`
-          : `LES STAGIAIRES — la direction n'a pas approuvé votre besoin (${request.type}).${dto.note ? ` Motif : ${dto.note}` : ''}`;
-      await this.sms.send(owner.phone, message);
-    }
+    // Le propriétaire possède un compte : plus besoin de connaître son téléphone,
+    // ni de vérifier qu'il en a un. Approbation et refus partagent le même type,
+    // le statut distingue les deux côté client.
+    await this.notifications.notifyUser(
+      request.organization.ownerId,
+      NotificationType.NEED_REQUEST_ANSWERED,
+      {
+        requestId,
+        needType: request.type,
+        quantity: request.quantity,
+        status,
+        note: dto.note ?? null,
+      },
+    );
 
     return updated;
   }

@@ -6,6 +6,7 @@ import { Badge } from '../../../../components/badge';
 import { Card } from '../../../../components/card';
 import { ChipSelect } from '../../../../components/chip-select';
 import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../../../components/form';
+import { OfferQualityPanel } from '../../../../components/offer-quality-panel';
 import { Section } from '../../../../components/section';
 import { colors, spacing, typography } from '../../../../components/theme';
 import { api, ApiError, type Opportunity, type OpportunityType, type WorkMode } from '../../../../lib/api';
@@ -85,6 +86,14 @@ export default function ManageOpportunityScreen() {
         <Text style={typography.caption}>{opportunityTypeLabels[opportunity.type]}</Text>
 
         <LifecycleActions accessToken={accessToken} opportunity={opportunity} onChanged={reload} />
+
+        {/*
+          Le diagnostic AVANT le formulaire quand l'offre est encore en
+          brouillon : il dit ce qui manque, et le formulaire est juste en
+          dessous pour le corriger. Après publication il reste utile — c'est
+          lui qui expliquera pourquoi une offre ne reçoit pas de candidature.
+        */}
+        <OfferQualityPanel opportunityId={opportunity.id} accessToken={accessToken} />
 
         {opportunity.status === 'DRAFT' ? (
           <EditForm accessToken={accessToken} opportunity={opportunity} onSaved={reload} />

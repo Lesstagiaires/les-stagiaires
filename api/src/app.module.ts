@@ -13,16 +13,21 @@ import { DigitalSafeModule } from './digital-safe/digital-safe.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OpportunitiesModule } from './opportunities/opportunities.module';
 import { PartnershipRequestsModule } from './partnership-requests/partnership-requests.module';
+import { AmbassadorsModule } from './ambassadors/ambassadors.module';
+import { PartnershipsModule } from './partnerships/partnerships.module';
+import { CryptoModule } from './common/crypto/crypto.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { QueueModule } from './queue/queue.module';
 import { ReportsModule } from './reports/reports.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
+    CryptoModule,
     AuditModule,
     QueueModule,
     AuthModule,
@@ -33,6 +38,9 @@ import { ReportsModule } from './reports/reports.module';
     ApplicationsModule,
     NotificationsModule,
     PartnershipRequestsModule,
+    PartnershipsModule,
+    SubscriptionsModule,
+    AmbassadorsModule,
   ],
   controllers: [AppController],
   providers: [

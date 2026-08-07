@@ -7,8 +7,9 @@ import ar from './locales/ar.json';
 import en from './locales/en.json';
 import es from './locales/es.json';
 import fr from './locales/fr.json';
+import pt from './locales/pt.json';
 
-export type AppLanguage = 'fr' | 'en' | 'es' | 'ar';
+export type AppLanguage = 'fr' | 'en' | 'es' | 'ar' | 'pt';
 
 export const SUPPORTED_LANGUAGES: {
   code: AppLanguage;
@@ -19,6 +20,9 @@ export const SUPPORTED_LANGUAGES: {
   { code: 'en', nativeLabel: 'English', rtl: false },
   { code: 'es', nativeLabel: 'Español', rtl: false },
   { code: 'ar', nativeLabel: 'العربية', rtl: true },
+  // Portugais : Angola, Mozambique, Cap-Vert, Guinée-Bissau, São Tomé. Écriture de
+  // gauche à droite — rien à changer côté RTL.
+  { code: 'pt', nativeLabel: 'Português', rtl: false },
 ];
 
 const LANGUAGE_STORAGE_KEY = 'lesStagiaires.language';
@@ -72,6 +76,7 @@ export function initI18n(): Promise<AppLanguage> {
         en: { translation: en },
         es: { translation: es },
         ar: { translation: ar },
+        pt: { translation: pt },
       },
       lng: language,
       fallbackLng: 'fr',

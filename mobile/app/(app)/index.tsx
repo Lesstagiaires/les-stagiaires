@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   ActivityIndicator,
   SafeAreaView,
   ScrollView,
@@ -9,10 +10,19 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { LinearGradient } from 'expo-linear-gradient';
 import { typography, colors, spacing } from '../../components/theme';
-import { OpportunityCard } from '../../components/opportunity-card';
+import { OpportunityCard, OPPORTUNITY_CARD_STRIDE } from '../../components/opportunity-card';
 import { api, ApiError, type Opportunity } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
+import { EmptyState } from '../../components/empty-state';
+
+// Défilement automatique du carrousel — jamais en scroll infini caché : une puce par
+// offre, l'utilisateur voit toujours où il en est et combien il en reste (design
+// comportemental, artifact "Le Passeport"). Le geste de l'utilisateur a toujours
+// priorité — reprend seulement après une pause, sans jamais l'interrompre.
+const AUTO_SCROLL_INTERVAL_MS = 4000;
+const RESUME_AFTER_INTERACTION_MS = 6000;
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -22,6 +32,51 @@ export default function HomeScreen() {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isAutoScrollPaused, setIsAutoScrollPaused] = useState(false);
+  const [isReduceMotionEnabled, setIsReduceMotionEnabled] = useState(false);
+  const carouselRef = useRef<ScrollView>(null);
+  const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    void AccessibilityInfo.isReduceMotionEnabled().then(setIsReduceMotionEnabled);
+    return () => {
+      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+    };
+  }, []);
+
+  // Le rafraîchissement au focus (useFocusEffect ci-dessous) peut réduire la liste —
+  // repartir de la première offre plutôt que garder un index devenu hors limites.
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [opportunities.length]);
+
+  useEffect(() => {
+    if (isReduceMotionEnabled || isAutoScrollPaused || opportunities.length < 2) return;
+    const interval = setInterval(() => {
+      setActiveIndex((current) => {
+        const next = (current + 1) % opportunities.length;
+        carouselRef.current?.scrollTo({ x: next * OPPORTUNITY_CARD_STRIDE, animated: true });
+        return next;
+      });
+    }, AUTO_SCROLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [isReduceMotionEnabled, isAutoScrollPaused, opportunities.length]);
+
+  // L'utilisateur qui touche le carrousel reprend toujours la main immédiatement — le
+  // défilement automatique ne reprend qu'après une pause, jamais en pleine interaction.
+  function handleCarouselTouchStart() {
+    setIsAutoScrollPaused(true);
+    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+  }
+
+  function handleCarouselScrollEnd(offsetX: number) {
+    setActiveIndex(Math.round(offsetX / OPPORTUNITY_CARD_STRIDE));
+    resumeTimeoutRef.current = setTimeout(
+      () => setIsAutoScrollPaused(false),
+      RESUME_AFTER_INTERACTION_MS,
+    );
+  }
 
   // Les onglets restent montés en arrière-plan (comportement standard d'un tab
   // navigator) : sans refetch au focus, un nom modifié dans l'onglet Profil ne
@@ -87,7 +142,12 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
+        <LinearGradient
+          colors={[colors.inkDeep, colors.primary]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.hero}
+        >
           <Text style={styles.eyebrow}>{t('home.eyebrow')}</Text>
           <Text style={styles.title}>
             {fullName
@@ -95,7 +155,7 @@ export default function HomeScreen() {
               : t('home.welcome')}
           </Text>
           <Text style={styles.subtitle}>{t('home.subtitle')}</Text>
-        </View>
+        </LinearGradient>
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t('home.sectionTitle')}</Text>
@@ -104,26 +164,45 @@ export default function HomeScreen() {
         {isLoading ? (
           <ActivityIndicator color={colors.primary} style={styles.loader} />
         ) : opportunities.length === 0 ? (
-          <Text style={styles.emptyText}>{t('home.empty')}</Text>
+          <EmptyState message={t('home.empty')} />
         ) : (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.carousel}
-          >
-            {opportunities.map((opportunity) => (
-              <OpportunityCard
-                key={opportunity.id}
-                opportunity={opportunity}
-                compact
-                isFavorite={favoriteIds.has(opportunity.id)}
-                onToggleFavorite={
-                  accessToken ? () => toggleFavorite(opportunity.id) : undefined
-                }
-                onPress={() => router.push(`/opportunities/${opportunity.id}`)}
-              />
-            ))}
-          </ScrollView>
+          <>
+            <ScrollView
+              ref={carouselRef}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carousel}
+              onTouchStart={handleCarouselTouchStart}
+              onMomentumScrollEnd={(event) =>
+                handleCarouselScrollEnd(event.nativeEvent.contentOffset.x)
+              }
+              snapToInterval={OPPORTUNITY_CARD_STRIDE}
+              decelerationRate="fast"
+            >
+              {opportunities.map((opportunity) => (
+                <OpportunityCard
+                  key={opportunity.id}
+                  opportunity={opportunity}
+                  compact
+                  isFavorite={favoriteIds.has(opportunity.id)}
+                  onToggleFavorite={
+                    accessToken ? () => toggleFavorite(opportunity.id) : undefined
+                  }
+                  onPress={() => router.push(`/opportunities/${opportunity.id}`)}
+                />
+              ))}
+            </ScrollView>
+            {opportunities.length > 1 && (
+              <View style={styles.dots} accessibilityElementsHidden>
+                {opportunities.map((opportunity, index) => (
+                  <View
+                    key={opportunity.id}
+                    style={[styles.dot, index === activeIndex && styles.dotActive]}
+                  />
+                ))}
+              </View>
+            )}
+          </>
         )}
       </ScrollView>
     </SafeAreaView>
@@ -172,12 +251,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     gap: spacing.md,
   },
-  loader: {
-    marginTop: spacing.xl,
+  dots: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
   },
-  emptyText: {
-    ...typography.caption,
-    textAlign: 'center',
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.mistStrong,
+  },
+  dotActive: {
+    width: 16,
+    backgroundColor: colors.accent,
+  },
+  loader: {
     marginTop: spacing.xl,
   },
 });

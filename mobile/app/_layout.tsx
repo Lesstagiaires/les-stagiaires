@@ -2,8 +2,44 @@ import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useFonts } from 'expo-font';
+import { Unbounded_600SemiBold, Unbounded_700Bold, Unbounded_800ExtraBold } from '@expo-google-fonts/unbounded';
+import {
+  IBMPlexSans_400Regular,
+  IBMPlexSans_500Medium,
+  IBMPlexSans_600SemiBold,
+  IBMPlexSans_700Bold,
+} from '@expo-google-fonts/ibm-plex-sans';
+import {
+  IBMPlexSansArabic_400Regular,
+  IBMPlexSansArabic_500Medium,
+  IBMPlexSansArabic_600SemiBold,
+  IBMPlexSansArabic_700Bold,
+} from '@expo-google-fonts/ibm-plex-sans-arabic';
+import { IBMPlexMono_500Medium } from '@expo-google-fonts/ibm-plex-mono';
 import { AuthProvider, useAuth } from '../lib/auth-context';
 import { initI18n } from '../lib/i18n';
+
+// Alias vers les noms de famille utilisés dans components/theme.ts (fonts.*) — IBM Plex
+// Sans Arabic est chargée dès maintenant même si aucun style ne la référence encore
+// (voir tâche de suivi), pour éviter un second temps de chargement de police au moment
+// où elle sera câblée.
+function useAppFonts() {
+  return useFonts({
+    'Unbounded-SemiBold': Unbounded_600SemiBold,
+    'Unbounded-Bold': Unbounded_700Bold,
+    'Unbounded-ExtraBold': Unbounded_800ExtraBold,
+    'PlexSans-Regular': IBMPlexSans_400Regular,
+    'PlexSans-Medium': IBMPlexSans_500Medium,
+    'PlexSans-SemiBold': IBMPlexSans_600SemiBold,
+    'PlexSans-Bold': IBMPlexSans_700Bold,
+    'PlexSansArabic-Regular': IBMPlexSansArabic_400Regular,
+    'PlexSansArabic-Medium': IBMPlexSansArabic_500Medium,
+    'PlexSansArabic-SemiBold': IBMPlexSansArabic_600SemiBold,
+    'PlexSansArabic-Bold': IBMPlexSansArabic_700Bold,
+    'PlexMono-Medium': IBMPlexMono_500Medium,
+  });
+}
 
 function RootNavigator() {
   const { t } = useTranslation();
@@ -37,12 +73,13 @@ function RootNavigator() {
 
 export default function RootLayout() {
   const [isI18nReady, setIsI18nReady] = useState(false);
+  const [fontsLoaded] = useAppFonts();
 
   useEffect(() => {
     void initI18n().then(() => setIsI18nReady(true));
   }, []);
 
-  if (!isI18nReady) {
+  if (!isI18nReady || !fontsLoaded) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color="#1B2A4A" />

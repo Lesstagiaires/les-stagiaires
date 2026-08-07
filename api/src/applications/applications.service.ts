@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Prisma } from '../../generated/prisma/client';
 import { createHash, randomInt, timingSafeEqual } from 'crypto';
 import {
   ApplicationArtifactKind,
@@ -18,6 +19,7 @@ import {
   InternshipReportStatus,
   LearnerStatus,
   MinorGatedAction,
+  NotificationType,
   OpportunityStatus,
   OpportunityType,
   OrganizationMemberStatus,
@@ -27,6 +29,7 @@ import {
   TravelConsentStatus,
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { MinorPolicyService } from '../auth/minor-policy.service';
 import { CvService } from '../profiles/cv.service';
 import { ProfilesService } from '../profiles/profiles.service';
@@ -116,6 +119,9 @@ export class ApplicationsService {
     private readonly shares: SharesService,
     private readonly orgAccess: OrganizationAccessService,
     private readonly minorPolicy: MinorPolicyService,
+    private readonly notifications: NotificationsService,
+    // Conservé pour le SEUL SMS restant : le code de consentement envoyé au parent
+    // d'un mineur, qui n'a ni compte ni adresse électronique (CLAUDE.md §5).
     @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
   ) {}
 
@@ -147,7 +153,10 @@ export class ApplicationsService {
     // La candidature réelle est une action transactionnelle conditionnée à l'accord
     // parental selon le moteur de règles par pays — la constitution du profil reste
     // accessible dans tous les cas (CLAUDE.md §5).
-    await this.minorPolicy.assertActionAllowed(candidate, MinorGatedAction.APPLICATION_SUBMIT);
+    await this.minorPolicy.assertActionAllowed(
+      candidate,
+      MinorGatedAction.APPLICATION_SUBMIT,
+    );
 
     let organizationId: string;
     let opportunityId: string | null = null;
@@ -261,13 +270,14 @@ export class ApplicationsService {
       reference,
     });
 
-    await this.notify(
-      candidateId,
-      `LES STAGIAIRES — candidature reçue, référence ${reference}. Vous serez notifié à chaque étape.`,
-    );
+    await this.notify(candidateId, NotificationType.APPLICATION_SUBMITTED, {
+      applicationId: application.id,
+      reference,
+    });
     await this.notify(
       application.organization.ownerId,
-      `LES STAGIAIRES — nouvelle candidature reçue (réf. ${reference}).`,
+      NotificationType.APPLICATION_RECEIVED_ORG,
+      { applicationId: application.id, reference },
     );
 
     return application;
@@ -452,7 +462,12 @@ export class ApplicationsService {
     );
     await this.notify(
       application.candidateId,
-      `LES STAGIAIRES — document complémentaire demandé pour votre candidature ${application.reference} : ${dto.description}`,
+      NotificationType.APPLICATION_DOCUMENT_REQUESTED,
+      {
+        applicationId: application.id,
+        reference: application.reference,
+        description: dto.description,
+      },
     );
     return request;
   }
@@ -506,7 +521,8 @@ export class ApplicationsService {
     }
     await this.notify(
       application.organization.ownerId,
-      `LES STAGIAIRES — document complémentaire reçu pour la candidature ${application.reference}.`,
+      NotificationType.APPLICATION_DOCUMENT_SUBMITTED_ORG,
+      { applicationId: application.id, reference: application.reference },
     );
   }
 
@@ -603,7 +619,14 @@ export class ApplicationsService {
     );
     await this.notify(
       application.candidateId,
-      `LES STAGIAIRES — entretien proposé pour votre candidature ${application.reference} le ${dto.proposedAt}. Connectez-vous pour confirmer.`,
+      NotificationType.APPLICATION_INTERVIEW_PROPOSED,
+      {
+        applicationId: application.id,
+        reference: application.reference,
+        // Date brute ISO : le client la met en forme selon la locale ET le fuseau
+        // de l'utilisateur. Une date pré-formatée ici serait fausse ailleurs.
+        proposedAt: dto.proposedAt,
+      },
     );
   }
 
@@ -624,7 +647,8 @@ export class ApplicationsService {
     );
     await this.notify(
       application.organization.ownerId,
-      `LES STAGIAIRES — entretien confirmé par le candidat pour la candidature ${application.reference}.`,
+      NotificationType.APPLICATION_INTERVIEW_CONFIRMED_ORG,
+      { applicationId: application.id, reference: application.reference },
     );
   }
 
@@ -647,7 +671,22 @@ export class ApplicationsService {
 
     await this.prisma.application.update({
       where: { id },
-      data: { decisionAt: new Date(), decisionNote: dto.note },
+      data: {
+        decisionAt: new Date(),
+        decisionNote: dto.note,
+        // Les dates ne sont écrites que sur une acceptation : les poser sur un refus
+        // laisserait croire, en relisant le dossier, qu'un stage était prévu.
+        ...(dto.decision === ApplicationDecision.ACCEPTED
+          ? {
+              internshipStartDate: dto.internshipStartDate
+                ? new Date(dto.internshipStartDate)
+                : undefined,
+              internshipEndDate: dto.internshipEndDate
+                ? new Date(dto.internshipEndDate)
+                : undefined,
+            }
+          : {}),
+      },
     });
 
     if (dto.decision === ApplicationDecision.REJECTED) {
@@ -659,7 +698,8 @@ export class ApplicationsService {
       );
       await this.notify(
         application.candidateId,
-        `LES STAGIAIRES — votre candidature ${application.reference} n'a pas été retenue.`,
+        NotificationType.APPLICATION_REJECTED,
+        { applicationId: application.id, reference: application.reference },
       );
       return;
     }
@@ -676,7 +716,8 @@ export class ApplicationsService {
     await this.generateAdmissionLetter(application);
     await this.notify(
       application.candidateId,
-      `LES STAGIAIRES — bonne nouvelle ! Vous avez reçu une lettre d'admission pour votre candidature ${application.reference}. Connectez-vous pour l'accepter.`,
+      NotificationType.APPLICATION_ADMISSION_LETTER_ISSUED,
+      { applicationId: application.id, reference: application.reference },
     );
   }
 
@@ -691,13 +732,19 @@ export class ApplicationsService {
     const candidate = await this.prisma.user.findUniqueOrThrow({
       where: { id: candidateId },
     });
-    await this.minorPolicy.assertActionAllowed(candidate, MinorGatedAction.ACCEPT_OFFER);
+    await this.minorPolicy.assertActionAllowed(
+      candidate,
+      MinorGatedAction.ACCEPT_OFFER,
+    );
 
     // Un mineur peut candidater à toute offre ; c'est ici, à l'acceptation d'une offre
     // à relocalisation, que l'accord actif du parent/tuteur pour CE déplacement précis
     // est requis — jamais à la candidature elle-même. Déclenché seulement si la
     // mobilité fait partie des actions encadrées pour le pays du candidat.
-    const mobilityGated = await this.minorPolicy.isActionGated(candidate, MinorGatedAction.MOBILITY);
+    const mobilityGated = await this.minorPolicy.isActionGated(
+      candidate,
+      MinorGatedAction.MOBILITY,
+    );
     if (mobilityGated && application.opportunity?.relocationRequired) {
       await this.transitionStatus(
         application,
@@ -715,7 +762,8 @@ export class ApplicationsService {
     );
     await this.notify(
       application.organization.ownerId,
-      `LES STAGIAIRES — le candidat a accepté la lettre d'admission pour la candidature ${application.reference}.`,
+      NotificationType.APPLICATION_ADMISSION_ACCEPTED_ORG,
+      { applicationId: application.id, reference: application.reference },
     );
     await this.generateConvention(application);
   }
@@ -775,7 +823,8 @@ export class ApplicationsService {
     );
     await this.notify(
       application.candidateId,
-      `LES STAGIAIRES — votre candidature ${application.reference} est acceptée sous réserve de l'accord de vos parents pour le déplacement. Un code leur a été envoyé.`,
+      NotificationType.APPLICATION_ACCEPTED_PENDING_TRAVEL_CONSENT,
+      { applicationId: application.id, reference: application.reference },
     );
     await this.audit.record(
       'APPLICATION_TRAVEL_CONSENT_REQUESTED',
@@ -839,11 +888,13 @@ export class ApplicationsService {
     );
     await this.notify(
       application.candidateId,
-      `LES STAGIAIRES — l'accord de vos parents pour le déplacement est confirmé. Votre candidature ${application.reference} est acceptée.`,
+      NotificationType.APPLICATION_TRAVEL_CONSENT_CONFIRMED,
+      { applicationId: application.id, reference: application.reference },
     );
     await this.notify(
       application.organization.ownerId,
-      `LES STAGIAIRES — l'accord parental de déplacement est confirmé pour la candidature ${application.reference}.`,
+      NotificationType.APPLICATION_TRAVEL_CONSENT_CONFIRMED_ORG,
+      { applicationId: application.id, reference: application.reference },
     );
     await this.generateConvention(application);
     await this.audit.record(
@@ -946,7 +997,10 @@ export class ApplicationsService {
       const candidate = await this.prisma.user.findUniqueOrThrow({
         where: { id: userId },
       });
-      await this.minorPolicy.assertActionAllowed(candidate, MinorGatedAction.SIGN_CONVENTION);
+      await this.minorPolicy.assertActionAllowed(
+        candidate,
+        MinorGatedAction.SIGN_CONVENTION,
+      );
     }
     this.assertTransition(application.status, [ApplicationStatus.ACCEPTED]);
 
@@ -982,11 +1036,13 @@ export class ApplicationsService {
       });
       await this.notify(
         application.candidateId,
-        `LES STAGIAIRES — la convention de la candidature ${application.reference} est signée par les deux parties. Le stage démarre.`,
+        NotificationType.APPLICATION_AGREEMENT_FULLY_SIGNED,
+        { applicationId: application.id, reference: application.reference },
       );
       await this.notify(
         application.organization.ownerId,
-        `LES STAGIAIRES — la convention de la candidature ${application.reference} est signée par les deux parties. Le stage démarre.`,
+        NotificationType.APPLICATION_AGREEMENT_FULLY_SIGNED_ORG,
+        { applicationId: application.id, reference: application.reference },
       );
       await this.audit.record('APPLICATION_STARTED', userId, {
         applicationId: id,
@@ -1014,10 +1070,14 @@ export class ApplicationsService {
       where: { id },
       data: { establishmentParticipationRequested: dto.requested },
     });
-    await this.audit.record('APPLICATION_ESTABLISHMENT_PARTICIPATION_SET', ownerId, {
-      applicationId: id,
-      requested: dto.requested,
-    });
+    await this.audit.record(
+      'APPLICATION_ESTABLISHMENT_PARTICIPATION_SET',
+      ownerId,
+      {
+        applicationId: id,
+        requested: dto.requested,
+      },
+    );
 
     // Notifié seulement si un établissement vérifié est déjà rattaché au candidat —
     // sinon la demande reste enregistrée, sans erreur (jamais bloquant, cf. plus haut).
@@ -1033,7 +1093,8 @@ export class ApplicationsService {
       if (learner) {
         await this.notify(
           learner.establishment.ownerId,
-          `LES STAGIAIRES — l'entreprise souhaite associer votre établissement à la convention de la candidature ${application.reference}.`,
+          NotificationType.APPLICATION_ESTABLISHMENT_ASSOCIATION_REQUESTED,
+          { applicationId: application.id, reference: application.reference },
         );
       }
     }
@@ -1058,7 +1119,7 @@ export class ApplicationsService {
     });
     if (!learner) {
       throw new ForbiddenException(
-        "Cette candidature ne concerne pas un établissement rattaché et vérifié.",
+        'Cette candidature ne concerne pas un établissement rattaché et vérifié.',
       );
     }
     // Réservé à OWNER/ADMIN de l'établissement, comme pour la signature d'organisation
@@ -1068,18 +1129,23 @@ export class ApplicationsService {
 
     await this.prisma.application.update({
       where: { id },
-      data: { establishmentSignedAt: new Date(), establishmentSignedName: name },
+      data: {
+        establishmentSignedAt: new Date(),
+        establishmentSignedName: name,
+      },
     });
     await this.audit.record('APPLICATION_ESTABLISHMENT_SIGNED', actorId, {
       applicationId: id,
     });
     await this.notify(
       application.candidateId,
-      `LES STAGIAIRES — votre établissement a signé la convention de la candidature ${application.reference}.`,
+      NotificationType.APPLICATION_ESTABLISHMENT_SIGNED,
+      { applicationId: application.id, reference: application.reference },
     );
     await this.notify(
       application.organization.ownerId,
-      `LES STAGIAIRES — l'établissement a signé la convention de la candidature ${application.reference}.`,
+      NotificationType.APPLICATION_ESTABLISHMENT_SIGNED_ORG,
+      { applicationId: application.id, reference: application.reference },
     );
   }
 
@@ -1137,7 +1203,11 @@ export class ApplicationsService {
     );
     await this.notify(
       application.candidateId,
-      `LES STAGIAIRES — votre stage (candidature ${application.reference}) est clôturé. Attestation disponible.`,
+      NotificationType.APPLICATION_CLOSED,
+      {
+        applicationId: application.id,
+        reference: application.reference,
+      },
     );
   }
 
@@ -1157,7 +1227,12 @@ export class ApplicationsService {
     );
     await this.notify(
       application.candidateId,
-      `LES STAGIAIRES — ${application.organization.name} vous a laissé une recommandation suite à votre stage (candidature ${application.reference}).`,
+      NotificationType.APPLICATION_RECOMMENDATION_RECEIVED,
+      {
+        applicationId: application.id,
+        reference: application.reference,
+        organizationName: application.organization.name,
+      },
     );
     return recommendation;
   }
@@ -1188,7 +1263,8 @@ export class ApplicationsService {
     );
     await this.notify(
       application.organization.ownerId,
-      `LES STAGIAIRES — le candidat a retiré sa candidature ${application.reference}.`,
+      NotificationType.APPLICATION_WITHDRAWN_ORG,
+      { applicationId: application.id, reference: application.reference },
     );
   }
 
@@ -1357,9 +1433,19 @@ export class ApplicationsService {
     return application;
   }
 
-  private async notify(userId: string, message: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user?.phone) return;
-    await this.sms.send(user.phone, message);
+  // Ne compose plus de phrase et n'a plus besoin du téléphone du destinataire :
+  // celui-ci possède un compte. Le choix du canal appartient à
+  // NotificationsService — interne aujourd'hui, e-mail et push ensuite.
+  //
+  // L'UNIQUE SMS qui subsiste dans ce fichier est celui adressé au parent d'un
+  // mineur (requestTravelConsent) : il porte un code de consentement, et son
+  // destinataire n'a ni compte ni adresse électronique. Le retirer reviendrait à
+  // rendre le consentement parental inatteignable.
+  private async notify(
+    userId: string,
+    type: NotificationType,
+    metadata?: Prisma.InputJsonValue,
+  ) {
+    await this.notifications.notifyUser(userId, type, metadata);
   }
 }

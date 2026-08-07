@@ -67,6 +67,20 @@ export class OrganizationAccessService {
     }
   }
 
+  // Souscription/résiliation d'un abonnement au nom de l'organisation — engage la même
+  // responsabilité financière qu'une signature de convention, jamais un simple RECRUITER.
+  async assertCanManageBilling(
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
+    const access = await this.getAccess(organizationId, userId);
+    if (access !== 'OWNER' && access !== OrganizationMemberRole.ADMIN) {
+      throw new ForbiddenException(
+        'Seuls le propriétaire et les administrateurs peuvent gérer les abonnements de cette organisation.',
+      );
+    }
+  }
+
   async isParticipant(
     organizationId: string,
     userId: string,

@@ -154,6 +154,17 @@ export default function ProfileScreen() {
           <Text style={styles.addText}>{t('profile.contactLink')}</Text>
         </Pressable>
 
+        <Pressable onPress={() => router.push('/subscriptions')} style={styles.securityLink}>
+          <Text style={styles.addText}>{t('profile.subscriptionsLink')}</Text>
+        </Pressable>
+
+        {/* Toujours visible, y compris pour un compte non ambassadeur : l'écran
+            explique alors comment le programme s'ouvre. Le masquer obligerait à
+            interroger l'API au chargement du profil pour un lien secondaire. */}
+        <Pressable onPress={() => router.push('/ambassador')} style={styles.securityLink}>
+          <Text style={styles.addText}>{t('profile.ambassadorLink')}</Text>
+        </Pressable>
+
         {heldRoles.some((entry) => entry.role.name === 'ADMIN') && (
           <>
             <Pressable onPress={() => router.push('/moderation')} style={styles.securityLink}>
@@ -167,6 +178,12 @@ export default function ProfileScreen() {
             </Pressable>
             <Pressable onPress={() => router.push('/notifications')} style={styles.securityLink}>
               <Text style={styles.addText}>{t('profile.notificationsLink')}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/subscriptions-admin')}
+              style={styles.securityLink}
+            >
+              <Text style={styles.addText}>{t('profile.subscriptionsAdminLink')}</Text>
             </Pressable>
           </>
         )}

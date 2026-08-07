@@ -9,13 +9,15 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { colors, ErrorText, FormInput, PrimaryButton } from '../../components/form';
-import { ApiError } from '../../lib/api';
+import { radius, spacing, typography } from '../../components/theme';
+import { ApiError, type AmbassadorAttributionStatus } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
 
 export default function VerifyOtpScreen() {
-  const { phone, message } = useLocalSearchParams<{
+  const { phone, message, ambassadorAttribution } = useLocalSearchParams<{
     phone: string;
     message?: string;
+    ambassadorAttribution?: AmbassadorAttributionStatus;
   }>();
   const { t } = useTranslation();
   const { verifyOtp } = useAuth();
@@ -49,6 +51,21 @@ export default function VerifyOtpScreen() {
           {message ?? t('auth.verifyOtp.subtitleDefault', { phone })}
         </Text>
 
+        {/* L'inscription a réussi : ceci n'est PAS une erreur, et n'en prend pas
+            l'apparence. C'est un avertissement — le compte existe, seul le
+            rattachement à un ambassadeur n'a pas eu lieu. Le dire ici évite que
+            l'utilisateur croie son parrain enregistré (décision du promoteur du
+            2026-08-01). ATTRIBUTED ne dit rien : un rattachement réussi est le
+            comportement attendu, l'annoncer serait du bruit. */}
+        {ambassadorAttribution &&
+          ambassadorAttribution !== 'ATTRIBUTED' && (
+            <View style={styles.notice}>
+              <Text style={styles.noticeText}>
+                {t(`auth.verifyOtp.ambassador.${ambassadorAttribution}`)}
+              </Text>
+            </View>
+          )}
+
         <View style={styles.form}>
           <FormInput
             placeholder={t('auth.verifyOtp.codePlaceholder')}
@@ -74,6 +91,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  notice: {
+    backgroundColor: colors.accentLight,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
+  noticeText: {
+    ...typography.caption,
+    color: colors.accentDark,
   },
   content: {
     flex: 1,

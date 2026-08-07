@@ -8,3 +8,10 @@ storage-data/
 .env
 
 /generated/prisma
+backups/
+
+# Worktrees créés par les agents — espace de travail, jamais du code du projet
+.claude/worktrees/
+
+# Sortie d'exécution de la recette : un journal daté, qui périme aussitôt écrit
+recette-resultat.txt

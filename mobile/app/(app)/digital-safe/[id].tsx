@@ -14,6 +14,7 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { EmptyState } from '../../../components/empty-state';
 import { colors, ErrorText, FormInput, PrimaryButton } from '../../../components/form';
 import { Section } from '../../../components/section';
 import {
@@ -389,7 +390,7 @@ function AccessLogSection({ entries }: { entries: AccessLogEntry[] }) {
   return (
     <Section title={t('digitalSafe.detail.accessLog.sectionTitle')}>
       {entries.length === 0 ? (
-        <Text style={styles.hint}>{t('digitalSafe.detail.accessLog.empty')}</Text>
+        <EmptyState message={t('digitalSafe.detail.accessLog.empty')} />
       ) : (
         entries.map((entry) => (
           <View key={entry.id} style={styles.listItem}>

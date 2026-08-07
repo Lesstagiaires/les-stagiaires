@@ -1,4 +1,8 @@
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import {
   AccountStatus,
   MinorGatedAction,
@@ -23,6 +27,8 @@ const ACTION_LABELS: Record<MinorGatedAction, string> = {
   SIGN_CONVENTION: 'La signature de la convention',
   MOBILITY: 'Le déplacement',
   DIGITAL_SAFE_SHARE: 'Le partage de documents du Digital Safe',
+  SUBSCRIPTION_ORG_SPONSORED:
+    'La souscription à un abonnement financé par un établissement ou une entreprise',
 };
 
 export interface MinorClassification {
@@ -46,26 +52,36 @@ export class MinorPolicyService {
   computeAge(dateOfBirth: Date, at: Date = new Date()): number {
     let age = at.getFullYear() - dateOfBirth.getFullYear();
     const monthDiff = at.getMonth() - dateOfBirth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && at.getDate() < dateOfBirth.getDate())) {
+    if (
+      monthDiff < 0 ||
+      (monthDiff === 0 && at.getDate() < dateOfBirth.getDate())
+    ) {
       age--;
     }
     return age;
   }
 
-  async classify(dateOfBirth: Date, countryCode: string): Promise<MinorClassification> {
+  async classify(
+    dateOfBirth: Date,
+    countryCode: string,
+  ): Promise<MinorClassification> {
     const policy = await this.countryPolicies.resolve(countryCode);
     const age = this.computeAge(dateOfBirth);
     return {
       age,
       isMinor: age < policy.civilMajorityAge,
-      inParentRequiredRange: age >= policy.minParentRequiredAge && age < policy.civilMajorityAge,
+      inParentRequiredRange:
+        age >= policy.minParentRequiredAge && age < policy.civilMajorityAge,
     };
   }
 
   // Rejette l'inscription si le candidat n'atteint pas l'âge minimum du pays déclaré —
   // avant toute autre vérification (CLAUDE.md §1 : la protection s'applique avant
   // d'écrire la donnée, pas après coup).
-  async assertMeetsMinimumAge(dateOfBirth: Date, countryCode: string): Promise<void> {
+  async assertMeetsMinimumAge(
+    dateOfBirth: Date,
+    countryCode: string,
+  ): Promise<void> {
     const policy = await this.countryPolicies.resolve(countryCode);
     const age = this.computeAge(dateOfBirth);
     if (age < policy.minInternshipAge) {
@@ -85,7 +101,10 @@ export class MinorPolicyService {
   ): Promise<boolean> {
     if (!user.dateOfBirth || !user.countryOfResidence) return false;
     const policy = await this.countryPolicies.resolve(user.countryOfResidence);
-    const { inParentRequiredRange } = await this.classify(user.dateOfBirth, user.countryOfResidence);
+    const { inParentRequiredRange } = await this.classify(
+      user.dateOfBirth,
+      user.countryOfResidence,
+    );
     return inParentRequiredRange && policy.gatedActions.includes(action);
   }
 

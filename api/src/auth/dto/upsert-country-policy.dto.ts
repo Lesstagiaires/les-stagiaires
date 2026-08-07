@@ -1,4 +1,11 @@
-import { ArrayNotEmpty, IsArray, IsEnum, IsInt, Max, Min } from 'class-validator';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsEnum,
+  IsInt,
+  Max,
+  Min,
+} from 'class-validator';
 import { MinorGatedAction } from '../../../generated/prisma/enums';
 
 export class UpsertCountryPolicyDto {

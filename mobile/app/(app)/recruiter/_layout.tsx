@@ -14,6 +14,8 @@ export default function RecruiterLayout() {
     >
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="organization" options={{ title: t('recruiter.layout.organization') }} />
+      <Stack.Screen name="subscribe" options={{ title: t('recruiter.layout.subscription') }} />
+      <Stack.Screen name="sponsor" options={{ title: t('recruiter.layout.sponsor') }} />
       <Stack.Screen name="team" options={{ title: t('recruiter.layout.team') }} />
       <Stack.Screen name="needs" options={{ title: t('recruiter.layout.needs') }} />
       <Stack.Screen name="learners" options={{ title: t('recruiter.layout.learners') }} />

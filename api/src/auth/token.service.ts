@@ -42,7 +42,9 @@ export class TokenService {
   // aucune session en son absence, donc un secret partagé le laisserait passer partout.
   private getChallengeSecret(): string {
     return createHash('sha256')
-      .update(`${this.config.getOrThrow<string>('JWT_ACCESS_SECRET')}:2fa-challenge`)
+      .update(
+        `${this.config.getOrThrow<string>('JWT_ACCESS_SECRET')}:2fa-challenge`,
+      )
       .digest('hex');
   }
 
@@ -87,15 +89,22 @@ export class TokenService {
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
 
     await this.prisma.refreshToken.create({
-      data: { userId, tokenHash: this.hashToken(rawToken), expiresAt, sessionId },
+      data: {
+        userId,
+        tokenHash: this.hashToken(rawToken),
+        expiresAt,
+        sessionId,
+      },
     });
 
     return rawToken;
   }
 
-  async rotateRefreshToken(
-    rawToken: string,
-  ): Promise<{ userId: string; sessionId: string | null; newToken: string } | null> {
+  async rotateRefreshToken(rawToken: string): Promise<{
+    userId: string;
+    sessionId: string | null;
+    newToken: string;
+  } | null> {
     const tokenHash = this.hashToken(rawToken);
     const existing = await this.prisma.refreshToken.findUnique({
       where: { tokenHash },

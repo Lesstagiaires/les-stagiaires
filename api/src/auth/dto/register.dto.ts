@@ -73,4 +73,15 @@ export class RegisterDto {
       'Numéro de téléphone du parent/tuteur invalide (format international requis)',
   })
   parentPhone?: string;
+
+  // Code, lien personnel ou QR d'un ambassadeur (point 10 des arbitrages du
+  // 2026-07-31). Volontairement optionnel et sans message d'erreur métier : un
+  // code inconnu, expiré ou appartenant à un ambassadeur suspendu est ignoré en
+  // silence. Une inscription ne doit JAMAIS échouer à cause d'un code de
+  // parrainage — le jeune perdrait son compte pour une raison qui ne le concerne
+  // pas.
+  @IsOptional()
+  @IsString()
+  @Length(4, 20)
+  ambassadorCode?: string;
 }

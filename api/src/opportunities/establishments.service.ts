@@ -2,21 +2,20 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import type { Prisma } from '../../generated/prisma/client';
 import {
   ApplicationStatus,
   InternshipCampaignStatus,
-  InternshipReportStatus,
   LearnerStatus,
+  NotificationType,
   OrganizationType,
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { SMS_PROVIDER } from '../sms/sms-provider.interface';
-import type { SmsProvider } from '../sms/sms-provider.interface';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { InviteLearnerDto } from './dto/invite-learner.dto';
 import { ReviewReportDto } from './dto/review-report.dto';
@@ -48,7 +47,7 @@ export class EstablishmentsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly access: OrganizationAccessService,
-    @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private async assertIsEstablishment(establishmentId: string) {
@@ -73,7 +72,11 @@ export class EstablishmentsService {
     establishmentId: string,
     dto: InviteLearnerDto,
   ) {
-    await this.assertIsEstablishment(establishmentId);
+    // Le nom de l'établissement sert à la notification : une invitation qui ne dit
+    // pas QUI invite ne peut pas être acceptée en confiance, et se lit comme une
+    // tentative d'hameçonnage. `assertIsEstablishment` le renvoie déjà — aucune
+    // requête supplémentaire.
+    const establishment = await this.assertIsEstablishment(establishmentId);
     await this.access.assertCanManage(establishmentId, actorId);
 
     const user = await this.prisma.user.findUnique({
@@ -114,10 +117,10 @@ export class EstablishmentsService {
           data: { establishmentId, userId: user.id },
         });
 
-    await this.notify(
-      user.id,
-      'LES STAGIAIRES — un établissement souhaite vous rattacher à son compte. Connectez-vous pour accepter ou refuser.',
-    );
+    await this.notify(user.id, NotificationType.LEARNER_INVITED, {
+      establishmentId,
+      establishmentName: establishment.name,
+    });
     await this.audit.record('LEARNER_INVITED', actorId, {
       establishmentId,
       learnerId: learner.id,
@@ -182,10 +185,9 @@ export class EstablishmentsService {
       establishmentId,
       learnerId,
     });
-    await this.notify(
-      learner.userId,
-      'LES STAGIAIRES — votre rattachement à votre établissement est vérifié.',
-    );
+    await this.notify(learner.userId, NotificationType.LEARNER_VERIFIED, {
+      establishmentId: learner.establishmentId,
+    });
     return updated;
   }
 
@@ -414,11 +416,17 @@ export class EstablishmentsService {
       applicationId,
       status: dto.status,
     });
+    // Un seul type, le statut voyage dans les métadonnées : le client rend
+    // « validé » ou « à corriger » selon ce champ, dans la langue de l'utilisateur.
     await this.notify(
       report.application.candidateId,
-      dto.status === InternshipReportStatus.VALIDATED
-        ? `LES STAGIAIRES — votre rapport de stage (candidature ${report.application.reference}) est validé.`
-        : `LES STAGIAIRES — votre rapport de stage (candidature ${report.application.reference}) nécessite une correction.${dto.note ? ` Note : ${dto.note}` : ''}`,
+      NotificationType.INTERNSHIP_REPORT_REVIEWED,
+      {
+        applicationId: report.applicationId,
+        reference: report.application.reference,
+        status: dto.status,
+        note: dto.note ?? null,
+      },
     );
     return updated;
   }
@@ -529,9 +537,11 @@ export class EstablishmentsService {
     return learners.map((learner) => learner.userId);
   }
 
-  private async notify(userId: string, message: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user?.phone) return;
-    await this.sms.send(user.phone, message);
+  private async notify(
+    userId: string,
+    type: NotificationType,
+    metadata?: Prisma.InputJsonValue,
+  ) {
+    await this.notifications.notifyUser(userId, type, metadata);
   }
 }

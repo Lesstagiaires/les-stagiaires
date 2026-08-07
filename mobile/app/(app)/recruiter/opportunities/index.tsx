@@ -13,6 +13,7 @@ import {
   OPPORTUNITY_STATUS_TONE,
 } from '../../../../lib/organization-labels';
 import { useAuth } from '../../../../lib/auth-context';
+import { EmptyState } from '../../../../components/empty-state';
 
 export default function MyOpportunitiesScreen() {
   const router = useRouter();
@@ -58,7 +59,7 @@ export default function MyOpportunitiesScreen() {
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : opportunities.length === 0 ? (
-          <Text style={styles.emptyText}>{t('recruiter.myOpportunities.empty')}</Text>
+          <EmptyState message={t('recruiter.myOpportunities.empty')} />
         ) : (
           <View style={styles.list}>
             {opportunities.map((opportunity) => (
@@ -105,11 +106,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxl,
-  },
-  emptyText: {
-    ...typography.caption,
-    textAlign: 'center',
-    marginTop: spacing.xl,
   },
   list: {
     gap: spacing.md,

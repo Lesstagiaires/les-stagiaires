@@ -24,7 +24,9 @@
     "profile": "الملف الشخصي",
     "security": "الأمان",
     "moderation": "الإشراف",
-    "notifications": "الإشعارات"
+    "notifications": "الإشعارات",
+    "subscriptions": "الاشتراكات",
+    "subscriptionsAdmin": "الاشتراكات (الإدارة)"
   },
   "auth": {
     "login": {
@@ -35,6 +37,7 @@
       "submit": "تسجيل الدخول",
       "noAccount": "ليس لديك حساب بعد؟ أنشئ حسابًا",
       "contactLink": "تمثّلون منظمة؟ تواصلوا معنا",
+      "forgotPasswordLink": "نسيت كلمة المرور؟",
       "genericError": "تعذّر تسجيل الدخول. تحقّق من اتصالك بالإنترنت."
     },
     "twoFactor": {
@@ -51,25 +54,62 @@
       "lastName": "اسم العائلة",
       "male": "ذكر",
       "female": "أنثى",
-      "phone": "الهاتف (مثال: ‎+237670000000)",
+      "countryPlaceholder": "بلد الإقامة",
+      "countrySearchPlaceholder": "ابحث عن بلد",
+      "phoneNational": "رقم الهاتف",
       "email": "البريد الإلكتروني (اختياري)",
       "city": "مدينة الإقامة",
-      "country": "بلد الإقامة (الرمز، مثال: CM)",
       "password": "كلمة المرور (10 أحرف على الأقل، حرف كبير وصغير ورقم)",
+      "confirmPassword": "تأكيد كلمة المرور",
       "dateOfBirth": "تاريخ الميلاد",
       "minorNotice": "حسب بلد إقامتك، قد يتطلّب حساب بهذا العمر رقم هاتف أحد الوالدين أو الوصي، الذي سيتلقّى رسالة نصية لإعطاء موافقته.",
-      "parentPhone": "هاتف الوالد/الوصي",
+      "parentPhoneNational": "هاتف الوالد/الوصي",
       "submit": "إنشاء الحساب",
       "haveAccount": "لديك حساب بالفعل؟ سجّل الدخول",
       "missingDob": "يرجى إدخال تاريخ ميلادك.",
-      "genericError": "تعذّر إنشاء الحساب. تحقّق من اتصالك بالإنترنت."
+      "missingCountry": "يرجى اختيار بلد إقامتك.",
+      "invalidPhone": "رقم هاتف غير صالح بالنسبة للبلد المختار.",
+      "passwordMismatch": "كلمتا المرور غير متطابقتين.",
+      "genericError": "تعذّر إنشاء الحساب. تحقّق من اتصالك بالإنترنت.",
+      "ambassadorCodeLabel": "رمز الإحالة (اختياري)",
+      "ambassadorCodePlaceholder": "مثال: AB34CD",
+      "ambassadorCodeHint": "إذا عرفك سفير على LES STAGIAIRES، أدخل رمزه. الرمز غير المعروف يتم تجاهله ولا يمنع تسجيلك أبدا."
     },
     "verifyOtp": {
       "title": "التحقّق من رقم الهاتف",
       "subtitleDefault": "تم إرسال رمز عبر رسالة نصية إلى {{phone}}.",
       "codePlaceholder": "رمز من 6 أرقام",
       "submit": "تأكيد",
-      "genericError": "تعذّر التحقّق. تحقّق من اتصالك بالإنترنت."
+      "genericError": "تعذّر التحقّق. تحقّق من اتصالك بالإنترنت.",
+      "ambassador": {
+        "CODE_NOT_RECOGNIZED": "رمز السفير الذي أدخلته غير صالح أو غير موجود. تم تسجيلك بنجاح، لكن لن يرتبط أي سفير بحسابك. يمكنك المتابعة بشكل عادي.",
+        "SELF_REFERRAL_BLOCKED": "لا يمكنك استخدام رمز الإحالة الخاص بك. تم تسجيلك بنجاح، لكن لن يرتبط أي سفير بحسابك.",
+        "ALREADY_ATTRIBUTED": "يوجد بالفعل سفير مرتبط بحسابك. تم تسجيلك بنجاح، ويبقى هذا الارتباط الأول دون تغيير."
+      }
+    },
+    "forgotPassword": {
+      "title": "نسيت كلمة المرور",
+      "subtitle": "أدخل بلدك ورقم هاتفك. إذا كان هناك حساب، ستتلقّى رمز تحقّق عبر رسالة نصية.",
+      "countryPlaceholder": "البلد",
+      "countrySearchPlaceholder": "ابحث عن بلد",
+      "phoneNational": "رقم الهاتف",
+      "submit": "إرسال الرمز",
+      "back": "العودة إلى تسجيل الدخول",
+      "missingCountry": "يرجى اختيار بلدك.",
+      "invalidPhone": "رقم هاتف غير صالح بالنسبة للبلد المختار.",
+      "genericError": "تعذّر الإرسال. تحقّق من اتصالك بالإنترنت.",
+      "sentMessage": "إذا كان هناك حساب مرتبط بهذا الرقم، تم للتو إرسال رمز تحقّق عبر رسالة نصية."
+    },
+    "resetPassword": {
+      "title": "كلمة مرور جديدة",
+      "subtitleDefault": "أدخل الرمز المُرسَل عبر رسالة نصية إلى {{phone}} مع كلمة مرورك الجديدة.",
+      "codePlaceholder": "رمز من 6 أرقام",
+      "newPassword": "كلمة المرور الجديدة (10 أحرف على الأقل، حرف كبير وصغير ورقم)",
+      "confirmPassword": "تأكيد كلمة المرور الجديدة",
+      "submit": "إعادة تعيين كلمة المرور",
+      "passwordMismatch": "كلمتا المرور غير متطابقتين.",
+      "genericError": "تعذّرت إعادة تعيين كلمة المرور. تحقّق من الرمز وحاول مجددًا.",
+      "successMessage": "تم تغيير كلمة المرور. سجّل الدخول بكلمة مرورك الجديدة."
     }
   },
   "home": {
@@ -84,9 +124,11 @@
     "title": "ملفي الشخصي",
     "securityLink": "الأمان — المصادقة الثنائية والأجهزة",
     "contactLink": "تواصل معنا",
+    "subscriptionsLink": "اشتراكي",
     "moderationLink": "لوحة الإشراف",
     "partnershipRequestsLink": "طلبات الشراكة",
     "notificationsLink": "الإشعارات",
+    "subscriptionsAdminLink": "جميع الاشتراكات",
     "logout": "تسجيل الخروج",
     "language": {
       "sectionTitle": "لغة التطبيق",
@@ -143,7 +185,8 @@
       "hidden": "مخفية",
       "show": "إظهار على الملف الشخصي",
       "hide": "إخفاء"
-    }
+    },
+    "ambassadorLink": "فضاء السفير"
   },
   "opportunities": {
     "detailTitle": "تفاصيل العرض",
@@ -157,7 +200,10 @@
       "searchButton": "بحث",
       "searchError": "تعذّر البحث.",
       "empty": "لا يوجد عرض يطابق هذه المعايير.",
-      "loadMore": "عرض المزيد من العروض"
+      "loadMore": "عرض المزيد من العروض",
+      "keywordsPlaceholder": "مهنة، مهارة، شركة…",
+      "clearKeywords": "مسح البحث",
+      "emptyKeywords": "لا توجد عروض لـ «{{keywords}}». جرّب كلمة أخرى: البحث يتعرّف أصلاً على الاختصارات والأخطاء الإملائية."
     },
     "detail": {
       "notFound": "العرض غير متاح.",
@@ -343,6 +389,8 @@
       "reports": "تقارير التدريب",
       "dashboard": "لوحة التحكم",
       "partners": "الشركات الشريكة",
+      "subscription": "الاشتراك",
+      "sponsor": "رعاية اشتراك",
       "myOpportunities": "عروضي",
       "newOpportunity": "عرض جديد",
       "manageOpportunity": "إدارة العرض",
@@ -366,7 +414,11 @@
       "countryPlaceholder": "البلد",
       "cityPlaceholder": "المدينة",
       "createButton": "إنشاء",
-      "createError": "تعذّر الإنشاء."
+      "createError": "تعذّر الإنشاء.",
+      "acquisitionSourceLabel": "كيف تعرفت على LES STAGIAIRES؟",
+      "ambassadorCodeLabel": "رمز السفير (اختياري)",
+      "ambassadorCodePlaceholder": "مثال: AB34CD",
+      "ambassadorCodeHint": "السؤال أعلاه إحصائي فقط. هذا الرمز وحده يربط شركتك بسفير."
     },
     "organization": {
       "notFound": "المؤسسة غير موجودة.",
@@ -381,6 +433,7 @@
       "reportsHint": "التصحيح والمصادقة.",
       "dashboardHint": "معدّل إدماج المتدربين.",
       "partnersHint": "دليل مؤسسات الاستقبال.",
+      "subscriptionHint": "الاشتراك في خطة للمنظمة.",
       "page": {
         "sectionTitle": "الصفحة العامة",
         "descriptionPlaceholder": "تعريف المؤسسة",
@@ -563,6 +616,7 @@
       "verifiedStatus": "تم التحقق من الانتساب",
       "pendingVerification": "في انتظار التحقق",
       "verify": "تحقق",
+      "sponsor": "تقديم اشتراك",
       "revoke": "إلغاء",
       "invite": {
         "title": "ربط متدرّب",
@@ -614,6 +668,7 @@
     "dashboard": {
       "loadError": "تعذّر التحميل.",
       "unavailable": "المنظمة غير متاحة.",
+      "eyebrow": "نظرة عامة",
       "title": "لوحة قياس الإدماج المهني",
       "totalLearners": "المتدرّبون",
       "verifiedLearners": "المتدرّبون الموثّقون",
@@ -628,6 +683,27 @@
       "title": "الشركات الشريكة",
       "subtitle": "المنظمات التي استقبلت متدرّبًا موثّقًا واحدًا على الأقل من مؤسستكم.",
       "empty": "لا توجد شركات شريكة بعد."
+    },
+    "subscribe": {
+      "title": "اشتراك المنظمة",
+      "intro": "الاشتراك في خطة {{plan}} لهذه المنظمة. يتم الدفع عبر Mobile Money — لن يُطلب منك أبدًا إدخال رمزك السري داخل التطبيق.",
+      "submit": "الاشتراك",
+      "error": "تعذّر الاشتراك.",
+      "backToOrganization": "العودة إلى المنظمة"
+    },
+    "sponsor": {
+      "title": "تقديم اشتراك",
+      "intro": "الاشتراك في صيغة فردية باسم {{name}}. إذا كان المستفيد قاصرا، فموافقة الوالد أو الولي مطلوبة.",
+      "unavailable": "المستفيد غير موجود.",
+      "submit": "المتابعة نحو الدفع",
+      "error": "تعذّر الاشتراك.",
+      "backToLearners": "العودة إلى المتدرّبين"
+    },
+    "quality": {
+      "title": "جودة عرضك",
+      "intro": "يخصّ هذا التشخيص عرضك وحده. لا تقارنه «لي ستاجيير» بأي عرض آخر ولا تمنحه أي درجة.",
+      "nothingToFix": "لا شيء يستدعي التصحيح في هذا العرض.",
+      "loadError": "التشخيص غير متاح حالياً."
     }
   },
   "security": {
@@ -773,6 +849,341 @@
       "IN_PROGRESS": "قيد المعالجة",
       "PROCESSED": "تمت المعالجة",
       "CLOSED": "مغلق"
+    },
+    "subscriptionStatus": {
+      "PENDING_PAYMENT": "بانتظار الدفع",
+      "ACTIVE": "نشط",
+      "PAYMENT_FAILED": "فشل الدفع",
+      "EXPIRED": "منتهي الصلاحية",
+      "CANCELLED": "ملغى"
+    },
+    "subscriptionPlan": {
+      "BUSINESS": "مؤسسة تجارية",
+      "INSTITUTION": "مؤسسة تعليمية",
+      "GRATUIT": "مجاني",
+      "CARRIERE_SECURISEE": "مسار آمن",
+      "CARRIERE_PLUS": "مسار بلس"
+    },
+    "billingCycle": {
+      "ONE_TIME": "دفعة واحدة",
+      "QUARTERLY": "فصلي",
+      "ANNUAL": "سنوي"
+    },
+    "ambassadorStatus": {
+      "PENDING": "قيد الانتظار",
+      "ACTIVE": "نشط",
+      "SUSPENDED": "موقوف",
+      "TERMINATED": "خارج البرنامج"
+    },
+    "commissionStatus": {
+      "PENDING": "قيد الانتظار",
+      "APPROVED": "معتمدة",
+      "PAYABLE": "مستحقة",
+      "PAID": "مدفوعة",
+      "CANCELLED": "ملغاة",
+      "REVERSED": "مستردة",
+      "DISPUTED": "متنازع عليها",
+      "BLOCKED": "محجوبة"
+    },
+    "commissionNature": {
+      "ACQUISITION": "استقطاب",
+      "NEW_SERVICE": "خدمة جديدة",
+      "RENEWAL": "تجديد",
+      "BONUS": "مكافأة"
+    },
+    "payoutStatus": {
+      "REQUESTED": "مطلوب",
+      "VALIDATED": "معتمد",
+      "EXECUTED": "مدفوع",
+      "REJECTED": "مرفوض",
+      "CANCELLED": "ملغى"
+    },
+    "acquisitionSource": {
+      "AMBASSADOR": "سفير",
+      "INTERNET": "الإنترنت",
+      "SOCIAL_MEDIA": "وسائل التواصل",
+      "UNIVERSITY": "جامعة",
+      "SCHOOL": "مدرسة",
+      "TRAINING_CENTER": "مركز تكوين",
+      "PARTNER_COMPANY": "شركة شريكة",
+      "TRADE_SHOW": "معرض",
+      "ADVERTISING": "إعلان",
+      "RECOMMENDATION": "توصية",
+      "OTHER": "أخرى"
+    },
+    "notificationType": {
+      "PARTNERSHIP_REQUEST_NEW": {
+        "title": "طلب شراكة جديد",
+        "body": "قدّمت {{organizationName}} طلبا عبر النموذج العمومي."
+      },
+      "PARTNERSHIP_APPLIED": {
+        "title": "ترشح للشراكة",
+        "body": "تم تسجيل ترشحك لبرنامج الشراكة."
+      },
+      "PARTNERSHIP_ADDITIONAL_INFORMATION_REQUIRED": {
+        "title": "عناصر مكمّلة مطلوبة",
+        "body": "ملف الشراكة الخاص بكم يستدعي عناصر مكمّلة. لم يُتَّخذ أي قرار."
+      },
+      "PARTNERSHIP_ADDITIONAL_INFORMATION_PROVIDED": {
+        "title": "تم استكمال الملف",
+        "body": "استكملت مؤسسة ملف شراكتها."
+      },
+      "PARTNERSHIP_APPROVED": {
+        "title": "قُبلت الشراكة",
+        "body": "أصبحت مؤسستك شريكة لـ LES STAGIAIRES."
+      },
+      "PARTNERSHIP_REFUSED": {
+        "title": "رُفضت الشراكة",
+        "body": "لم يُقبل ترشحك لبرنامج الشراكة."
+      },
+      "PARTNERSHIP_SUSPENDED": {
+        "title": "شراكة موقوفة",
+        "body": "شراكتك موقوفة. أُبلغ إليك السبب."
+      },
+      "PARTNERSHIP_REINSTATED": {
+        "title": "أُعيدت الشراكة",
+        "body": "عادت شراكتك إلى النشاط."
+      },
+      "PARTNERSHIP_TERMINATION_REQUESTED": {
+        "title": "طلب إنهاء",
+        "body": "سُجّل طلب إنهاء الشراكة."
+      },
+      "PARTNERSHIP_TERMINATION_REQUEST_WITHDRAWN": {
+        "title": "سُحب طلب الإنهاء",
+        "body": "سُحب طلب الإنهاء. تستمر الشراكة."
+      },
+      "PARTNERSHIP_TERMINATED": {
+        "title": "انتهت الشراكة",
+        "body": "انتهت شراكتك. أُبلغ إليك السبب."
+      },
+      "AMBASSADOR_APPROVED": {
+        "title": "قُبل ترشحك كسفير",
+        "body": "مرحبا بك في برنامج السفراء."
+      },
+      "AMBASSADOR_SUSPENDED": {
+        "title": "حساب السفير موقوف",
+        "body": "تبقى العمولات المكتسبة مستحقة لك."
+      },
+      "AMBASSADOR_REINSTATED": {
+        "title": "أُعيد حساب السفير",
+        "body": "يمكنك من جديد الاستقطاب والتحصيل."
+      },
+      "AMBASSADOR_TERMINATED": {
+        "title": "انتهاء برنامج السفير",
+        "body": "انتهت مشاركتك في البرنامج."
+      },
+      "AMBASSADOR_COMMISSION_EARNED": {
+        "title": "عمولة جديدة",
+        "body": "سُجّلت عمولة في محفظتك."
+      },
+      "AMBASSADOR_COMMISSION_PAYABLE": {
+        "title": "عمولة مستحقة",
+        "body": "أصبحت عمولة متاحة للصرف."
+      },
+      "AMBASSADOR_PAYOUT_VALIDATED": {
+        "title": "اعتُمد الصرف",
+        "body": "اعتمدت الإدارة طلب الصرف الخاص بك."
+      },
+      "AMBASSADOR_PAYOUT_EXECUTED": {
+        "title": "نُفّذ الصرف",
+        "body": "أُرسلت دفعتك. أبلغنا إن لم تصلك."
+      },
+      "AMBASSADOR_PAYOUT_REJECTED": {
+        "title": "رُفض الصرف",
+        "body": "رُفض طلب الصرف. السبب مذكور."
+      },
+      "AMBASSADOR_PAYOUT_FAILED": {
+        "title": "لم تُنفَّذ الحوالة",
+        "body": "تعذَّر تنفيذ الحوالة. عاد المبلغ إلى رصيدك المتاح ولا يزال مستحقًّا لك."
+      },
+      "AMBASSADOR_PAYMENT_DETAILS_CHANGED": {
+        "title": "تغيّرت بيانات الصرف",
+        "body": "تغيّرت بيانات الصرف الخاصة بك. إن لم تكن أنت من غيّرها، فأبلغ فورًا."
+      },
+      "AMBASSADOR_WALLET_DIVERGENCE": {
+        "title": "رُصد فارق محاسبي",
+        "body": "محفظة سفير تخالف دفتر الأستاذ. لم يُطبَّق أي تصحيح تلقائي."
+      },
+      "AMBASSADOR_COMMISSION_REVIEW_REQUIRED": {
+        "title": "عمولة قيد المراجعة",
+        "body": "تتجاوز إحدى العمولات حدًّا مضبوطًا. وهي بانتظار الموافقة أو التصحيح أو الإلغاء."
+      },
+      "AMBASSADOR_FRAUD_ALERT": {
+        "title": "تنبيه لمكافحة الاحتيال",
+        "body": "رُصد سلوك غير معتاد في ملف أحد السفراء. يلزم فحص يدوي."
+      },
+      "AMBASSADOR_PORTFOLIO_WARNING_9M": {
+        "title": "المحفظة — 9 أشهر بلا شراء",
+        "body": "بدون شراء خلال ثلاثة أشهر ستخرج هذه الشركة من محفظتك."
+      },
+      "AMBASSADOR_PORTFOLIO_WARNING_11M": {
+        "title": "المحفظة — شهر متبقٍ",
+        "body": "بقي شهر واحد قبل انتهاء هذا الارتباط."
+      },
+      "AMBASSADOR_PORTFOLIO_EXPIRED": {
+        "title": "تحررت الشركة",
+        "body": "بعد اثني عشر شهرا بلا شراء، خرجت هذه الشركة من محفظتك."
+      },
+      "APPLICATION_SUBMITTED": {
+        "title": "أُرسل الترشح",
+        "body": "تم تسجيل ترشحك {{reference}}."
+      },
+      "APPLICATION_DOCUMENT_REQUESTED": {
+        "title": "مطلوب مستند",
+        "body": "مطلوب مستند إضافي بخصوص {{reference}}."
+      },
+      "APPLICATION_INTERVIEW_PROPOSED": {
+        "title": "مقابلة مقترحة",
+        "body": "اقتُرح موعد مقابلة بخصوص {{reference}}."
+      },
+      "APPLICATION_REJECTED": {
+        "title": "لم يُقبل الترشح",
+        "body": "لم يُقبل ترشحك {{reference}}."
+      },
+      "APPLICATION_ADMISSION_LETTER_ISSUED": {
+        "title": "قُبل الترشح",
+        "body": "في انتظارك رسالة قبول بخصوص {{reference}}."
+      },
+      "APPLICATION_ACCEPTED_PENDING_TRAVEL_CONSENT": {
+        "title": "بانتظار موافقة الولي",
+        "body": "ترشحك {{reference}} ينتظر موافقة والدك أو وليك."
+      },
+      "APPLICATION_TRAVEL_CONSENT_CONFIRMED": {
+        "title": "تأكدت موافقة الولي",
+        "body": "ترشحك {{reference}} مقبول الآن."
+      },
+      "APPLICATION_TRAVEL_CONSENT_EXPIRED": {
+        "title": "ترشح معلّق",
+        "body": "لم تُؤكَّد موافقة الولي في الوقت المحدد بخصوص {{reference}}."
+      },
+      "APPLICATION_AGREEMENT_FULLY_SIGNED": {
+        "title": "وُقّعت الاتفاقية",
+        "body": "وُقّعت اتفاقية {{reference}}. يمكن أن يبدأ تدريبك."
+      },
+      "APPLICATION_ESTABLISHMENT_SIGNED": {
+        "title": "وقّعت المؤسسة",
+        "body": "وقّعت مؤسستك اتفاقية {{reference}}."
+      },
+      "APPLICATION_INTERNSHIP_STARTING_SOON": {
+        "title": "اقترب تدريبك",
+        "body": "تدريبك {{reference}} يبدأ قريبا."
+      },
+      "APPLICATION_CLOSED": {
+        "title": "انتهى التدريب",
+        "body": "شهادتك عن {{reference}} متاحة."
+      },
+      "APPLICATION_RECOMMENDATION_RECEIVED": {
+        "title": "وصلتك توصية",
+        "body": "تركت لك {{organizationName}} توصية."
+      },
+      "APPLICATION_RECEIVED_ORG": {
+        "title": "ترشح جديد",
+        "body": "وصل ترشح جديد {{reference}}."
+      },
+      "APPLICATION_DOCUMENT_SUBMITTED_ORG": {
+        "title": "وصل المستند",
+        "body": "أُرسل المستند المطلوب بخصوص {{reference}}."
+      },
+      "APPLICATION_INTERVIEW_CONFIRMED_ORG": {
+        "title": "تأكدت المقابلة",
+        "body": "أكد المترشح المقابلة بخصوص {{reference}}."
+      },
+      "APPLICATION_ADMISSION_ACCEPTED_ORG": {
+        "title": "قُبلت رسالة القبول",
+        "body": "قبل المترشح رسالة القبول بخصوص {{reference}}."
+      },
+      "APPLICATION_TRAVEL_CONSENT_CONFIRMED_ORG": {
+        "title": "تأكدت موافقة الولي",
+        "body": "تأكدت موافقة التنقل بخصوص {{reference}}."
+      },
+      "APPLICATION_AGREEMENT_FULLY_SIGNED_ORG": {
+        "title": "وُقّعت الاتفاقية",
+        "body": "وقّع الطرفان اتفاقية {{reference}}."
+      },
+      "APPLICATION_ESTABLISHMENT_SIGNED_ORG": {
+        "title": "وقّعت المؤسسة",
+        "body": "وقّعت المؤسسة اتفاقية {{reference}}."
+      },
+      "APPLICATION_WITHDRAWN_ORG": {
+        "title": "سُحب الترشح",
+        "body": "سحب المترشح ترشحه {{reference}}."
+      },
+      "APPLICATION_ESTABLISHMENT_ASSOCIATION_REQUESTED": {
+        "title": "ربط باتفاقية",
+        "body": "ترغب شركة في ربط مؤسستك بـ {{reference}}."
+      },
+      "LEARNER_INVITED": {
+        "title": "اقتراح ربط",
+        "body": "ترغب مؤسسة في ربطك بحسابها."
+      },
+      "LEARNER_VERIFIED": {
+        "title": "تم التحقق من الربط",
+        "body": "تأكد ربطك بمؤسستك."
+      },
+      "INTERNSHIP_REPORT_REVIEWED": {
+        "title": "روجع تقرير التدريب",
+        "body": "روجع تقريرك بخصوص {{reference}}."
+      },
+      "ORGANIZATION_INVITATION_RECEIVED": {
+        "title": "دعوة للانضمام إلى فريق",
+        "body": "تدعوك {{organizationName}} للانضمام إلى فريقها."
+      },
+      "ORGANIZATION_ACCESS_REVOKED": {
+        "title": "سُحب الوصول",
+        "body": "سُحب وصولك إلى هذه المؤسسة."
+      },
+      "NEED_REQUEST_ANSWERED": {
+        "title": "رد على طلبك",
+        "body": "ردت الإدارة على طلب احتياجك."
+      }
+    },
+    "notificationCategory": {
+      "APPLICATIONS": "الترشحات",
+      "INTERVIEWS": "المقابلات",
+      "INTERNSHIPS": "التداريب",
+      "AGREEMENTS": "الاتفاقيات",
+      "ORGANIZATIONS": "المؤسسات",
+      "AMBASSADORS": "السفراء",
+      "MENTORING": "الإرشاد",
+      "LEGAL": "قانوني",
+      "PAYMENTS": "المدفوعات",
+      "SUBSCRIPTIONS": "الاشتراكات",
+      "PARTNERSHIPS": "الشراكات",
+      "ADMINISTRATION": "الإدارة",
+      "SECURITY": "الأمان",
+      "SYSTEM": "النظام"
+    },
+    "matchReason": {
+      "SKILLS": "يطابق مهاراتك",
+      "OCCUPATION": "يطابق المهنة التي تستهدفها",
+      "LOCATION": "قريب منك",
+      "EDUCATION": "يطابق مستواك",
+      "AVAILABILITY": "يتوافق مع أوقات إتاحتك"
+    },
+    "qualityLevel": {
+      "INCOMPLETE": "عرض غير مكتمل",
+      "PERFECTIBLE": "عرض قابل للتحسين",
+      "COMPLETE": "عرض مكتمل"
+    },
+    "qualityCheck": {
+      "SKILLS_DECLARED": "المهارات المطلوبة",
+      "OCCUPATION_LINKED": "المهنة المرتبطة",
+      "DESCRIPTION_SUBSTANTIAL": "الوصف",
+      "TITLE_INFORMATIVE": "العنوان",
+      "START_DATE_SET": "تاريخ البدء",
+      "STILL_FRESH": "قِدَم العرض",
+      "EDUCATION_STATED": "المستوى الدراسي المطلوب",
+      "LOCATION_USABLE": "مكان العمل"
+    },
+    "qualityAdvice": {
+      "SKILLS_DECLARED": "حدّد المهارات المطلوبة: بدونها لا يمكن مطابقة عرضك مع أي ملف على أساس ما يتطلّبه فعلاً.",
+      "OCCUPATION_LINKED": "اربط العرض بمهنة: وإلا فلن يصل إلى المرشّحين الذين يستهدفون تلك المهنة أو عائلتها.",
+      "DESCRIPTION_SUBSTANTIAL": "صِف المهام بدقّة أكبر: هذا ما يقرأه المرشّح قبل التقديم.",
+      "TITLE_INFORMATIVE": "وضّح عنوان الوظيفة: عنوان من كلمتين لا يوضّح طبيعة المنصب.",
+      "START_DATE_SET": "اذكر تاريخ البدء إن كنت تعرفه: المرشّحون المتاحون في ذلك التاريخ سيرون عرضك بشكل أفضل.",
+      "STILL_FRESH": "هذا العرض منشور منذ أكثر من شهرين. حدّثه أو أغلقه إذا شُغل المنصب.",
+      "EDUCATION_STATED": "حدّد المستوى الدراسي المطلوب: سيعرف المرشّح إن كان بإمكانه التقديم. عدم ذكره لا يستبعد أحداً.",
+      "LOCATION_USABLE": "اذكر المدينة، أو اختر العمل عن بُعد: على المرشّح أن يعرف إن كان بإمكانه شغل هذا المنصب."
     }
   },
   "moderation": {
@@ -842,5 +1253,144 @@
     "loadError": "تعذّر التحميل.",
     "empty": "لا توجد إشعارات بعد.",
     "partnershipRequestNew": "طلب شراكة جديد: {{organizationName}}"
+  },
+  "subscriptions": {
+    "title": "اشتراكاتي",
+    "intro": "مسار آمن ومسار بلس: مرافقة قانونية وتحضير للمقابلة.",
+    "loadError": "تعذّر التحميل.",
+    "empty": "لا توجد اشتراكات بعد.",
+    "newLink": "+ الاشتراك في صيغة",
+    "startedLabel": "نشط منذ {{date}}",
+    "periodEndLabel": "يتجدد في {{date}}",
+    "cancelledLabel": "أُلغي في {{date}}",
+    "new": {
+      "title": "الاشتراك في صيغة",
+      "intro": "يتم الدفع عبر Mobile Money — لن يُطلب منك أبدًا إدخال رمزك السري داخل التطبيق. ستتلقى تعليمات رسمية من مزود الدفع.",
+      "billingCycleLabel": "الصيغة",
+      "parentRedirectLabel": "إرسال الطلب إلى ولي أمري",
+      "parentRedirectHint": "إذا كنت قاصرًا، يمكنك اختيار إحالة هذا الطلب إلى والدك أو ولي أمرك — هذا ليس إلزاميًا أبدًا للاشتراك بنفسك.",
+      "submit": "المتابعة نحو الدفع",
+      "error": "تعذّر الاشتراك.",
+      "successTitle": "تم تسجيل الاشتراك",
+      "defaultInstructions": "اتبع تعليمات الدفع التي سيرسلها إليك مزود الخدمة.",
+      "viewSubscriptions": "عرض اشتراكاتي",
+      "planLabel": "الصيغة",
+      "planHint": "يحدد LES STAGIAIRES السعر حسب الصيغة المختارة."
+    },
+    "detail": {
+      "title": "الاشتراك",
+      "notFound": "الاشتراك غير متاح.",
+      "planSection": "الخطة",
+      "paymentSection": "الدفع",
+      "pendingNotice": "بانتظار التأكيد الرسمي من مزود الدفع — يتحدّث الحالة تلقائيًا فور تأكيد الدفع.",
+      "refresh": "تحديث الحالة",
+      "manageSection": "الإدارة",
+      "cancelButton": "إلغاء الاشتراك",
+      "cancelError": "تعذّر الإلغاء."
+    }
+  },
+  "subscriptionsAdmin": {
+    "filterAll": "الكل",
+    "unavailable": "الوصول مخصص للمشرفين فقط.",
+    "loadError": "تعذّر التحميل.",
+    "empty": "لا توجد اشتراكات لهذا الفلتر.",
+    "beneficiaryUserLabel": "المستفيد: {{name}}",
+    "beneficiaryOrganizationLabel": "المنظمة: {{name}}"
+  },
+  "ambassador": {
+    "title": "فضاء السفير",
+    "loadError": "تعذر تحميل فضاء السفير الخاص بك.",
+    "notAmbassador": "لست سفيرا بعد. البرنامج مفتوح بدعوة من فريق LES STAGIAIRES.",
+    "codeLabel": "رمز الإحالة الخاص بك",
+    "share": "مشاركة",
+    "shareMessage": "انضم إلى LES STAGIAIRES برمز الإحالة الخاص بي: {{code}}",
+    "contractPending": "تتراكم عمولاتك بشكل طبيعي. غير أنه لا يمكن صرف أي مبلغ قبل توقيع عقد وسيط الأعمال الخاص بك.",
+    "suspended": "حساب السفير الخاص بك موقوف. تبقى العمولات المكتسبة مستحقة لك.",
+    "referralsSubtitle": "الشباب الذين أحلتهم",
+    "balance": {
+      "available": "متاح",
+      "pending": "قيد الانتظار",
+      "reserved": "محجوز",
+      "paid": "إجمالي المدفوع",
+      "hint": "يصبح المبلغ المنتظر متاحا بعد انتهاء فترة الأمان التي تغطي الإلغاءات وحالات عدم السداد."
+    },
+    "portfolio": {
+      "title": "محفظة الشركات",
+      "subtitle": "الشركات التي جلبتها",
+      "loadError": "تعذر تحميل محفظتك.",
+      "empty": "لم تجلب أي شركة بعد.",
+      "ruleTitle": "كيف يعمل العد التنازلي",
+      "ruleBody": "كل عملية شراء مؤكدة تعيد عداد الشركة إلى اثني عشر شهرا. الشراء المؤكد وحده يفعل ذلك: لا ملاحظة ولا مكالمة ولا متابعة معلنة. بعد اثني عشر شهرا بدون شراء، تخرج الشركة من محفظتك وتصبح متاحة من جديد.",
+      "daysLeft": "{{count}} ي",
+      "lastPurchase": "آخر شراء",
+      "neverPurchased": "لا يوجد",
+      "expiresAt": "تاريخ الانتهاء"
+    },
+    "commissions": {
+      "title": "عمولاتي",
+      "intro": "لا تنشأ العمولة إلا من دفعة مؤكدة. يتم تثبيت المبلغ والنسبة لحظة الاحتساب: كشف صادر اليوم يظل صحيحا بعد عام.",
+      "loadError": "تعذر تحميل عمولاتك.",
+      "empty": "لا توجد عمولات بعد.",
+      "availableOn": "مستحقة ابتداء من {{date}}"
+    },
+    "payouts": {
+      "title": "المدفوعات",
+      "subtitle": "طلب صرف ومتابعة طلباتك",
+      "loadError": "تعذر تحميل مدفوعاتك.",
+      "lockedTitle": "الصرف غير متاح",
+      "lockedBody": "توقيع عقد وسيط الأعمال ضروري قبل أي صرف. تبقى عمولاتك مكتسبة وستصرف لك فور التوقيع.",
+      "amountLabel": "المبلغ المطلوب صرفه ({{currency}})",
+      "methodLabel": "وسيلة الصرف",
+      "methodPlaceholder": "محفظة نقود، تحويل بنكي…",
+      "destinationLabel": "الوجهة",
+      "destinationPlaceholder": "مثال: MTN MoMo — الاسم واللقب",
+      "privacyHint": "لا تكتب أبدا رقمك الكامل ولا رمزك السري. تكفي إشارة مختصرة: ستتصل بك الإدارة لإتمام التحويل.",
+      "submit": "طلب الصرف",
+      "requested": "تم تسجيل طلبك. سيقوم مسؤول بمراجعته.",
+      "error": "تعذر تسجيل طلبك.",
+      "historyTitle": "السجل",
+      "empty": "لا يوجد طلب صرف.",
+      "reference": "مرجع التحويل: {{reference}}"
+    }
+  },
+  "ambassadorsAdmin": {
+    "title": "السفراء",
+    "unavailable": "هذا القسم مخصص للمسؤولين.",
+    "loadError": "تعذر تحميل السفراء.",
+    "actionError": "فشلت العملية.",
+    "tabAmbassadors": "السفراء",
+    "tabPayouts": "المدفوعات",
+    "emptyAmbassadors": "لا يوجد سفير مسجل.",
+    "emptyPayouts": "لا يوجد طلب صرف.",
+    "contract": "عقد الوسيط",
+    "contractMissing": "غير موقع",
+    "walletSummary": "متاح {{available}} · قيد الانتظار {{pending}}",
+    "approve": "قبول الترشح",
+    "reinstate": "إعادة الإدماج",
+    "validate": "اعتماد الطلب",
+    "executionReference": "مرجع التحويل المنفذ",
+    "executionPlaceholder": "مثال: VIR-2026-0042",
+    "markExecuted": "تعليم كمدفوع",
+    "reject": "رفض",
+    "rejectPlaceholder": "سبب الرفض (إلزامي، 10 أحرف على الأقل)"
+  },
+  "notificationCentre": {
+    "title": "مركز الإشعارات",
+    "all": "الكل",
+    "unread": "غير مقروءة",
+    "starred": "المفضلة",
+    "archived": "المؤرشفة",
+    "searchPlaceholder": "ابحث عن مرجع أو شركة…",
+    "empty": "لا توجد إشعارات.",
+    "emptyFiltered": "لا يوجد إشعار يطابق هذا الفلتر.",
+    "loadError": "تعذر تحميل إشعاراتك.",
+    "markAllRead": "تعليم الكل كمقروء",
+    "star": "إضافة إلى المفضلة",
+    "unstar": "إزالة من المفضلة",
+    "archive": "أرشفة",
+    "unarchive": "استعادة",
+    "open": "فتح",
+    "loadMore": "عرض المزيد",
+    "attachments": "المرفقات"
   }
 }

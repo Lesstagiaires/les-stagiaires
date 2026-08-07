@@ -10,6 +10,7 @@ import { api, ApiError, type InternshipReportWithApplication } from '../../../li
 import { useReportStatusLabels, REPORT_STATUS_TONE } from '../../../lib/establishment-labels';
 import { useAuth } from '../../../lib/auth-context';
 import { saveFile } from '../../../lib/save-file';
+import { EmptyState } from '../../../components/empty-state';
 
 export default function ReportsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -58,7 +59,7 @@ export default function ReportsScreen() {
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : reports.length === 0 ? (
-          <Text style={styles.emptyText}>{t('recruiter.reports.empty')}</Text>
+          <EmptyState message={t('recruiter.reports.empty')} />
         ) : (
           <View style={styles.list}>
             {reports.map((report) => (
@@ -199,9 +200,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxl,
-  },
-  emptyText: {
-    ...typography.caption,
   },
   list: {
     gap: spacing.sm,

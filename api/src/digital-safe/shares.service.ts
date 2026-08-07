@@ -57,7 +57,10 @@ export class SharesService {
     const owner = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
     });
-    await this.minorPolicy.assertActionAllowed(owner, MinorGatedAction.DIGITAL_SAFE_SHARE);
+    await this.minorPolicy.assertActionAllowed(
+      owner,
+      MinorGatedAction.DIGITAL_SAFE_SHARE,
+    );
 
     if (dto.targetType === ShareTargetType.USER) {
       if (!dto.sharedWithUserId) {

@@ -12,11 +12,15 @@ datasource db {
 }
 
 // Les 4 langues de l'application (FR/EN/ES/AR) — AR s'affiche en RTL côté mobile.
+// Langues de l'interface. Le portugais entre au périmètre le 2026-08-01 : l'Angola,
+// le Mozambique, le Cap-Vert, la Guinée-Bissau et São Tomé représentent une part de
+// la jeunesse africaine que les quatre premières langues laissaient dehors.
 enum Language {
   FR
   EN
   ES
   AR
+  PT
 }
 
 enum AccountStatus {
@@ -55,6 +59,10 @@ enum MinorGatedAction {
   SIGN_CONVENTION
   MOBILITY
   DIGITAL_SAFE_SHARE
+  // Abonnement souscrit pour le compte d'un mineur à l'initiative d'un établissement ou
+  // d'une entreprise (CLAUDE.md §6) — jamais l'auto-souscription PROTECT/PRO à
+  // l'initiative du mineur lui-même, qui reste hors du moteur de règles par pays.
+  SUBSCRIPTION_ORG_SPONSORED
 }
 
 enum ParentalLinkStatus {
@@ -71,6 +79,21 @@ model User {
   email    String? @unique
   phone    String? @unique
   password String
+
+  // DONNÉE DE DÉMONSTRATION — arbitrage du promoteur des 2026-08-01 et 2026-08-02.
+  //
+  // Les comptes de recette vivent dans la même base que les comptes réels jusqu'à
+  // la recette finale. Sans ce drapeau, les distinguer supposerait de reconnaître
+  // des numéros de téléphone à la main — méthode qui échoue dès qu'on en ajoute un.
+  //
+  // Il sert à deux choses : exclure ces comptes des calculs financiers et
+  // statistiques de production, et permettre au script de préparation
+  // (scripts/prepare-production.mjs) de les supprimer de façon exhaustive.
+  //
+  // Le défaut est `false` : un compte n'est de démonstration que si on l'a
+  // explicitement déclaré tel. Un oubli produit un compte traité comme réel, ce
+  // qui est le sens sûr de l'erreur.
+  isDemo Boolean @default(false)
 
   // Nullable pour rester compatible avec les comptes créés avant l'introduction du
   // moteur de règles par pays — requis par RegisterDto pour toute nouvelle inscription.
@@ -132,10 +155,28 @@ model User {
   internshipReportsReviewed   InternshipReport[]
   partnershipRequestsAssigned PartnershipRequest[]      @relation("PartnershipRequestAssignee")
   partnershipRequestNotes     PartnershipRequestNote[]
-  notifications               Notification[]
+  partnershipsDecided         Partnership[]             @relation("PartnershipDecider")
+  partnershipsTerminated      Partnership[]             @relation("PartnershipTerminator")
+
+  partnershipInformationRequests PartnershipInformationRequest[] @relation("PartnershipInformationRequester")
+  partnershipDocumentsUploaded   PartnershipDocument[]           @relation("PartnershipDocumentUploader")
+  partnershipEventsActed         PartnershipEvent[]              @relation("PartnershipEventActor")
+  notifications                  Notification[]
+  subscriptions                  Subscription[]                  @relation("SubscriptionBeneficiaryUser")
+
+  // Programme d'Ambassadeurs. `ambassadorReferral` est au singulier à dessein : un
+  // utilisateur n'a qu'un parrain, définitivement (contrainte d'unicité en base).
+  ambassadorProfile       Ambassador?              @relation("AmbassadorUser")
+  ambassadorReferral      AmbassadorReferral?      @relation("AmbassadorReferredUser")
+  ambassadorsApproved     Ambassador[]             @relation("AmbassadorApprover")
+  ambassadorEventsActed   AmbassadorEvent[]        @relation("AmbassadorEventActor")
+  payoutRequestsValidated PayoutRequest[]          @relation("PayoutValidator")
+  notificationPreferences NotificationPreference[]
+  emailLogs               EmailLog[]
 
   @@index([email])
   @@index([phone])
+  @@index([isDemo])
 }
 
 model Role {
@@ -337,10 +378,36 @@ model Report {
   @@index([targetOpportunityId])
 }
 
+// JOURNAL D'AUDIT — APPEND-ONLY, garanti par la base et non par la discipline.
+//
+// Exigence du promoteur du 2026-08-02 : « Je souhaite que ces journaux soient
+// inaltérables par les utilisateurs ordinaires. » Un déclencheur PostgreSQL refuse
+// toute suppression et toute modification de ligne (voir la migration
+// 20260802140000). La seule exception tolérée est l'anonymisation du FK `userId`
+// lors de la suppression définitive d'un compte : le journal perd alors l'auteur,
+// jamais le fait.
+//
+// Le contrôle est en base parce qu'un contrôle applicatif ne protège que du code
+// qui passe par l'application.
 model AuditLog {
-  id        String   @id @default(cuid())
-  userId    String?
-  action    String
+  id     String  @id @default(cuid())
+  userId String?
+  action String
+
+  // Sur QUOI a porté l'action. Sans cela, retrouver l'historique d'un partenariat
+  // donné exigeait de fouiller le JSON de toutes les lignes.
+  entityType String?
+  entityId   String?
+
+  // Ce qui a changé : [{ field, oldValue, newValue }]. Le promoteur veut « quelle
+  // valeur a été modifiée, quelle était l'ancienne, quelle est la nouvelle ».
+  changes Json?
+
+  // Depuis quel poste l'action a été menée. Utile pour distinguer une action
+  // légitime d'un accès détourné sur un compte d'administration partagé.
+  ipAddress String?
+  userAgent String?
+
   metadata  Json?
   createdAt DateTime @default(now())
 
@@ -348,6 +415,7 @@ model AuditLog {
 
   @@index([userId])
   @@index([action])
+  @@index([entityType, entityId, createdAt])
 }
 
 // ============================================================================
@@ -399,12 +467,21 @@ model Profile {
   // (UserRole.isActive), vérifié en service, pas dans le schéma.
   activeRoleId String?
 
+  // Metier VISE, pas metier exerce : on classe des offres pour quelqu'un qui
+  // cherche, pas pour quelqu'un qui est deja en poste.
+  targetOccupationId String?
+  // A partir de quand la personne peut commencer. NULL = disponible tout de
+  // suite — l'hypothese la plus favorable, faute de mieux.
+  availableFrom DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user       User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   activeRole Role? @relation(fields: [activeRoleId], references: [id], onDelete: SetNull)
 
+  targetOccupation  Occupation?    @relation(fields: [targetOccupationId], references: [id], onDelete: SetNull)
+  skills            ProfileSkill[]
   educations        Education[]
   experiences       Experience[]
   languages         ProfileLanguage[]
@@ -417,7 +494,11 @@ model Education {
   id           String    @id @default(cuid())
   profileId    String
   institution  String
+  // Texte libre : ce que la personne lit sur son diplome.
   degree       String?
+  // Echelle COMPARABLE, a cote du texte libre. Un classement a besoin de
+  // comparer ; « Licence professionnelle » et « BSc » ne se comparent pas.
+  level        EducationLevel?
   fieldOfStudy String?
   startDate    DateTime?
   endDate      DateTime?
@@ -564,10 +645,16 @@ model DigitalSafeDocument {
 
   createdAt DateTime @default(now())
 
-  user       User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  versions   DigitalSafeDocumentVersion[]
-  shares     DigitalSafeShare[]
-  accessLogs DigitalSafeAccessLog[]
+  user                    User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions                DigitalSafeDocumentVersion[]
+  shares                  DigitalSafeShare[]
+  accessLogs              DigitalSafeAccessLog[]
+  // Références depuis les notifications : une pièce jointe pointe vers le coffre,
+  // elle n'y stocke jamais de copie (CLAUDE.md §6).
+  notificationAttachments NotificationAttachment[]
+  impactReports           ImpactReport[]
+  partnershipDocuments    PartnershipDocument[]
+  ambassadorIdentityDocuments AmbassadorIdentityDocument[]
 
   @@index([userId])
 }
@@ -657,7 +744,12 @@ enum OrganizationType {
 // ORG-ID d'affichage, équipe/permissions, page publique, vitrine partenaires.
 // L'id ci-dessous est l'identifiant stable et permanent : un cuid, jamais régénéré.
 model Organization {
-  id      String           @id @default(cuid())
+  id String @id @default(cuid())
+
+  // Organisation de démonstration — voir User.isDemo. Marquer les deux racines
+  // suffit : tout le reste (partenariats, offres, candidatures) en dépend par
+  // clé étrangère.
+  isDemo  Boolean          @default(false)
   type    OrganizationType @default(ENTREPRISE)
   // FR-ORG-001 / EDU-FR-002 : identifiant d'affichage, même mécanique que le LS-ID —
   // préfixe ORG- ou EDU- selon le type, attribué dès la création.
@@ -689,6 +781,16 @@ model Organization {
   // affiché publiquement) ; réservée à un compte ADMIN, comme la vérification.
   partnershipSignedAt DateTime?
 
+  // « Comment avez-vous connu LES STAGIAIRES ? » — DONNÉE MARKETING DÉCLARATIVE, et
+  // rien d'autre (décision du promoteur du 2026-07-31, point 9). Elle alimente le
+  // tableau de bord marketing. Elle ne crée JAMAIS d'attribution et ne déclenche
+  // JAMAIS de commission : répondre « Ambassadeur » ici ne rattache personne. Seul
+  // un AmbassadorPortfolioEntry, né d'un code/lien/QR valide ou d'une attribution
+  // administrative, ouvre droit à commission. Les deux mécanismes sont volontairement
+  // séparés — voir le garde-fou dans commissions.service.ts.
+  acquisitionSource     OrganizationAcquisitionSource?
+  acquisitionSourceNote String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -700,7 +802,21 @@ model Organization {
   learners      EstablishmentLearner[]
   campaigns     InternshipCampaign[]
 
+  subscriptionsAsBeneficiary Subscription[] @relation("SubscriptionBeneficiaryOrganization")
+  subscriptionsInitiated     Subscription[] @relation("SubscriptionInitiatingOrganization")
+
+  // Pluriel depuis le 2026-08-02 : une organisation peut être partenaire à
+  // plusieurs titres (académique, stage, recrutement…), chacun avec son propre
+  // cycle de vie.
+  partnerships          Partnership[]
+  citizenScoreSnapshots CitizenScoreSnapshot[]
+  impactReports         ImpactReport[]
+
+  ambassadorPortfolioEntries AmbassadorPortfolioEntry[]
+
   @@index([ownerId])
+  @@index([acquisitionSource])
+  @@index([isDemo])
 }
 
 enum OrganizationMemberRole {
@@ -811,6 +927,239 @@ enum OpportunityStatus {
   ARCHIVED
 }
 
+// ============================================================================
+// RECHERCHE PAR PERTINENCE — RÉFÉRENTIELS ET PONDÉRATION
+//
+// Arbitrage du promoteur, 2026-08-07 :
+//
+//   « Recherche par pertinence seule, sans sponsoring ni mise en avant payante.
+//     Les pondérations ne doivent pas être codées en dur ; elles doivent être
+//     configurables depuis la base, historisées et auditables. Le référentiel
+//     des compétences est indispensable et doit être réalisé dans ce chantier. »
+//
+// L'ENGAGEMENT QUI GOUVERNE TOUT : aucune place ne s'achète. Il n'existe donc
+// AUCUN champ de mise en avant dans ce schéma — ni `featured`, ni `promoted`,
+// ni `sponsored`, ni `boost`, ni `priorityScore`, ni `paidRank`, ni
+// `premiumRank`. Pas même inutilisé « pour plus tard » : un tel champ est une
+// promesse qu'on finirait par tenir un jour de tension commerciale. Un test
+// automatisé parcourt le schéma et échoue si l'un d'eux apparaît.
+// ============================================================================
+
+// Référentiel CONTRÔLÉ de compétences.
+//
+// Du texte libre produirait « JavaScript », « Java Script », « JS », « NodeJS »
+// et « ECMAScript » — cinq compétences qui ne se rencontrent jamais, et une
+// recherche médiocre. Un référentiel se traduit en outre dans les cinq langues,
+// ce que du texte libre ne fait pas.
+model Skill {
+  id   String @id @default(cuid())
+  code String @unique
+
+  labelFr String
+  labelEn String
+  labelEs String
+  labelAr String
+  labelPt String
+
+  // Regroupement large (« Numérique », « Gestion », « Artisanat »). Sert à
+  // proposer des compétences voisines, et à la diversification des résultats.
+  category String?
+
+  isActive Boolean @default(true)
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  profiles      ProfileSkill[]
+  opportunities OpportunitySkill[]
+  synonyms      SearchSynonym[]
+
+  @@index([isActive, category])
+  @@index([labelFr(ops: raw("gin_trgm_ops"))], map: "Skill_labelFr_trgm_idx", type: Gin)
+}
+
+// Référentiel de MÉTIERS, hiérarchique.
+//
+// Inspiré des taxonomies ROME et ESCO, mais propre au contexte : un « agent de
+// call center » ou un « mototaximan » n'existent dans aucune des deux, et sont
+// pourtant des métiers d'entrée majeurs au Cameroun. Le `parentId` permet de
+// remonter d'un métier précis à sa famille — c'est ce qui évitera qu'un
+// développeur mobile ne voie que des offres de développement mobile.
+model Occupation {
+  id       String  @id @default(cuid())
+  code     String  @unique
+  parentId String?
+
+  labelFr String
+  labelEn String
+  labelEs String
+  labelAr String
+  labelPt String
+
+  isActive Boolean @default(true)
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent   Occupation?  @relation("OccupationTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Occupation[] @relation("OccupationTree")
+
+  profiles      Profile[]
+  opportunities Opportunity[]
+  synonyms      SearchSynonym[]
+
+  @@index([isActive, parentId])
+  @@index([labelFr(ops: raw("gin_trgm_ops"))], map: "Occupation_labelFr_trgm_idx", type: Gin)
+}
+
+// SYNONYMES ET VARIANTES — un seul mécanisme pour les trois usages.
+//
+// « RH » vaut « Ressources humaines » ; « JS » vaut « JavaScript » ; « Doula »
+// est une faute de frappe pour « Douala » que la tolérance orthographique
+// rattrapera, mais qu'on peut aussi inscrire ici quand elle est fréquente.
+//
+// `termNormalized` est la forme comparable — minuscules, sans accent, sans
+// ponctuation. C'est elle qui porte l'unicité : inscrire « R.H. » et « rh »
+// serait inscrire deux fois la même chose.
+model SearchSynonym {
+  id             String @id @default(cuid())
+  termNormalized String @unique
+  // Ce vers quoi le terme renvoie, en clair, pour la lecture humaine.
+  canonical      String
+
+  // Rattachement au référentiel, quand il y en a un. Un synonyme peut n'en
+  // avoir aucun (« stage rémunéré » → « stage ») et ne servir qu'à l'expansion
+  // de la requête textuelle.
+  skillId      String?
+  occupationId String?
+
+  isActive Boolean @default(true)
+
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  skill      Skill?      @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  occupation Occupation? @relation(fields: [occupationId], references: [id], onDelete: Cascade)
+
+  @@index([isActive])
+}
+
+// Compétences déclarées par un candidat.
+model ProfileSkill {
+  id        String @id @default(cuid())
+  profileId String
+  skillId   String
+
+  level SkillLevel @default(INTERMEDIATE)
+
+  createdAt DateTime @default(now())
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  skill   Skill   @relation(fields: [skillId], references: [id], onDelete: Restrict)
+
+  @@unique([profileId, skillId])
+  @@index([skillId])
+}
+
+// Compétences attendues par une offre.
+model OpportunitySkill {
+  id            String @id @default(cuid())
+  opportunityId String
+  skillId       String
+
+  // Exigée, ou simplement appréciée. Une compétence exigée qui manque pèse plus
+  // lourd qu'une compétence souhaitée.
+  required Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  skill       Skill       @relation(fields: [skillId], references: [id], onDelete: Restrict)
+
+  @@unique([opportunityId, skillId])
+  @@index([skillId])
+}
+
+enum SkillLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+// Niveau d'études, structuré. `Education.degree` reste du texte libre — c'est ce
+// que la personne écrit sur son diplôme — mais un classement a besoin d'une
+// échelle comparable.
+enum EducationLevel {
+  NONE
+  SECONDARY
+  BAC
+  BAC_PLUS_2
+  BAC_PLUS_3
+  BAC_PLUS_5
+  DOCTORATE
+}
+
+// --- LA PONDÉRATION, EN BASE ------------------------------------------------
+//
+// « Un administrateur peut modifier le poids de la fraîcheur de 5 à 3 sans
+// redéployer l'application. Chaque modification est historisée. »
+//
+// L'historisation passe par `AuditLog`, en ajout seul, qui porte déjà l'auteur,
+// la date, l'ancienne et la nouvelle valeur. Une table d'historique dédiée
+// dupliquerait ce mécanisme sans rien ajouter — et une seconde implémentation,
+// c'est une seconde façon de diverger.
+model SearchRankingRule {
+  id        String          @id @default(cuid())
+  criterion SearchCriterion
+
+  // En POINTS sur 100. La somme des critères actifs devrait faire 100 ; le
+  // service le vérifie et le signale plutôt que de normaliser en silence — un
+  // barème qui ne fait pas 100 est une erreur de réglage, pas une donnée à
+  // corriger derrière le dos de celui qui l'a saisie.
+  weight Int
+
+  // '*' = tous pays. Le marché camerounais et le marché sénégalais n'ont pas
+  // les mêmes équilibres.
+  //
+  // UNE SENTINELLE, PAS UN NULL — corrigé le 2026-08-07 après vérification sur
+  // la base : PostgreSQL considère deux NULL comme distincts, donc l'index
+  // unique ci-dessous ne mordait pas sur le barème global, et deux règles
+  // SKILL_MATCH actives pouvaient coexister. Le classement devenait
+  // irreproductible sans qu'aucune ligne d'audit ne le montre.
+  countryCode String @default("*")
+
+  isActive Boolean @default(true)
+
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([criterion, countryCode])
+  @@index([isActive])
+}
+
+// Les six critères arrêtés par le promoteur, avec leurs poids de départ :
+//
+//   SKILL_MATCH        35   correspondance des compétences
+//   OCCUPATION_MATCH   25   correspondance du métier
+//   LOCATION_MATCH     15   localisation
+//   EDUCATION_MATCH    10   niveau d'études et expérience
+//   AVAILABILITY_MATCH  5   disponibilité du candidat
+//   FRESHNESS          10   fraîcheur de l'offre
+//
+// La fraîcheur à 10 et non à 5 : « une offre vieille de six mois ne devrait pas
+// concurrencer une offre publiée hier si elles sont équivalentes ».
+enum SearchCriterion {
+  SKILL_MATCH
+  OCCUPATION_MATCH
+  LOCATION_MATCH
+  EDUCATION_MATCH
+  AVAILABILITY_MATCH
+  FRESHNESS
+}
+
 model Opportunity {
   id             String          @id @default(cuid())
   organizationId String
@@ -829,21 +1178,53 @@ model Opportunity {
   accommodationProvided Boolean  @default(false)
   mobilityBenefits      String?
 
+  // Metier vise, issu du referentiel. NULL tant que l'offre n'a pas ete
+  // rattachee — le diagnostic de qualite le signalera a l'entreprise.
+  occupationId String?
+  // Niveau d'etudes minimal attendu. NULL = non precise, ce qui ne penalise
+  // personne : une offre qui ne dit rien n'exclut personne.
+  minEducationLevel EducationLevel?
+
   status      OpportunityStatus @default(DRAFT)
   publishedAt DateTime?
   expiresAt   DateTime?
+
+  // Quand le poste commence. FACULTATIF : beaucoup de recrutements n'ont pas de
+  // date ferme, et une date inventée vaudrait moins que pas de date.
+  //
+  // C'est l'autre moitié du critère DISPONIBILITÉ — il compare cette date à
+  // celle où le candidat se déclare disponible. Sans elle, le critère rendait
+  // 1 pour toutes les offres et ses 5 points ne classaient rien.
+  startsAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   organization Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  occupation   Occupation?           @relation(fields: [occupationId], references: [id], onDelete: SetNull)
+  skills       OpportunitySkill[]
   favorites    OpportunityFavorite[]
   reports      Report[]
   applications Application[]
 
+  /// COLONNE GÉNÉRÉE en base (migration 20260807100000) : elle se recalcule à
+  /// chaque écriture et ne peut pas se désynchroniser du texte. Prisma ne sait
+  /// pas exprimer une colonne générée —  la déclare pour que le
+  /// schéma reste fidèle à la base, et le client ne tentera jamais de l'écrire.
+  ///
+  /// Le titre pèse TROIS FOIS plus que la description (poids A contre C) : une
+  /// offre intitulée « Développeur » parle de développement ; une offre qui
+  /// cite le mot au détour d'un paragraphe, beaucoup moins.
+  searchVector Unsupported("tsvector")? @default(dbgenerated("((setweight(to_tsvector('french'::regconfig, COALESCE(title, ''::text)), 'A'::\"char\") || setweight(to_tsvector('french'::regconfig, COALESCE(sector, ''::text)), 'B'::\"char\")) || setweight(to_tsvector('french'::regconfig, COALESCE(description, ''::text)), 'C'::\"char\"))"))
+
   @@index([organizationId])
   @@index([status, country, city])
   @@index([status, sector])
+  /// Recherche plein texte.
+  @@index([searchVector], type: Gin)
+  /// Tolérance aux fautes de frappe : « Doula » pour « Douala ».
+  @@index([title(ops: raw("gin_trgm_ops"))], map: "Opportunity_title_trgm_idx", type: Gin)
+  @@index([city(ops: raw("gin_trgm_ops"))], map: "Opportunity_city_trgm_idx", type: Gin)
 }
 
 // FR-M4-009 : favoris.
@@ -931,6 +1312,16 @@ model Application {
 
   status ApplicationStatus @default(SUBMITTED)
 
+  // Dates réelles du stage, fixées par l'organisation au moment où elle accepte la
+  // candidature — pas reprises de l'offre : deux candidats retenus sur la même offre
+  // peuvent commencer des jours différents.
+  //
+  // Nullable à dessein : la donnée n'existait pas avant le 2026-08-01, et les
+  // candidatures déjà acceptées n'en ont pas. Le rappel de début de stage les ignore
+  // simplement, plutôt que d'inventer une date.
+  internshipStartDate DateTime?
+  internshipEndDate   DateTime?
+
   dossierSnapshot Json
 
   // FR-M4-005 : recueillie uniquement quand l'offre l'exige (relocationRequired) —
@@ -990,10 +1381,14 @@ model Application {
   travelConsent    TravelConsent?
   internshipReport InternshipReport?
 
+  startReminders InternshipStartReminder[]
+
   @@index([candidateId])
   @@index([organizationId])
   @@index([opportunityId])
   @@index([status])
+  // Sert au balayage quotidien : les stages qui commencent bientôt, et eux seuls.
+  @@index([status, internshipStartDate])
 }
 
 // Accord parental spécifique au déplacement — distinct du consentement d'inscription
@@ -1277,18 +1672,2524 @@ model PartnershipRequestNote {
 
 enum NotificationType {
   PARTNERSHIP_REQUEST_NEW
+  // Programme de Partenariat. Une décision qui retire un badge n'est jamais
+  // silencieuse : l'organisation est notifiée et le motif lui est communiqué.
+  PARTNERSHIP_APPLIED
+  // Dossier incomplet : la demande reste ouverte, l'organisation doit compléter.
+  PARTNERSHIP_ADDITIONAL_INFORMATION_REQUIRED
+  // L'organisation a répondu — le dossier est prêt pour un nouvel examen, sans
+  // qu'une nouvelle demande ait eu à être créée.
+  PARTNERSHIP_ADDITIONAL_INFORMATION_PROVIDED
+  PARTNERSHIP_APPROVED
+  PARTNERSHIP_REFUSED
+  PARTNERSHIP_SUSPENDED
+  PARTNERSHIP_REINSTATED
+  PARTNERSHIP_TERMINATION_REQUESTED
+  PARTNERSHIP_TERMINATION_REQUEST_WITHDRAWN
+  PARTNERSHIP_TERMINATED
+
+  // Programme d'Ambassadeurs.
+  AMBASSADOR_APPROVED
+  AMBASSADOR_SUSPENDED
+  AMBASSADOR_REINSTATED
+  AMBASSADOR_TERMINATED
+  AMBASSADOR_COMMISSION_EARNED
+  AMBASSADOR_COMMISSION_PAYABLE
+  AMBASSADOR_PAYOUT_VALIDATED
+  AMBASSADOR_PAYOUT_EXECUTED
+  AMBASSADOR_PAYOUT_REJECTED
+  // Écart entre le solde en cache et le grand livre. Destinataire :
+  // l administration. Aucune correction automatique n en découle.
+  AMBASSADOR_WALLET_DIVERGENCE
+  // Le virement ordonne a echoue. Destinataire : l ambassadeur. Il doit
+  // l apprendre par nous et non par le silence de son operateur — la somme est
+  // revenue a son solde disponible, elle lui reste due.
+  AMBASSADOR_PAYOUT_FAILED
+  // Coordonnees de versement modifiees. ALERTE DE SECURITE : c est la
+  // notification par laquelle quelqu un dont le compte a ete detourne peut s en
+  // apercevoir. Elle part par e-mail ET par SMS, et n est desactivable par
+  // aucune preference — couper cette alerte-la reviendrait a offrir le silence
+  // a celui qui detourne.
+  AMBASSADOR_PAYMENT_DETAILS_CHANGED
+  // Comportement inhabituel detecte. Destinataire : l administration, JAMAIS
+  // l interesse — prevenir quelqu un qu il est surveille est le meilleur moyen
+  // de lui apprendre a ne plus l etre. Aucune sanction n en decoule
+  // automatiquement : l alerte oriente vers un controle manuel, rien de plus.
+  AMBASSADOR_FRAUD_ALERT
+  // Commission mise de côté par un plafond. Destinataire : l administration.
+  // Sans elle, une commission plafonnée dormirait indéfiniment — c est ce qui
+  // transformerait un contrôle en perte silencieuse pour l ambassadeur.
+  AMBASSADOR_COMMISSION_REVIEW_REQUIRED
+  // Les trois alertes du compte à rebours de portefeuille (point 8 des arbitrages du
+  // 2026-07-31). Elles figurent dans l'allowlist SMS : perdre une entreprise de son
+  // portefeuille a une conséquence financière directe pour l'ambassadeur, qui doit
+  // pouvoir réagir même sans ouvrir l'application.
+  AMBASSADOR_PORTFOLIO_WARNING_9M
+  AMBASSADOR_PORTFOLIO_WARNING_11M
+  AMBASSADOR_PORTFOLIO_EXPIRED
+
+  // ==========================================================================
+  // Migration de la politique SMS (décision du promoteur du 2026-08-01).
+  //
+  // Ces types remplacent des SMS envoyés jusqu'ici directement par les services
+  // métier. Ils passent désormais par NotificationsService, qui décide du canal :
+  // notification interne aujourd'hui, e-mail et push ensuite. Aucun ne figure sur
+  // la liste blanche SMS (critical-sms-types.ts) — leur destinataire possède un
+  // compte, donc un canal gratuit.
+  //
+  // Convention maison : le serveur ne stocke QUE des données structurées, jamais
+  // une phrase. C'est le client qui traduit, en FR/EN/ES/AR/PT.
+  // ==========================================================================
+
+  // --- Candidature, vue du candidat ---
+  APPLICATION_SUBMITTED
+  APPLICATION_DOCUMENT_REQUESTED
+  APPLICATION_INTERVIEW_PROPOSED
+  APPLICATION_REJECTED
+  APPLICATION_ADMISSION_LETTER_ISSUED
+  // Le candidat est prévenu ici par notification ; son parent, lui, reçoit un SMS
+  // séparé porteur du code de consentement — c'est le seul canal qui l'atteigne.
+  APPLICATION_ACCEPTED_PENDING_TRAVEL_CONSENT
+  APPLICATION_TRAVEL_CONSENT_CONFIRMED
+  APPLICATION_AGREEMENT_FULLY_SIGNED
+  APPLICATION_ESTABLISHMENT_SIGNED
+  // Le consentement parental de déplacement a expiré : la candidature reste bloquée.
+  // Destinataire = le CANDIDAT, qui possède un compte. Le parent, lui, a déjà reçu
+  // son SMS de relance ailleurs.
+  APPLICATION_TRAVEL_CONSENT_EXPIRED
+  // Rappel de début de stage (décision du promoteur du 2026-08-01). Sur liste
+  // blanche SMS : un stage manqué faute d'avoir ouvert l'application ne se rattrape
+  // pas, et le destinataire n'a pas forcément de connexion ce matin-là.
+  APPLICATION_INTERNSHIP_STARTING_SOON
+  APPLICATION_CLOSED
+  APPLICATION_RECOMMENDATION_RECEIVED
+
+  // --- Candidature, vue de l'organisation ---
+  APPLICATION_RECEIVED_ORG
+  APPLICATION_DOCUMENT_SUBMITTED_ORG
+  APPLICATION_INTERVIEW_CONFIRMED_ORG
+  APPLICATION_ADMISSION_ACCEPTED_ORG
+  APPLICATION_TRAVEL_CONSENT_CONFIRMED_ORG
+  APPLICATION_AGREEMENT_FULLY_SIGNED_ORG
+  APPLICATION_ESTABLISHMENT_SIGNED_ORG
+  APPLICATION_WITHDRAWN_ORG
+
+  // --- Candidature, vue de l'établissement ---
+  APPLICATION_ESTABLISHMENT_ASSOCIATION_REQUESTED
+
+  // --- Établissement et apprenants ---
+  LEARNER_INVITED
+  LEARNER_VERIFIED
+  // Un seul type pour « validé » et « à corriger » : le statut voyage dans les
+  // métadonnées. Deux types diraient deux fois la même chose.
+  INTERNSHIP_REPORT_REVIEWED
+
+  // --- Équipe d'une organisation ---
+  ORGANIZATION_INVITATION_RECEIVED
+  ORGANIZATION_ACCESS_REVOKED
+
+  // --- Besoin saisonnier / temporaire / bénévole ---
+  NEED_REQUEST_ANSWERED
 }
 
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  type      NotificationType
-  metadata  Json?
-  readAt    DateTime?
-  createdAt DateTime         @default(now())
+  id       String           @id @default(cuid())
+  userId   String
+  type     NotificationType
+  metadata Json?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Catégorie DÉNORMALISÉE depuis le type (notification-categories.ts).
+  //
+  // Elle se déduit du type, donc c'est une redondance — assumée, pour deux
+  // raisons. D'abord un filtre par catégorie doit être indexable : recalculer la
+  // catégorie de dix mille lignes à chaque requête serait intenable. Ensuite, et
+  // surtout, l'histoire doit rester stable : si un type change de catégorie
+  // demain, les notifications déjà reçues gardent celle sous laquelle
+  // l'utilisateur les a lues et classées.
+  category NotificationCategory @default(SYSTEM)
+
+  // Chemin applicatif vers l'écran concerné (« /applications/xxx »). Stocké
+  // plutôt que déduit du type : deux notifications d'un même type peuvent viser
+  // deux dossiers différents.
+  linkPath String?
+
+  readAt     DateTime?
+  // Favori. Deux colonnes plutôt qu'un booléen seul : la DATE permet de trier
+  // les favoris par mise en favori, et pas seulement par date de réception.
+  starredAt  DateTime?
+  // Masqué de la liste courante SANS être supprimé — l'historique complet exigé
+  // par le promoteur interdit toute suppression réelle.
+  archivedAt DateTime?
+
+  // Rattachement à une conversation. Nul aujourd'hui : c'est la charnière posée
+  // pour la messagerie professionnelle à venir (voir NotificationThread).
+  threadId String?
+
+  createdAt DateTime @default(now())
+
+  user        User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread      NotificationThread?      @relation(fields: [threadId], references: [id], onDelete: SetNull)
+  attachments NotificationAttachment[]
 
   @@index([userId])
   @@index([userId, readAt])
+  // Index de service du Centre : la liste par défaut est « mes notifications non
+  // archivées, les plus récentes d'abord », éventuellement filtrées par catégorie.
+  @@index([userId, archivedAt, createdAt])
+  @@index([userId, category, createdAt])
+  @@index([threadId])
+}
+
+// ============================================================================
+// Abonnements / Paiement — première version : PROTECT/PRO (offre individuelle,
+// candidats/familles) ; BUSINESS et INSTITUTION posés dès maintenant dans le modèle
+// (feuille de route 2026-2027) mais non exposés fonctionnellement dans ce module.
+// Architecture "provider-swap", comme STORAGE_PROVIDER/SMS_PROVIDER/
+// MALWARE_SCANNER_PROVIDER : PaymentGatewayProvider est une interface (api/src/payments/),
+// une seule implémentation simulée aujourd'hui, connectable à une passerelle officielle
+// par pays plus tard sans changer ce schéma ni les appelants.
+// ============================================================================
+
+// Formules individuelles nommées par le promoteur le 2026-07-31. L'ancienne valeur
+// unique PROTECT_PRO est scindée en deux offres distinctes, à tarif distinct :
+// CARRIERE_SECURISEE (2 000 FCFA/an) et CARRIERE_PLUS (5 000 FCFA/an). Aucun abonné
+// n'existait au moment du renommage — aucune migration commerciale n'a donc été due.
+enum SubscriptionPlan {
+  GRATUIT
+  CARRIERE_SECURISEE
+  CARRIERE_PLUS
+  BUSINESS
+  INSTITUTION
+}
+
+enum SubscriptionBillingCycle {
+  ONE_TIME
+  QUARTERLY
+  ANNUAL
+}
+
+// D'où vient la demande — pilote la règle mineur (CLAUDE.md §6) : une souscription SELF
+// sur PROTECT/PRO peut se faire directement à l'initiative du mineur (avec redirection
+// parentale optionnelle, jamais bloquante) ; une souscription ORGANIZATION (portée par un
+// établissement ou une entreprise pour le compte d'un bénéficiaire individuel) reste
+// toujours soumise à l'accord parental actif si ce bénéficiaire est mineur.
+enum SubscriptionOriginType {
+  SELF
+  ORGANIZATION
+}
+
+enum SubscriptionStatus {
+  // En attente de confirmation officielle du prestataire de paiement — jamais actif sur
+  // la seule déclaration de l'utilisateur (CLAUDE.md §6, non négociable).
+  PENDING_PAYMENT
+  ACTIVE
+  PAYMENT_FAILED
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  INITIATED
+  // Atteint uniquement via la confirmation officielle du prestataire (webhook signé par
+  // provider), jamais depuis un endpoint appelé par l'utilisateur final lui-même.
+  CONFIRMED
+  FAILED
+  CANCELLED
+}
+
+model Subscription {
+  id     String             @id @default(cuid())
+  plan   SubscriptionPlan
+  status SubscriptionStatus @default(PENDING_PAYMENT)
+
+  // Bénéficiaire : exactement l'un des deux selon le plan — un compte individuel pour
+  // PROTECT/PRO, une organisation pour BUSINESS/INSTITUTION (contrôlé en service, pas de
+  // contrainte CHECK dans ce schéma, cohérent avec le reste du modèle).
+  beneficiaryUserId         String?
+  beneficiaryOrganizationId String?
+
+  originType               SubscriptionOriginType @default(SELF)
+  // Renseigné uniquement si originType = ORGANIZATION (ex. un établissement offre
+  // PROTECT/PRO à un apprenant mineur) — distinct de beneficiaryOrganizationId, qui porte
+  // un abonnement BUSINESS/INSTITUTION souscrit par l'organisation pour elle-même.
+  initiatingOrganizationId String?
+
+  // true si un mineur en auto-souscription SELF a demandé la redirection optionnelle vers
+  // son parent/tuteur (CLAUDE.md §6) — purement informatif, ne bloque jamais l'activation.
+  parentRedirectRequested Boolean @default(false)
+
+  billingCycle SubscriptionBillingCycle
+  // Montant en unité mineure (ex. centimes de FCFA) — jamais de nombre à virgule flottante
+  // pour de l'argent. Toujours résolu côté serveur (voir SubscriptionsService), jamais
+  // fourni par le client.
+  amountMinor  Int
+  currency     String // code ISO 4217, ex. "XAF".
+  countryCode  String // pilote la sélection de la passerelle de paiement par pays (code applicatif).
+
+  startedAt        DateTime?
+  currentPeriodEnd DateTime?
+  cancelledAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  beneficiaryUser         User?         @relation("SubscriptionBeneficiaryUser", fields: [beneficiaryUserId], references: [id], onDelete: Cascade)
+  beneficiaryOrganization Organization? @relation("SubscriptionBeneficiaryOrganization", fields: [beneficiaryOrganizationId], references: [id], onDelete: Cascade)
+  initiatingOrganization  Organization? @relation("SubscriptionInitiatingOrganization", fields: [initiatingOrganizationId], references: [id], onDelete: SetNull)
+  payments                Payment[]
+
+  @@index([beneficiaryUserId])
+  @@index([beneficiaryOrganizationId])
+  @@index([status])
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  subscriptionId String
+  status         PaymentStatus @default(INITIATED)
+
+  amountMinor Int
+  currency    String
+  countryCode String
+
+  // Nom du provider utilisé pour CETTE tentative (ex. "simulated", futur
+  // "orange-money-cm", "mtn-momo-ci"...) — permet de journaliser une bascule de
+  // passerelle par pays sans migration de schéma (architecture "provider-swap").
+  providerName      String
+  // Référence opaque émise par le prestataire, utilisée pour rapprocher son webhook de
+  // confirmation à ce paiement — jamais de PIN ni d'identifiant de moyen de paiement
+  // (CLAUDE.md §6, non négociable).
+  providerReference String? @unique
+
+  initiatedAt         DateTime  @default(now())
+  // Horodatage de réception de la confirmation officielle du prestataire (webhook) —
+  // seul évènement qui peut faire passer le statut à CONFIRMED.
+  providerConfirmedAt DateTime?
+  failedAt            DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([status])
+}
+
+// ============================================================================
+// Programme de Partenariat Entreprises
+// (cahier des charges : api/docs/cahier-des-charges-programme-partenariat.md)
+//
+// Le partenariat est GRATUIT et sans lien avec l'abonnement BUSINESS (décision
+// client du 2026-07-29). Il n'achète aucune position dans les résultats de
+// recherche : le classement candidat reste trié par pertinence seule, le badge
+// s'affiche mais ne réordonne jamais. Toute mise en avant payante relève d'un
+// autre mécanisme et porte la mention « Annonce sponsorisée ».
+//
+// Ne pas confondre avec PartnershipRequest, plus haut dans ce fichier : celui-ci
+// porte les demandes entrantes du formulaire public « Nous contacter » (prospect
+// sans compte, devenu l'entonnoir des services commerciaux à la carte). Le
+// présent modèle porte le programme gratuit d'une organisation DÉJÀ vérifiée et
+// titulaire d'un compte. Deux entonnoirs distincts, deux tables distinctes.
+// ============================================================================
+
+// Statuts, jamais une durée (décision du promoteur du 2026-07-31) : « actif,
+// suspendu, résilié ». Aucune valeur ne dépend de l'écoulement du temps.
+enum PartnershipStatus {
+  PENDING
+  // Dossier incomplet — la demande RESTE OUVERTE (arbitrage du promoteur du
+  // 2026-08-02). Un dossier auquel il manque une pièce n'est pas une décision
+  // défavorable ; le traiter comme un refus ferme une porte qui devait rester
+  // ouverte, et oblige l'organisation à tout ressaisir. REFUSED est désormais
+  // réservé aux véritables décisions défavorables.
+  ADDITIONAL_INFORMATION_REQUIRED
+  ACTIVE
+  SUSPENDED
+  TERMINATED
+  REFUSED
+}
+
+// MOTIFS COMMUNICABLES À L'ORGANISATION — liste contrôlée, jamais du texte libre.
+//
+// Arbitrage du promoteur du 2026-08-02 : « Le système ne doit jamais reprendre
+// automatiquement dans un e-mail les notes libres rédigées par un administrateur. »
+// D'où trois niveaux, et non un seul champ `reason` :
+//   1. la note interne  — champ libre, visible de la seule administration ;
+//   2. ce code          — sélectionné dans cette liste, traduit dans les cinq
+//                         langues, donc sûr à envoyer ;
+//   3. un message complémentaire facultatif, relu et validé avant envoi.
+//
+// La raison d'être de cette séparation tient en une phrase : une observation
+// rédigée pour un dossier (« dirigeant injoignable, société probablement fictive »)
+// n'est pas destinée à l'organisation, et un e-mail est irrattrapable.
+//
+// NOT_DISCLOSED n'est pas une valeur de repli commode : c'est la façon EXPLICITE de
+// dire qu'aucun motif ne sera communiqué. Le gabarit l'écrit alors franchement,
+// plutôt que de laisser un blanc que l'organisation interpréterait seule.
+enum PartnershipDecisionReason {
+  INCOMPLETE_FILE
+  DOCUMENTS_NOT_VERIFIED
+  INELIGIBLE_ACTIVITY
+  DUPLICATE_REQUEST
+  CONDITIONS_NOT_MET
+  COMPLIANCE_REVIEW
+  REPORTED_CONTENT
+  INACTIVITY
+  ORGANIZATION_REQUEST
+  MUTUAL_AGREEMENT
+
+  // LES DEUX FAÇONS DE NE PAS DONNER DE MOTIF — à ne pas confondre (arbitrage du
+  // promoteur du 2026-08-02).
+  //
+  // NO_PUBLIC_REASON : l'e-mail ne comporte AUCUNE ligne sur le motif. C'est le
+  // cas ordinaire — une acceptation, une résiliation d'un commun accord, ou
+  // simplement une décision qui se passe d'explication.
+  //
+  // NOT_DISCLOSED : l'e-mail dit EXPLICITEMENT que le motif ne sera pas
+  // communiqué. C'est un choix délibéré, réservé aux cas où le silence serait
+  // interprété — pas un défaut de remplissage.
+  NO_PUBLIC_REASON
+  NOT_DISCLOSED
+}
+
+// Qui est à l'origine d'une demande de résiliation. Les deux parties disposent de
+// ce droit — ce n'est pas une prérogative de la plateforme seule.
+enum PartnershipParty {
+  ORGANIZATION
+  PLATFORM
+}
+
+enum PartnershipEventType {
+  REQUESTED
+  ADDITIONAL_INFORMATION_REQUESTED
+  ADDITIONAL_INFORMATION_PROVIDED
+  APPROVED
+  REFUSED
+  TERMINATION_REQUESTED
+  TERMINATION_REQUEST_WITHDRAWN
+  TERMINATED
+  SUSPENDED
+  REINSTATED
+}
+
+// TYPOLOGIE DES PARTENARIATS — une TABLE, et non une énumération.
+//
+// Exigence du promoteur du 2026-08-02 : « Cette liste doit être extensible sans
+// migration à chaque ajout. » Une énumération Prisma impose une migration et un
+// redéploiement pour chaque valeur ; une table se complète depuis le back-office.
+//
+// Le prix à payer est que le code ne peut plus faire d'exhaustivité à la
+// compilation sur les types de partenariat. C'est assumé : ici la liste est une
+// DONNÉE MÉTIER qui bouge au rythme du terrain, pas une frontière de logique.
+// (Comparer avec PartnershipDecisionReason, qui reste une énumération justement
+// parce que chaque motif exige une traduction relue avant de partir en e-mail.)
+model PartnershipType {
+  id   String @id @default(cuid())
+  // Code stable, jamais affiché à un utilisateur : il sert de clé de rattachement
+  // et survit à toute correction de libellé.
+  code String @unique
+
+  // Libellés portés par la ligne elle-même, dans les cinq langues. Ajouter un type
+  // depuis le back-office n'exige donc aucune livraison de code — c'était le but.
+  labelFr String
+  labelEn String
+  labelEs String
+  labelAr String
+  labelPt String
+
+  // Désactiver plutôt que supprimer : un type retiré du catalogue ne doit pas
+  // effacer les partenariats qui s'y rattachent.
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partnerships Partnership[]
+
+  @@index([isActive, sortOrder])
+}
+
+// Demande de complément — l'HISTORIQUE, distinct de l'état courant du dossier.
+//
+// Le promoteur exige de « conserver l'historique des demandes de complément » : un
+// dossier peut faire plusieurs allers-retours, et savoir ce qui a été demandé, quand,
+// et ce qui a été fourni, est précisément ce qui permet de trancher au troisième tour
+// sans redemander la même pièce.
+model PartnershipInformationRequest {
+  id            String  @id @default(cuid())
+  partnershipId String
+  requestedById String?
+
+  // Pièces ou informations attendues, sous forme de liste structurée plutôt que d'un
+  // paragraphe : l'écran peut en faire des cases à cocher, et l'organisation sait
+  // exactement ce qui manque.
+  requestedItems String[]
+
+  // Les trois niveaux de motif, comme partout ailleurs : la note reste interne, le
+  // message est écrit pour l'organisation.
+  internalNote  String
+  publicMessage String?
+
+  // Échéance de CETTE action — jamais une date d'expiration du partenariat.
+  actionDeadline DateTime?
+
+  requestedAt DateTime  @default(now())
+  // Renseigné quand l'organisation a répondu. Une demande sans `resolvedAt` est une
+  // demande encore ouverte.
+  resolvedAt  DateTime?
+  // Ce que l'organisation a répondu. La candidature initiale n'est jamais écrasée.
+  response    String?
+
+  partnership Partnership @relation(fields: [partnershipId], references: [id], onDelete: Cascade)
+  requestedBy User?       @relation("PartnershipInformationRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+
+  @@index([partnershipId, requestedAt])
+}
+
+model Partnership {
+  id String @id @default(cuid())
+
+  // PLUS D'UNICITÉ SUR L'ORGANISATION SEULE (arbitrage du promoteur du 2026-08-02) :
+  // « Une même organisation devra pouvoir avoir plusieurs partenariats de types
+  // différents. » Une école peut être partenaire académique ET partenaire de stage,
+  // avec deux conventions, deux dates d'effet, et éventuellement l'une suspendue
+  // pendant que l'autre court. L'unicité porte donc sur le COUPLE.
+  organizationId String
+  typeId         String
+
+  status PartnershipStatus @default(PENDING)
+
+  // Texte rédigé par l'organisation à l'appui de sa candidature.
+  motivation String
+
+  requestedAt DateTime  @default(now())
+  decidedAt   DateTime?
+  decidedById String?
+
+  // --- LES TROIS NIVEAUX DE MOTIF (voir enum PartnershipDecisionReason) --------
+  // `decisionReason` est la NOTE INTERNE. Elle est obligatoire — une décision
+  // muette est indéfendable — mais elle ne quitte jamais le back-office.
+  decisionReason        String?
+  // Motif communicable, choisi dans la liste contrôlée. C'est LUI que le gabarit
+  // d'e-mail traduit et affiche.
+  decisionReasonCode    PartnershipDecisionReason?
+  // Message complémentaire facultatif, relu avant envoi. Destiné à l'organisation.
+  decisionPublicMessage String?
+
+  // ÉCHÉANCE D'UNE ACTION, JAMAIS DU PARTENARIAT (arbitrage du promoteur du
+  // 2026-08-02). Un partenariat n'expire pas — cette règle du 2026-07-31 tient
+  // toujours. Mais une action ponctuelle attendue de l'organisation peut avoir une
+  // date limite : compléter un dossier, régulariser, contester.
+  //
+  // Aucune tâche planifiée ne lit ce champ pour changer un statut. Il informe, il
+  // ne déclenche rien : le jour où il faudra en tirer une conséquence, ce sera une
+  // décision explicite du promoteur, pas un effet de bord de sa présence ici.
+  actionDeadline DateTime?
+
+  // Date de signature du contrat de partenariat — INFORMATIVE UNIQUEMENT. Aucune
+  // date de fin n'en est jamais dérivée : la durée, le renouvellement et les
+  // conditions de résiliation sont définis dans le contrat signé, pas ici
+  // (décision du promoteur du 2026-07-31). Saisissable par l'administration pour
+  // refléter la date réelle du contrat, qui peut différer de la date de décision.
+  signedAt DateTime?
+
+  // --- Demande de résiliation, ouverte aux deux parties.
+  // Enregistrer une demande ne change PAS le statut et ne déclenche aucun compte à
+  // rebours : elle alerte l'autre partie. Seule une décision administrative
+  // explicite (terminate) met fin au partenariat. La demande est retirable.
+  terminationRequestedAt     DateTime?
+  terminationRequestedBy     PartnershipParty?
+  terminationRequestedReason String?
+
+  // --- Résiliation effective : toujours une décision administrative, jamais un
+  // effet du temps qui passe.
+  terminatedAt             DateTime?
+  terminatedById           String?
+  // Note interne ; puis le motif communicable et le message relu. Même découpage
+  // que pour la décision d'admission ci-dessus.
+  terminationReason        String?
+  terminationReasonCode    PartnershipDecisionReason?
+  terminationPublicMessage String?
+
+  // --- Suspension : À NE PAS CONFONDRE AVEC LA RÉSILIATION CI-DESSUS.
+  // La résiliation met fin à la relation ; la suspension sanctionne un manquement
+  // et reste réversible. Toutes deux prennent effet immédiatement, à la seule main
+  // d'un ADMIN — retirer le badge d'une organisation signalée pour un fait grave ne
+  // souffre aucun délai sur une plateforme qui accueille des mineurs
+  // (CLAUDE.md §5).
+  suspendedAt             DateTime?
+  suspensionReason        String?
+  suspensionReasonCode    PartnershipDecisionReason?
+  suspensionPublicMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization        Organization                    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  // Restrict et non Cascade : supprimer un type du catalogue ne doit jamais
+  // emporter les partenariats qui s'y rattachent. On désactive un type, on ne le
+  // supprime pas.
+  type                PartnershipType                 @relation(fields: [typeId], references: [id], onDelete: Restrict)
+  decidedBy           User?                           @relation("PartnershipDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  terminatedBy        User?                           @relation("PartnershipTerminator", fields: [terminatedById], references: [id], onDelete: SetNull)
+  events              PartnershipEvent[]
+  documents           PartnershipDocument[]
+  informationRequests PartnershipInformationRequest[]
+
+  @@unique([organizationId, typeId])
+  @@index([status])
+}
+
+// Deux niveaux de lecture d'un événement (arbitrage du promoteur du 2026-08-02 :
+// historique « consultable uniquement par l'administration et, lorsqu'il est
+// pertinent, par l'organisation concernée »).
+enum PartnershipEventVisibility {
+  // Instruction interne : arbitrages, vérifications, échanges entre administrateurs.
+  ADMIN_ONLY
+  // Ce qui a été notifié à l'organisation, ou ce qu'elle a elle-même fait. Elle a
+  // le droit de reconstituer la vie de son propre dossier.
+  ORGANIZATION
+}
+
+// HISTORIQUE COMPLET DES DÉCISIONS — en ajout seul, jamais modifié, jamais
+// supprimé. « Pourquoi cette organisation a-t-elle été suspendue en mars ? » doit
+// rester répondable deux ans plus tard, ce qu'un statut écrasé ne permet jamais.
+//
+// « Je veux qu'il soit impossible de perdre l'historique d'un partenariat »
+// (promoteur, 2026-08-02). Deux dispositions le garantissent :
+//
+//   1. LE JOURNAL EST AUTONOME. `partnershipId` est nullable et en SetNull, et les
+//      faits nécessaires à sa lecture (organisation, référence, statuts) sont
+//      recopiés sur la ligne. Supprimer une organisation — ce que la suppression
+//      définitive d'un compte peut entraîner — efface le partenariat, PAS son
+//      journal. Auparavant, un `onDelete: Cascade` emportait tout en silence.
+//
+//   2. UN DÉCLENCHEUR POSTGRESQL refuse UPDATE et DELETE sur ces lignes (migration
+//      20260802140000). Seule l'anonymisation des clés étrangères est tolérée : le
+//      journal perd l'auteur, jamais le fait.
+model PartnershipEvent {
+  id String @id @default(cuid())
+
+  // Nullable À DESSEIN — voir le point 1 ci-dessus.
+  partnershipId  String?
+  // Recopiés pour que l'événement reste lisible seul, même orphelin.
+  organizationId String
+  reference      String
+
+  type    PartnershipEventType
+  actorId String?
+
+  visibility PartnershipEventVisibility @default(ADMIN_ONLY)
+
+  // --- La décision, dans les trois niveaux habituels ------------------------
+  reasonCode    PartnershipDecisionReason?
+  // Ce qui a effectivement été dit à l'organisation.
+  publicMessage String?
+  // Ce que l'administration s'est dit à elle-même. JAMAIS servi à l'organisation :
+  // la sélection de champs du service le garantit, la visibilité aussi.
+  internalNote  String?
+
+  // Transition constatée : d'où vers où. Un statut courant ne dit pas le chemin.
+  fromStatus PartnershipStatus?
+  toStatus   PartnershipStatus?
+
+  // --- Pièces concernées ----------------------------------------------------
+  // Pas de clé étrangère : ces références doivent survivre à la disparition des
+  // lignes qu'elles désignent, comme le reste du journal.
+  informationRequestId String?
+  documentIds          String[]
+
+  // --- Notifications réellement émises --------------------------------------
+  // « quelles notifications ont été envoyées » : ce qui est parti, et à combien de
+  // personnes. Répond à « l'organisation a-t-elle été prévenue ? » sans avoir à
+  // fouiller la table des notifications.
+  notifiedTypes NotificationType[]
+  notifiedCount Int                @default(0)
+
+  // Convention maison : le serveur stocke des données structurées, le client les
+  // traduit dans la langue de l'utilisateur. Jamais de phrase pré-rédigée.
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  partnership Partnership? @relation(fields: [partnershipId], references: [id], onDelete: SetNull)
+  actor       User?        @relation("PartnershipEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([partnershipId])
+  // Le journal reste interrogeable par organisation même sans partenariat vivant.
+  @@index([organizationId, createdAt])
+}
+
+// ============================================================================
+// GESTION DOCUMENTAIRE DU PARTENARIAT — PRÉPARATION DU MODÈLE
+//
+// « Je ne demande pas leur développement maintenant. Je souhaite uniquement que le
+// modèle de données permette de les rattacher naturellement » (promoteur,
+// 2026-08-02). Ce modèle existe donc sans service ni route : c'est le point
+// d'accrochage, pas la fonctionnalité.
+//
+// RÉSERVE À ARBITRER AVEC LE MODULE #112 : le coffre-fort numérique est
+// PERSONNEL (DigitalSafeDocument.userId pointe vers un utilisateur). Un contrat de
+// partenariat appartient à l'organisation, pas au dirigeant qui l'a téléversé — s'il
+// quitte l'entreprise, le contrat ne doit pas partir avec lui. Un coffre à portée
+// ORGANISATION reste à décider ; le présent modèle s'y adaptera en changeant la
+// cible de `documentId`.
+// ============================================================================
+enum PartnershipDocumentType {
+  CONTRACT
+  AMENDMENT
+  AGREEMENT
+  ANNEX
+  MINUTES
+  LETTER
+  CERTIFICATE
+  REPORT
+  OTHER
+}
+
+model PartnershipDocument {
+  id            String @id @default(cuid())
+  partnershipId String
+  documentId    String
+
+  type  PartnershipDocumentType
+  title String
+
+  // Date de prise d'effet propre au document — un avenant a la sienne, distincte de
+  // celle du contrat qu'il modifie.
+  effectiveDate DateTime?
+
+  // Un document interne d'instruction n'a pas à être visible du partenaire.
+  visibility PartnershipEventVisibility @default(ORGANIZATION)
+
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  partnership Partnership         @relation(fields: [partnershipId], references: [id], onDelete: Cascade)
+  document    DigitalSafeDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  uploadedBy  User?               @relation("PartnershipDocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  // Le même document ne se rattache pas deux fois au même partenariat.
+  @@unique([partnershipId, documentId])
+  @@index([partnershipId, type])
+}
+
+// ============================================================================
+// Label « Entreprise Citoyenne »
+//
+// Le cahier des charges distingue deux signaux, et le code les garde distincts :
+//   — le BADGE officiel est binaire (Partnership.status == ACTIVE) : on est
+//     partenaire ou on ne l'est pas ;
+//   — le LABEL est gradué, « score évolutif fondé sur des critères objectifs ».
+// C'est donc le label qui porte les niveaux, jamais le badge.
+// ============================================================================
+
+enum CitizenLabelTier {
+  NONE
+  BRONZE
+  ARGENT
+  OR
+}
+
+// Photographie datée du score, jamais un champ écrasé sur l'organisation.
+// Trois raisons : le calcul n'a pas sa place dans le cycle d'une requête HTTP ;
+// l'entreprise doit pouvoir constater sa progression ; et un score qui décide
+// d'un affichage public doit rester auditable après coup.
+model CitizenScoreSnapshot {
+  id             String           @id @default(cuid())
+  organizationId String
+  score          Int
+  tier           CitizenLabelTier
+
+  // Détail du calcul, composante par composante. L'entreprise doit comprendre
+  // POURQUOI elle a ce score — sans quoi le label ne l'incite à rien et devient
+  // un jugement opaque. Pondération privilégiant ce qui bénéficie réellement au
+  // jeune (stages menés à terme, recrutements) plutôt que le volume d'offres
+  // publiées, qui se gonfle sans effort.
+  breakdown Json
+
+  computedAt DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, computedAt])
+}
+
+// Rapport annuel d'impact. payload est GELÉ à la génération : un rapport publié
+// ne doit jamais changer rétroactivement parce que la donnée sous-jacente a
+// bougé. Le PDF part au Digital Safe chiffré, pas dans un dossier public.
+model ImpactReport {
+  id             String @id @default(cuid())
+  organizationId String
+  year           Int
+
+  payload    Json
+  documentId String?
+
+  generatedAt DateTime @default(now())
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  document     DigitalSafeDocument? @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, year])
+  @@index([organizationId])
+}
+
+// ============================================================================
+// PROGRAMME D'AMBASSADEURS ET D'AFFILIATION
+// (vision produit : api/docs/vision-produit-ambassadeurs.md
+//  arbitrages   : api/docs/decisions-promoteur-2026-07-31.md)
+//
+// TROIS RÈGLES FONDATRICES, à ne jamais contourner :
+//
+// 1. PAS D'ACHAT = PAS DE COMMISSION. Une commission n'existe que s'il existe un
+//    Payment au statut CONFIRMED, c'est-à-dire une confirmation officielle reçue
+//    du prestataire de paiement. Le temps qui passe ne crée jamais de commission,
+//    une inscription non plus, une déclaration frontend encore moins.
+//
+// 2. ATTRIBUTION N'EST PAS MARKETING. Seuls un code ambassadeur, un lien
+//    d'affiliation, un QR code ou une attribution administrative exceptionnelle
+//    rattachent quelqu'un à un ambassadeur. La question « Comment avez-vous connu
+//    LES STAGIAIRES ? » (Organization.acquisitionSource) est une statistique et
+//    n'ouvre aucun droit.
+//
+// 3. TAUX JAMAIS CODÉS EN DUR. Toute rémunération sort de CommissionRule, résolue
+//    à l'exécution. Les montants figés dans Commission sont un CONSTAT historique,
+//    jamais recalculés — changer un taux demain ne réécrit pas le passé.
+//
+// Conçu pour durer dix ans : ajouter un produit, un service, un pays, une campagne
+// ou un niveau d'ambassadeur ne doit demander qu'une ligne de configuration, jamais
+// une refonte du moteur ni une reprise des données déjà enregistrées.
+// ============================================================================
+
+// ============================================================================
+// CYCLE DE VIE D'UN AMBASSADEUR (arbitrage du promoteur du 2026-08-01)
+//
+// Une personne qui remplit le formulaire « Devenir ambassadeur » n'est qu'un
+// CANDIDAT. Elle ne peut parrainer personne, et son code n'existe pas encore.
+//
+// Le franchissement de chaque étape est une décision tracée, jamais un effet du
+// temps. Seul ACTIVE ouvre le droit de parrainer — voir la garde dans
+// resolveActiveAmbassadorByCode().
+// ============================================================================
+enum AmbassadorStatus {
+  // --- Instruction du dossier ---
+  SUBMITTED
+  UNDER_REVIEW
+  ADDITIONAL_INFORMATION_REQUIRED
+  // Identité et pièces justificatives vérifiées par l'administration.
+  VERIFIED
+  APPROVED
+
+  // --- Formalités préalables à l'activation ---
+  CONTRACT_PENDING
+  TRAINING_PENDING
+
+  // --- Seul statut qui autorise le parrainage ---
+  ACTIVE
+
+  // --- Fins de parcours ---
+  // Gel réversible : l'ambassadeur conserve son portefeuille et ses commissions
+  // acquises, mais ne peut plus recruter ni percevoir.
+  SUSPENDED
+  TERMINATED
+  REJECTED
+}
+
+enum AmbassadorCategory {
+  // Ambassadeur Campus : apporte des jeunes (abonnements individuels).
+  CAMPUS
+  // Ambassadeur Business : apporte des entreprises (prestations commerciales).
+  BUSINESS
+}
+
+// Niveaux PRÉPARÉS, NON EXPLOITÉS au lancement (décision du promoteur, point 15).
+// Tout ambassadeur est STANDARD aujourd'hui. La dimension existe dès le premier jour
+// dans CommissionRule pour que l'activation des niveaux reste une opération de
+// configuration, jamais une modification du moteur de calcul.
+enum AmbassadorTier {
+  STANDARD
+  BRONZE
+  ARGENT
+  OR
+  PLATINE
+  DIAMANT
+}
+
+// Comment un filleul a été rattaché. Aucune de ces valeurs ne vient d'un formulaire
+// déclaratif de notoriété : ce sont les quatre seuls faits qui ouvrent droit.
+enum AmbassadorAttributionSource {
+  CODE
+  LINK
+  QR
+  // Attribution manuelle par l'administration : exceptionnelle, motivée, journalisée.
+  ADMIN
+}
+
+// MOTIFS COMMUNICABLES À L'AMBASSADEUR — liste contrôlée, jamais du texte libre.
+//
+// Même règle que pour les partenariats (arbitrage du 2026-08-02) : « Aucune note
+// interne ne doit pouvoir être envoyée à l'ambassadeur, même accidentellement. »
+//
+// Ici l'enjeu est plus lourd encore : une note du type « soupçon de fraude, à
+// surveiller » partant chez l'intéressé ruinerait l'enquête ET exposerait la
+// plateforme. C'est pourquoi la suspicion de fraude n'a PAS de code communicable :
+// elle se dit COMPLIANCE_REVIEW — « vérification en cours » — ce qui est vrai,
+// suffisant, et ne préjuge de rien.
+//
+// La séparation est structurelle : le champ qui part en notification n'accepte
+// qu'une valeur de cette liste.
+enum AmbassadorDecisionReason {
+  // --- Instruction du dossier ---
+  INCOMPLETE_FILE
+  IDENTITY_NOT_VERIFIED
+  DOCUMENTS_EXPIRED
+  INELIGIBLE_PROFILE
+  DUPLICATE_APPLICATION
+
+  // --- Vie du contrat ---
+  CONTRACT_BREACH
+  CONDUCT_REVIEW
+  COMPLIANCE_REVIEW
+  INACTIVITY
+  AMBASSADOR_REQUEST
+  MUTUAL_AGREEMENT
+
+  // --- Versements ---
+  PAYMENT_DETAILS_INVALID
+  PAYMENT_DETAILS_RECENTLY_CHANGED
+  INSUFFICIENT_BALANCE
+  VERIFICATION_PENDING
+
+  // --- Les deux façons de ne pas donner de motif ---
+  // NO_PUBLIC_REASON : aucune ligne sur le motif. Cas ordinaire.
+  // NOT_DISCLOSED : dit explicitement qu'aucun motif ne sera communiqué. Choix
+  // délibéré, réservé aux cas où le silence serait mal interprété.
+  NO_PUBLIC_REASON
+  NOT_DISCLOSED
+}
+
+// Deux niveaux de lecture d'un évènement, comme pour les partenariats. Le défaut
+// est FERMÉ : un évènement n'est visible de l'ambassadeur que si on l'a décidé.
+enum AmbassadorEventVisibility {
+  ADMIN_ONLY
+  AMBASSADOR
+}
+
+enum AmbassadorEventType {
+  CREATED
+  REVIEW_STARTED
+  INFORMATION_REQUESTED
+  IDENTITY_VERIFIED
+  APPROVED
+  REJECTED
+  CONTRACT_SIGNED
+  CHARTER_SIGNED
+  TRAINING_COMPLETED
+  // Génération du code d'affiliation : le fait le plus important du parcours,
+  // journalisé à part pour être retrouvable sans ambiguïté.
+  ACTIVATED
+  SUSPENDED
+  REINSTATED
+  TERMINATED
+  TIER_CHANGED
+  PORTFOLIO_TRANSFERRED
+}
+
+model Ambassador {
+  id     String           @id @default(cuid())
+  // Nullable : le dossier survit à la suppression du compte, anonymisé.
+  userId String?          @unique
+  status AmbassadorStatus @default(SUBMITTED)
+
+  // Code d'affiliation public, porté par le lien personnel et le QR code.
+  //
+  // NULL TANT QUE L'AMBASSADEUR N'EST PAS ACTIVE, et c'est le point central de
+  // l'arbitrage du promoteur du 2026-08-01 : un code qui n'existe pas ne peut ni
+  // fuiter, ni être distribué, ni être accepté par le moteur d'attribution.
+  // Le générer à la candidature revenait à laisser circuler un code de parrainage
+  // avant tout engagement contractuel.
+  //
+  // Un @unique sur une colonne nullable reste correct sous PostgreSQL : plusieurs
+  // NULL cohabitent, seules les valeurs renseignées doivent différer.
+  code String? @unique
+
+  // Cumulables : un même ambassadeur peut apporter des jeunes ET des entreprises.
+  categories AmbassadorCategory[]
+
+  // Toujours STANDARD au lancement. Voir AmbassadorTier ci-dessus.
+  tier AmbassadorTier @default(STANDARD)
+
+  // Pays d'exercice : pilote la résolution du taux et le verrou contractuel.
+  countryCode String
+
+  // VERROU CONTRACTUEL (décision du promoteur) : aucun virement réel ne peut être
+  // exécuté tant que cette date est nulle. L'ambassadeur peut recruter, accumuler des
+  // commissions et voir son solde ; il ne peut pas être payé. Le blocage est
+  // volontairement porté ici, sur une donnée factuelle vérifiable, et non par un
+  // drapeau de configuration qu'on oublierait de réarmer pour un nouveau pays.
+  contractSignedAt  DateTime?
+  contractReference String?
+
+  // Charte des Ambassadeurs — DISTINCTE du contrat : l'un engage juridiquement,
+  // l'autre énonce les règles éthiques. Les deux sont exigés avant activation.
+  charterSignedAt DateTime?
+
+  // Identité et pièces justificatives contrôlées. La CNI ou le passeport relève du
+  // niveau « Très sensible » (CLAUDE.md §1) : le document lui-même vit dans le
+  // coffre-fort chiffré, seule la DATE de vérification est portée ici.
+  identityVerifiedAt   DateTime?
+  identityVerifiedById String?
+
+  // Formation obligatoire et quiz. Le score est conservé : il permet de retrouver,
+  // des mois plus tard, sur quelle base une personne a été activée.
+  trainingCompletedAt DateTime?
+  quizScore           Int?
+
+  // Complément d'information demandé au candidat, avec son motif.
+  informationRequestedAt            DateTime?
+  // LES TROIS NIVEAUX DE MOTIF (voir enum AmbassadorDecisionReason).
+  // `*Reason` est la NOTE INTERNE : elle ne quitte jamais le back-office.
+  // `*ReasonCode` est communicable et traduit. `*PublicMessage` est relu.
+  informationRequestedReason        String?
+  informationRequestedReasonCode    AmbassadorDecisionReason?
+  informationRequestedPublicMessage String?
+
+  // Activation administrative finale — le dernier verrou, toujours humain.
+  activatedAt   DateTime?
+  activatedById String?
+
+  rejectedAt             DateTime?
+  rejectionReason        String?
+  rejectionReasonCode    AmbassadorDecisionReason?
+  rejectionPublicMessage String?
+
+  approvedAt   DateTime?
+  approvedById String?
+
+  suspendedAt             DateTime?
+  suspensionReason        String?
+  suspensionReasonCode    AmbassadorDecisionReason?
+  suspensionPublicMessage String?
+
+  terminatedAt             DateTime?
+  terminationReason        String?
+  terminationReasonCode    AmbassadorDecisionReason?
+  terminationPublicMessage String?
+
+  // --- CANDIDATURE ----------------------------------------------------------
+  // Motivation saisie au dépôt. Conservée : c'est sur elle que porte
+  // l'instruction, et un refus doit rester relisible des années plus tard.
+  motivation String?
+
+  // DEROGATION AU QUIZ. Possible, mais jamais silencieuse : elle porte son
+  // auteur, sa date et son motif structure (arbitrage 9 du promoteur).
+  quizWaivedAt         DateTime?
+  quizWaivedById       String?
+  quizWaivedReasonCode AmbassadorDecisionReason?
+
+  // CYCLE DE CANDIDATURE. Une personne refusée peut redéposer ; sa nouvelle
+  // demande est alors le cycle 2, puis 3, etc.
+  //
+  // POURQUOI UN COMPTEUR ET NON UNE SECONDE LIGNE. `userId` reste @unique, à
+  // dessein : deux dossiers vivants pour une même personne, ce serait deux codes
+  // d'affiliation, deux portefeuilles et deux fois la même commission — un
+  // vecteur de fraude, pas une souplesse. Le promoteur a demandé que « la
+  // candidature précédente et son historique restent conservés » : c'est le
+  // journal `AmbassadorEvent`, en ajout seul, qui s'en charge, et il le fait
+  // mieux qu'une ligne dupliquée puisqu'il porte aussi les décisions, leurs
+  // auteurs et leurs motifs.
+  applicationCycle Int @default(1)
+
+  // Date du dernier refus, pour le calcul du délai de redépôt. Distincte de
+  // `rejectedAt`, qui est effacé au redépôt : celle-ci ne l'est jamais.
+  lastRejectedAt DateTime?
+
+  // Certains motifs graves ferment la porte définitivement (fraude avérée,
+  // falsification de documents, usurpation d'identité). Booléen ET motif :
+  // bloquer sans dire pourquoi serait indéfendable en cas de contestation.
+  reapplicationBlocked       Boolean                   @default(false)
+  reapplicationBlockedReason AmbassadorDecisionReason?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // SetNull : supprimer un compte ANONYMISE le dossier, il ne le détruit plus.
+  // Sans cela une suppression RGPD emportait portefeuille, commissions et grand
+  // livre — défaut démontré sur copie le 2026-08-02.
+  user       User? @relation("AmbassadorUser", fields: [userId], references: [id], onDelete: SetNull)
+  approvedBy User? @relation("AmbassadorApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  referrals        AmbassadorReferral[]
+  portfolioEntries AmbassadorPortfolioEntry[]
+  commissions      Commission[]
+  wallet           AmbassadorWallet?
+  payoutRequests   PayoutRequest[]
+  paymentDetail    AmbassadorPaymentDetail?
+  fraudAlerts      FraudAlert[]
+  identityDocuments AmbassadorIdentityDocument[]
+  trainingProgress  TrainingProgress[]
+  quizAttempts      QuizAttempt[]
+  events           AmbassadorEvent[]
+
+  @@index([status])
+  @@index([countryCode])
+}
+
+// Historique en ajout seul, jamais modifié ni supprimé.
+model AmbassadorEvent {
+  id           String              @id @default(cuid())
+  ambassadorId String?
+  type         AmbassadorEventType
+  actorId      String?
+
+  // Défaut FERMÉ : l'ambassadeur ne voit un évènement que si on l'a décidé.
+  visibility AmbassadorEventVisibility @default(ADMIN_ONLY)
+
+  // --- La décision, dans les trois niveaux habituels ---
+  reasonCode    AmbassadorDecisionReason?
+  // Ce qui a effectivement été dit à l'ambassadeur.
+  publicMessage String?
+  // Ce que l'administration s'est dit à elle-même. JAMAIS servi à l'intéressé :
+  // la sélection de champs du service l'exclut, la visibilité aussi.
+  internalNote  String?
+
+  // Transition constatée. Un statut courant ne dit pas le chemin parcouru.
+  fromStatus AmbassadorStatus?
+  toStatus   AmbassadorStatus?
+
+  // Ce qui est réellement parti, et vers combien de personnes. Zéro sur un
+  // dossier anonymisé — le fait est consigné, pas supposé.
+  notifiedTypes NotificationType[]
+  notifiedCount Int                @default(0)
+
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  ambassador Ambassador? @relation(fields: [ambassadorId], references: [id], onDelete: SetNull)
+  actor      User?       @relation("AmbassadorEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([ambassadorId])
+}
+
+// --- Attribution d'un JEUNE -------------------------------------------------------
+// Définitive : un utilisateur n'a qu'un parrain, pour toujours. Contrairement au
+// portefeuille entreprise, elle n'expire pas — un jeune n'est pas un actif commercial
+// qu'on démarche, et le rattacher à un nouvel ambassadeur à chaque renouvellement
+// ouvrirait une course au réenregistrement.
+model AmbassadorReferral {
+  id             String                      @id @default(cuid())
+  ambassadorId   String
+  referredUserId String?                     @unique
+  source         AmbassadorAttributionSource
+
+  attributedAt DateTime @default(now())
+
+  // Motif obligatoire quand source = ADMIN (CLAUDE.md paragraphe 3 : jamais d'accès
+  // ni de faveur silencieuse).
+  adminReason    String?
+  attributedById String?
+
+  createdAt DateTime @default(now())
+
+  ambassador   Ambassador   @relation(fields: [ambassadorId], references: [id], onDelete: Cascade)
+  // Un filleul supprimé ne doit pas effacer l attribution : c est elle qui justifie
+  // une commission déjà versée.
+  referredUser User?        @relation("AmbassadorReferredUser", fields: [referredUserId], references: [id], onDelete: SetNull)
+  commissions  Commission[]
+
+  @@index([ambassadorId])
+}
+
+// --- Portefeuille d'affaires : attribution d'une ENTREPRISE ------------------------
+//
+// Règle du promoteur (points 6 et 7, 2026-07-31), volontairement pauvre en états :
+//   - le rattachement est un simple lien ; il ne « produit » rien tout seul ;
+//   - chaque paiement confirmé de l'entreprise remet le compteur à zéro ;
+//   - SEUL un paiement confirmé le remet à zéro. Ni note, ni commentaire, ni appel
+//     déclaré, ni suivi manuel : c'est ce qui rend la règle infalsifiable, puisque
+//     l'ambassadeur ne peut rien saisir qui prolonge son propre droit ;
+//   - après douze mois sans aucun paiement confirmé, le rattachement expire et
+//     l'entreprise redevient libre, démarchable par n'importe quel autre ambassadeur.
+//
+// La ligne n'est jamais supprimée : elle est marquée releasedAt. Un index unique
+// PARTIEL (voir la migration) garantit qu'une organisation n'a jamais deux
+// rattachements actifs à la fois, tout en autorisant l'empilement des cycles passés.
+model AmbassadorPortfolioEntry {
+  id               String                      @id @default(cuid())
+  ambassadorId     String
+  organizationId   String?
+  // Recopié : une entrée orpheline doit rester lisible sans son organisation.
+  organizationName String
+  source           AmbassadorAttributionSource
+
+  attributedAt   DateTime @default(now())
+  adminReason    String?
+  attributedById String?
+
+  // Dernier paiement CONFIRMÉ de cette organisation. Null tant qu'elle n'a jamais
+  // acheté : le compte à rebours court alors depuis attributedAt.
+  lastConfirmedPurchaseAt DateTime?
+
+  // Échéance stockée plutôt que recalculée à la volée : elle rend le balayage
+  // quotidien indexable et, surtout, elle rend l'échéance LISIBLE — l'ambassadeur
+  // voit exactement la même date que le système.
+  expiresAt DateTime
+
+  // Horodatage des alertes déjà envoyées, pour ne jamais les répéter. Remis à null
+  // à chaque achat confirmé, en même temps que l'échéance est repoussée.
+  warnedAt9m  DateTime?
+  warnedAt11m DateTime?
+
+  // Libération : expiration automatique, transfert administratif, ou fin du
+  // rattachement décidée par l'administration. La ligne survit à sa libération.
+  releasedAt    DateTime?
+  releaseReason PortfolioReleaseReason?
+  releasedById  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ambassador   Ambassador       @relation(fields: [ambassadorId], references: [id], onDelete: Cascade)
+  // Le nom de l organisation est recopié : une raison sociale n est pas une donnée
+  // personnelle, et sans elle une entrée orpheline serait illisible.
+  organization Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  commissions  Commission[]
+  events       PortfolioEvent[]
+
+  @@index([ambassadorId])
+  @@index([organizationId])
+  // Le balayage quotidien ne lit que les rattachements encore vivants.
+  @@index([releasedAt, expiresAt])
+}
+
+enum PortfolioReleaseReason {
+  // Douze mois sans aucun paiement confirmé.
+  INACTIVITY
+  // Décision administrative motivée (transfert, fusion, sanction).
+  ADMIN_TRANSFER
+  ADMIN_RELEASE
+  // L'ambassadeur quitte le programme.
+  AMBASSADOR_TERMINATED
+}
+
+enum PortfolioEventType {
+  ATTRIBUTED
+  PURCHASE_CONFIRMED
+  WARNED_9M
+  WARNED_11M
+  EXPIRED
+  RELEASED
+  TRANSFERRED
+}
+
+model PortfolioEvent {
+  id        String             @id @default(cuid())
+  entryId   String?
+  type      PortfolioEventType
+  actorId   String?
+  metadata  Json?
+  createdAt DateTime           @default(now())
+
+  entry AmbassadorPortfolioEntry? @relation(fields: [entryId], references: [id], onDelete: SetNull)
+
+  @@index([entryId])
+}
+
+enum ProductType {
+  SUBSCRIPTION
+  SERVICE
+}
+
+// Nature de la vente : c'est elle qui distingue le barème d'acquisition du barème de
+// fidélisation validé par le promoteur — acquisition 10-15 %, nouvelle prestation 8 %,
+// renouvellement 5 %.
+enum CommissionNature {
+  ACQUISITION
+  NEW_SERVICE
+  RENEWAL
+  // Réservé aux primes de fidélité, versées par décision administrative.
+  BONUS
+}
+
+// --- Barème de commission ---------------------------------------------------------
+//
+// Une règle par combinaison de critères. Tous les critères nullables valent
+// « n'importe quelle valeur » : une règle sans pays s'applique à tous les pays, une
+// règle sans niveau s'applique à tous les niveaux. La résolution retient la règle
+// applicable la plus SPÉCIFIQUE, départagée par priority puis par validFrom la plus
+// récente (voir commission-rules.service.ts).
+//
+// productType/productKey sont volontairement un couple énumération + CHAÎNE LIBRE :
+// vendre demain une nouvelle prestation ne demandera qu'une ligne dans cette table,
+// jamais une migration de schéma ni une valeur d'énumération supplémentaire. C'est
+// la réponse concrète à l'exigence de longévité du promoteur (point 17).
+model CommissionRule {
+  id    String @id @default(cuid())
+  label String
+
+  productType ProductType
+  // Ex. "CARRIERE_SECURISEE", "CARRIERE_PLUS", ou la clé d'une prestation au
+  // catalogue. Null = toutes les offres de ce type.
+  productKey  String?
+
+  nature CommissionNature
+
+  ambassadorCategory AmbassadorCategory?
+  // Prévu pour les niveaux Bronze vers Diamant, inutilisé au lancement. Sa seule
+  // présence évite de retoucher le moteur de calcul le jour de leur activation.
+  ambassadorTier     AmbassadorTier?
+  countryCode        String?
+  // Rattachement à une opération commerciale datée (« +5 % en septembre »), sans
+  // toucher au barème permanent.
+  campaignKey        String?
+
+  // Taux en POINTS DE BASE : 2000 = 20 %, 800 = 8 %, 500 = 5 %. Un entier, jamais un
+  // flottant — on ne calcule pas de l'argent avec des nombres à virgule.
+  // TAUX **OU** MONTANT FIXE — jamais les deux, jamais aucun des deux. Le
+  // promoteur a demandé « le taux ou montant fixe » : une prime forfaitaire de
+  // 5 000 F par souscription ne s'exprime pas en points de base.
+  //
+  // L'exclusivité est garantie par une contrainte CHECK en base (migration
+  // 20260804100000), pas seulement par le service : une insertion directe en SQL
+  // ne doit pas pouvoir créer un barème incalculable.
+  rateBasisPoints  Int?
+  fixedAmountMinor Int?
+
+  // Devise à laquelle le barème s'applique. NULL = toute devise — c'est le cas
+  // d'un taux, qui est sans dimension. Un montant fixe, lui, EXIGE une devise :
+  // « 5 000 » ne veut rien dire sans elle. Contrainte CHECK également.
+  currency String?
+
+  // Bornes de sécurité facultatives, en unité mineure.
+  minAmountMinor Int?
+  maxAmountMinor Int?
+
+  // PALIERS DE VOLUME : construits, DÉSACTIVÉS au lancement (décision du promoteur).
+  // Une règle à palier ne s'applique qu'au-delà d'un volume de ventes ; laissée nulle,
+  // elle se comporte comme une règle ordinaire.
+  minMonthlySalesCount Int?
+
+  validFrom  DateTime  @default(now())
+  validUntil DateTime?
+  priority   Int       @default(0)
+  isActive   Boolean   @default(true)
+
+  // --- VERSIONNAGE ---------------------------------------------------------
+  // Un barème DÉJÀ APPLIQUÉ ne se modifie pas : on le clôt et on en crée une
+  // nouvelle version. Sans cela, corriger un taux réécrirait l'histoire —
+  // « quel était le taux le 15 mars ? » deviendrait sans réponse, et le promoteur
+  // a explicitement exigé qu'« une modification future du barème ne recalcule
+  // jamais rétroactivement une commission déjà acquise ».
+  //
+  // `lineageKey` regroupe les versions successives d'un même barème ; `version`
+  // les ordonne. La version qui remplace pointe vers celle qu'elle remplace.
+  lineageKey String
+  version    Int    @default(1)
+
+  supersedesId String?         @unique
+  supersedes   CommissionRule? @relation("CommissionRuleVersion", fields: [supersedesId], references: [id], onDelete: SetNull)
+  supersededBy CommissionRule? @relation("CommissionRuleVersion")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+
+  commissions Commission[]
+
+  @@index([productType, nature, isActive])
+  @@index([countryCode])
+  @@index([lineageKey, version])
+}
+
+enum CommissionStatus {
+  // Créée à la confirmation du paiement, en période de sécurité.
+  PENDING
+  // PLAFOND DÉPASSÉ, ou tout autre contrôle exigeant un arbitrage humain. La
+  // commission est CRÉÉE POUR SON MONTANT COMPLET et mise de côté : rien n'est
+  // crédité au portefeuille tant qu'une administration n'a pas tranché.
+  //
+  // Le promoteur a exigé (arbitrage 15 du 2026-08-02) que « le dépassement ne
+  // doit pas entraîner une réduction silencieuse ». Rogner le montant pour le
+  // faire tenir sous le plafond serait précisément cela : l'ambassadeur verrait
+  // un montant inférieur à ce que le barème lui promettait, sans explication et
+  // sans que personne n'ait décidé.
+  REVIEW_REQUIRED
+  // Période de sécurité écoulée, contrôles anti-fraude passés.
+  APPROVED
+  // Exigible : peut entrer dans une demande de retrait.
+  PAYABLE
+  PAID
+  // Annulée avant paiement (vente annulée, fraude établie).
+  CANCELLED
+  // Reprise après paiement (remboursement, impayé) : génère une écriture au débit.
+  REVERSED
+  DISPUTED
+  // Gelée : contrôle en cours, ou contrat d'apporteur d'affaires non signé.
+  BLOCKED
+}
+
+// --- Commission -------------------------------------------------------------------
+//
+// UNE COMMISSION = UN PAIEMENT CONFIRMÉ. La contrainte d'unicité sur paymentId est la
+// garantie structurelle : même si un prestataire rejoue son webhook dix fois, la base
+// refuse la seconde commission. La règle métier est protégée par le schéma, pas
+// seulement par du code qu'on pourrait contourner.
+//
+// Tous les montants et le taux sont FIGÉS à l'instant du calcul. Modifier une
+// CommissionRule demain ne modifie aucune commission déjà née : un relevé émis en
+// janvier doit rester vrai en décembre.
+model Commission {
+  id           String           @id @default(cuid())
+  ambassadorId String
+  paymentId    String           @unique
+  status       CommissionStatus @default(PENDING)
+  nature       CommissionNature
+
+  // Justification de l'attribution : exactement l'une des deux est renseignée. Une
+  // commission sans aucune des deux est impossible, le service refuse de la créer.
+  referralId       String?
+  portfolioEntryId String?
+
+  // Ce qui a été vendu, capturé au moment de la vente.
+  productType ProductType
+  productKey  String
+
+  // --- Constat financier immuable ---
+  // Assiette = montant réellement encaissé.
+  basisAmountMinor Int
+  rateBasisPoints  Int
+  amountMinor      Int
+  currency         String
+  countryCode      String
+
+  appliedRuleId           String?
+  // PHOTOGRAPHIE DE LA RÈGLE AU MOMENT DU CALCUL. `appliedRuleId` est en
+  // SetNull : si le barème est un jour supprimé, le lien s'efface. Ces trois
+  // champs, eux, restent — une commission doit rester justifiable des années plus
+  // tard, sans dépendre de la survie d'une ligne de configuration.
+  appliedRuleLabel        String?
+  appliedRuleVersion      Int?
+  appliedFixedAmountMinor Int?
+  // Clé de campagne du barème appliqué, recopiée ici. Un plafond de campagne se
+  // calcule en sommant les commissions déjà servies AU TITRE de cette campagne ;
+  // remonter au barème à chaque évaluation reviendrait à faire dépendre le
+  // plafond de la survie d'une ligne de configuration.
+  appliedCampaignKey      String?
+  // Trace de résolution : quelles règles étaient candidates, laquelle a gagné et
+  // pourquoi. Rend un litige de commission instruisable deux ans plus tard.
+  resolutionTrace         Json?
+
+  // --- CONTRÔLE DES PLAFONDS ------------------------------------------------
+  // Trace d'évaluation des plafonds : lesquels s'appliquaient, ce qui était déjà
+  // consommé sur la fenêtre, et lequel a mordu. Un ambassadeur qui demande
+  // « pourquoi ma commission a-t-elle été retenue ? » mérite une réponse
+  // vérifiable, pas une conviction.
+  capTrace     Json?
+  reviewReason CommissionReviewReason?
+  reviewedById String?
+  reviewedAt   DateTime?
+
+  // Montant issu du barème, conservé UNIQUEMENT si une administration l'a corrigé
+  // après contrôle. Nul dans le cas ordinaire : ce champ n'est pas un doublon du
+  // montant, c'est la mémoire d'une décision humaine.
+  //
+  // Une contrainte CHECK en base interdit qu'une correction soit à la HAUSSE :
+  // le contrôle d'un dépassement de plafond ne peut pas devenir le chemin par
+  // lequel on s'accorde davantage que ce que le barème prévoyait.
+  originalAmountMinor Int?
+
+  // Période de sécurité : la commission n'est exigible qu'après ce délai, qui couvre
+  // les annulations et impayés du prestataire de paiement.
+  securityPeriodEndsAt DateTime
+
+  approvedAt DateTime?
+  payableAt  DateTime?
+  paidAt     DateTime?
+  reversedAt DateTime?
+
+  blockReason  String?
+  cancelReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ambassador         Ambassador                @relation(fields: [ambassadorId], references: [id], onDelete: Cascade)
+  referral           AmbassadorReferral?       @relation(fields: [referralId], references: [id], onDelete: SetNull)
+  portfolioEntry     AmbassadorPortfolioEntry? @relation(fields: [portfolioEntryId], references: [id], onDelete: SetNull)
+  appliedRule        CommissionRule?           @relation(fields: [appliedRuleId], references: [id], onDelete: SetNull)
+  events             CommissionEvent[]
+  walletTransactions WalletTransaction[]
+
+  @@index([ambassadorId, status])
+  @@index([status, securityPeriodEndsAt])
+  // Les deux suivants servent le cumul des plafonds de campagne et de produit :
+  // sans eux, chaque évaluation balaierait toute la table des commissions.
+  @@index([appliedCampaignKey])
+  @@index([productKey, createdAt])
+}
+
+// --- PLAFONDS DE COMMISSION -------------------------------------------------
+//
+// Arbitrage 15 du promoteur, 2026-08-02 : plafond par transaction, journalier,
+// mensuel, « éventuellement par campagne ou produit ».
+//
+// UNE SEULE TABLE plutôt que six colonnes sur la politique pays : la portée et la
+// fenêtre sont deux axes indépendants, et les exprimer en données rend un
+// septième plafond possible sans migration — comme la typologie de partenariat.
+//
+// Un plafond ne rogne RIEN. Il déclenche un contrôle. C'est toute la différence
+// entre « votre commission a été réduite » et « votre commission est en cours de
+// vérification ».
+model CommissionCap {
+  id    String @id @default(cuid())
+  label String
+
+  scope CommissionCapScope
+  // Clé de campagne ou de produit selon la portée. NULL pour la portée
+  // AMBASSADOR, obligatoire pour les deux autres — contrainte CHECK en base.
+  scopeKey String?
+  // NULL = tous pays. Sinon le plafond ne s'applique qu'aux commissions de ce pays.
+  countryCode String?
+
+  window CommissionCapWindow
+
+  // Le plafond lui-même, en unité mineure, et la devise dans laquelle il est
+  // libellé. Un plafond ne s'applique QU'AUX commissions de la même devise :
+  // comparer 500 000 XAF à 900 USD n'aurait aucun sens, et le service qui le
+  // ferait produirait des contrôles au hasard.
+  amountMinor Int
+  currency    String
+
+  isActive Boolean @default(true)
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive, scope])
+  @@index([scope, scopeKey])
+}
+
+enum CommissionCapScope {
+  // Plafond appliqué à CHAQUE ambassadeur pris séparément.
+  AMBASSADOR
+  // Enveloppe d'une opération commerciale, tous ambassadeurs confondus.
+  CAMPAIGN
+  // Enveloppe d'un produit, tous ambassadeurs confondus.
+  PRODUCT
+}
+
+enum CommissionCapWindow {
+  // Le montant de la commission elle-même, isolément.
+  TRANSACTION
+  // Cumul sur la journée civile (UTC).
+  DAY
+  // Cumul sur le mois civil (UTC).
+  MONTH
+  // Cumul depuis toujours — l'enveloppe totale d'une campagne.
+  LIFETIME
+}
+
+// Pourquoi une commission attend un arbitrage humain. Une énumération et non un
+// texte libre : ce champ décide de l'affichage en back-office et sera lu par les
+// alertes antifraude à venir, qui viendront s'y ajouter.
+enum CommissionReviewReason {
+  CAP_EXCEEDED
+}
+
+model CommissionEvent {
+  id           String   @id @default(cuid())
+  commissionId String?
+  // Transition ou fait marquant : la valeur reprend CommissionStatus quand il s'agit
+  // d'un changement d'état, mais reste une chaîne pour accueillir des faits qui n'en
+  // sont pas (« contrôle anti-fraude déclenché »).
+  type         String
+  actorId      String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  commission Commission? @relation(fields: [commissionId], references: [id], onDelete: SetNull)
+
+  @@index([commissionId])
+}
+
+// --- Portefeuille financier -------------------------------------------------------
+//
+// Les soldes ci-dessous sont un CACHE de lecture. La vérité est le grand livre
+// WalletTransaction, en ajout seul. Tout écart entre les deux est un incident à
+// investiguer, jamais à corriger en écrasant le solde.
+model AmbassadorWallet {
+  id           String @id @default(cuid())
+  ambassadorId String @unique
+  currency     String
+
+  // Commissions nées mais pas encore exigibles.
+  pendingMinor   Int @default(0)
+  // Exigibles, disponibles pour une demande de retrait.
+  availableMinor Int @default(0)
+  // Immobilisées dans une demande de retrait en cours d'instruction.
+  reservedMinor  Int @default(0)
+  // Cumul historique effectivement versé.
+  paidTotalMinor Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ambassador   Ambassador          @relation(fields: [ambassadorId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+}
+
+enum WalletTransactionType {
+  COMMISSION_ACCRUED
+  COMMISSION_AVAILABLE
+  COMMISSION_CANCELLED
+  COMMISSION_REVERSED
+  PAYOUT_RESERVED
+  PAYOUT_RELEASED
+  PAYOUT_EXECUTED
+  // Correction administrative motivée et journalisée.
+  ADJUSTMENT
+}
+
+// Grand livre : en ajout seul, jamais modifié, jamais supprimé. Les soldes figés après
+// chaque écriture évitent d'avoir à rejouer toute l'histoire pour retrouver un solde
+// passé, en espérant qu'aucune ligne n'a bougé entre-temps.
+model WalletTransaction {
+  id           String                @id @default(cuid())
+  walletId     String?
+  // Recopié : l’écriture reste rattachable même si le cache disparaît.
+  ambassadorId String
+  type         WalletTransactionType
+
+  // Signé : négatif pour un débit. En unité mineure, toujours.
+  //
+  // ATTENTION AU SENS : ce montant mesure ce qui ENTRE ou SORT du patrimoine de
+  // l'ambassadeur. Un simple déplacement entre poches — en attente vers
+  // disponible, disponible vers immobilisé — vaut ZÉRO, parce que rien n'est
+  // gagné ni payé. La somme de cette colonne donne donc, à tout instant, ce qui
+  // est dû. C'est une propriété qu'il ne faut pas casser.
+  amountMinor         Int
+  availableAfterMinor Int
+  pendingAfterMinor   Int
+
+  // Effet signé de l'écriture sur la SEULE poche « disponible ».
+  //
+  // Nécessaire parce que `amountMinor` vaut zéro sur les déplacements entre
+  // poches : sans cette colonne, le contrôle de continuité n'a aucune source
+  // indépendante à laquelle comparer les photographies de solde, et il criait au
+  // loup à chaque immobilisation. Défaut trouvé le 2026-08-04 par la première
+  // recette de versement menée de bout en bout — jamais par un test unitaire.
+  //
+  // NULL sur les écritures antérieures à la colonne : le contrôle s'abstient de
+  // conclure sur celles-là plutôt que de reconstituer une histoire qu'il ne
+  // connaît pas.
+  availableDeltaMinor Int?
+
+  commissionId    String?
+  payoutRequestId String?
+  actorId         String?
+  reason          String?
+  metadata        Json?
+
+  createdAt DateTime @default(now())
+
+  // AmbassadorWallet est un CACHE DE LECTURE ; cette table est la VÉRITÉ. Que le
+  // cache disparaisse ne doit pas emporter la vérité.
+  wallet        AmbassadorWallet? @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  commission    Commission?       @relation(fields: [commissionId], references: [id], onDelete: SetNull)
+  payoutRequest PayoutRequest?    @relation(fields: [payoutRequestId], references: [id], onDelete: SetNull)
+
+  @@index([walletId, createdAt])
+  @@index([ambassadorId, createdAt])
+}
+
+// Le cycle en SIX ÉTAPES arrêté par le promoteur le 2026-08-02 (arbitrage 12) :
+// demande de retrait, contrôle, validation, exécution, confirmation ou échec,
+// réconciliation.
+//
+// La règle qui gouverne l'ensemble : « une même personne ne doit pas pouvoir,
+// seule, approuver puis exécuter le même paiement ». Elle est portée par des
+// contraintes CHECK en base, pas seulement par le service — un UPDATE direct ne
+// doit pas pouvoir la contourner.
+//
+// La sixième étape, la réconciliation, n'est pas un statut : c'est un contrôle
+// permanent, assuré par ReconciliationService. Un versement n'attend pas d'être
+// réconcilié pour être terminé ; c'est le grand livre qui est vérifié, pas la
+// demande.
+enum PayoutRequestStatus {
+  // 1 — l'ambassadeur demande. Le montant est immobilisé dès cet instant.
+  REQUESTED
+  // 2 — contrôle : les conditions d'éligibilité sont re-vérifiées et leur
+  // résultat consigné. Une étape à part entière, et non un simple passage :
+  // c'est ici que se brancheront le délai de refroidissement et les signaux
+  // antifraude.
+  UNDER_REVIEW
+  // 3a — au-delà du seuil configuré, une première approbation ne suffit pas.
+  AWAITING_SECOND_APPROVAL
+  // 3b — approuvée. En attente qu'un virement soit ordonné, par QUELQU'UN D'AUTRE.
+  VALIDATED
+  // 4 — le virement a été ordonné hors application, sa référence est saisie. Le
+  // montant reste IMMOBILISÉ : rien n'est encore sorti du grand livre.
+  EXECUTING
+  // 5a — le virement est confirmé. C'est SEULEMENT ici que l'écriture de sortie
+  // est portée au grand livre.
+  EXECUTED
+  // 5b — le virement a échoué. Le montant immobilisé retourne au disponible :
+  // l'argent reste dû.
+  FAILED
+  REJECTED
+  CANCELLED
+}
+
+// Retrait à validation MANUELLE : aucun virement automatique, jamais (décision du
+// promoteur). Deux verrous distincts s'appliquent avant exécution — le contrat
+// d'apporteur d'affaires signé, et la validation administrative nominative.
+model PayoutRequest {
+  id           String              @id @default(cuid())
+  ambassadorId String
+  status       PayoutRequestStatus @default(REQUESTED)
+
+  amountMinor Int
+  currency    String
+  countryCode String
+
+  // Canal déclaré par l'ambassadeur. JAMAIS de code PIN ni d'identifiant complet de
+  // moyen de paiement ici (CLAUDE.md paragraphe 6) : seulement de quoi préparer un
+  // virement, exécuté hors application par l'administration.
+  method String
+
+  // PHOTOGRAPHIE CHIFFRÉE des coordonnées au moment de la demande. Recopiée et
+  // non référencée : un versement doit rester justifiable même si l'ambassadeur
+  // change de numéro le lendemain.
+  destinationEncrypted String
+  // Et sa forme masquée, en clair, pour tout ce qui s'affiche ou se journalise.
+  destinationMasked    String
+
+  requestedAt DateTime @default(now())
+
+  // --- 2. Contrôle ----------------------------------------------------------
+  reviewedAt   DateTime?
+  reviewedById String?
+
+  // --- 3. Validation --------------------------------------------------------
+  // FIGÉ à la demande, d'après le seuil en vigueur ce jour-là. Le relire à
+  // l'approbation ferait qu'abaisser le seuil demain rendrait soudain
+  // insuffisantes des approbations déjà données, et qu'en le relevant on
+  // s'affranchirait d'un double contrôle déjà requis. Même principe que la
+  // photographie du barème sur une commission.
+  requiresSecondApproval Boolean @default(false)
+
+  validatedAt   DateTime?
+  validatedById String?
+
+  secondApprovalAt   DateTime?
+  secondApprovalById String?
+
+  // --- 4. Exécution ---------------------------------------------------------
+  executedAt         DateTime?
+  executedById       String?
+  // Référence du virement réellement ordonné, saisie par l'administration.
+  executionReference String?
+
+  // --- 5. Confirmation ou échec ---------------------------------------------
+  confirmedAt     DateTime?
+  confirmedById   String?
+  failedAt        DateTime?
+  failedById      String?
+  // Motif STRUCTURÉ de l'échec — le seul qui parte en notification. La note
+  // libre de l'administration vit dans le journal, jamais dans un e-mail.
+  failureReasonCode AmbassadorDecisionReason?
+
+  rejectedAt             DateTime?
+  rejectionReason        String?
+  rejectionReasonCode    AmbassadorDecisionReason?
+  rejectionPublicMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ambassador   Ambassador          @relation(fields: [ambassadorId], references: [id], onDelete: Cascade)
+  validatedBy  User?               @relation("PayoutValidator", fields: [validatedById], references: [id], onDelete: SetNull)
+  events       PayoutEvent[]
+  transactions WalletTransaction[]
+
+  @@index([ambassadorId, status])
+  @@index([status])
+}
+
+// --- FORMATION ET QUIZ -------------------------------------------------------
+//
+// Arbitrages 8 et 9 du promoteur, 2026-08-02 : formation obligatoire avec
+// modules, progression et version ; quiz BLOQUANT, 80 % par défaut, nombre de
+// tentatives configurable, dérogation possible mais journalisée.
+//
+// LA VERSION EST LE POINT DÉLICAT. Une formation évolue : on corrige un module,
+// on en ajoute un. Sans version, quelqu'un ayant suivi la formation de janvier
+// serait réputé connaître le contenu de septembre. La progression photographie
+// donc la version suivie — et c'est cette photographie qui permet, plus tard, de
+// dire « qui doit refaire quoi » après une refonte.
+model TrainingModule {
+  id    String @id @default(cuid())
+  // Identifiant stable à travers les versions : le module « Déontologie » garde
+  // son code quand son contenu change.
+  code  String
+  title String
+  // Contenu pédagogique, ou renvoi vers lui. Niveau « Public » : un module de
+  // formation n'a rien de confidentiel.
+  body  String
+
+  version Int @default(1)
+  // Ordre d'affichage. Une formation se suit dans un ordre pensé.
+  sortOrder Int @default(0)
+
+  // '*' = tous pays. Certaines obligations légales varient.
+  //
+  // Une sentinelle, pas un NULL — voir `common/country-scope.ts` : un NULL
+  // n'entre pas dans l'index unique ci-dessous, et deux modules globaux
+  // identiques pouvaient donc coexister. Corrigé le 2026-08-07.
+  countryCode String  @default("*")
+  isActive    Boolean @default(true)
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  progress  TrainingProgress[]
+  questions QuizQuestion[]
+
+  // Une seule version active à la fois par code et par pays — deux modules
+  // « Déontologie » simultanément obligatoires rendraient la progression
+  // impossible à interpréter.
+  @@unique([code, version, countryCode])
+  @@index([isActive, sortOrder])
+}
+
+// Progression d'un candidat, module par module.
+//
+// LA VERSION SUIVIE EST RECOPIÉE ICI. Sans elle, réviser un module effacerait
+// rétroactivement la trace de ce que les gens ont réellement appris.
+model TrainingProgress {
+  id           String @id @default(cuid())
+  ambassadorId String
+  moduleId     String
+
+  // Recopiés : la progression reste lisible si le module est un jour retiré.
+  moduleCode    String
+  moduleVersion Int
+
+  // Le cycle de candidature. Un redépôt six mois plus tard s'accompagne d'une
+  // formation à refaire si le contenu a changé.
+  applicationCycle Int @default(1)
+
+  completedAt DateTime @default(now())
+
+  ambassador Ambassador     @relation(fields: [ambassadorId], references: [id], onDelete: Cascade)
+  module     TrainingModule @relation(fields: [moduleId], references: [id], onDelete: Restrict)
+
+  @@unique([ambassadorId, moduleId, applicationCycle])
+  @@index([ambassadorId, applicationCycle])
+}
+
+// --- QUIZ --------------------------------------------------------------------
+//
+// LA RÈGLE QUI GOUVERNE CE MODÈLE : `correctIndex` NE QUITTE JAMAIS LE SERVEUR.
+//
+// « Tout le code exécuté dans le navigateur est public » (SKILL SECURITY FIRST
+// §5). Envoyer les bonnes réponses au client, fût-ce dans un champ que
+// l'interface n'affiche pas, revient à les publier — il suffit d'ouvrir l'onglet
+// réseau. La correction se fait donc entièrement côté serveur, et le service qui
+// sert les questions les projette sans ce champ.
+model QuizQuestion {
+  id       String  @id @default(cuid())
+  moduleId String?
+
+  prompt String
+  // Propositions, dans l'ordre d'affichage.
+  choices String[]
+  // Indice de la bonne réponse. JAMAIS transmis au client.
+  correctIndex Int
+
+  version  Int     @default(1)
+  isActive Boolean @default(true)
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  module TrainingModule? @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, moduleId])
+}
+
+// Une tentative de quiz. IMMUABLE une fois soumise : un score qui se retouche
+// n'atteste de rien.
+model QuizAttempt {
+  id           String @id @default(cuid())
+  ambassadorId String
+
+  applicationCycle Int @default(1)
+  // 1, 2, 3… Compté côté serveur : le client ne décide pas du nombre d'essais
+  // qu'il a consommés.
+  attemptNumber Int
+
+  // Score en POURCENTAGE ENTIER, et le seuil en vigueur ce jour-là. Photographié
+  // pour la même raison qu'un barème de commission : abaisser le seuil demain ne
+  // doit pas rendre reçu quelqu'un qui avait échoué.
+  scorePercent   Int
+  passScorePercent Int
+  passed         Boolean
+
+  questionCount  Int
+  correctCount   Int
+  // Les réponses données, pour instruire une contestation. Ni les bonnes
+  // réponses, ni la correction : seulement ce que la personne a répondu.
+  answers Json?
+
+  submittedAt DateTime @default(now())
+
+  ambassador Ambassador @relation(fields: [ambassadorId], references: [id], onDelete: Cascade)
+
+  @@index([ambassadorId, applicationCycle])
+}
+
+// --- PIÈCES D'IDENTITÉ DU DOSSIER AMBASSADEUR --------------------------------
+//
+// Arbitrage du promoteur : vérification d'identité avant activation. Niveau
+// « TRÈS SENSIBLE » au sens du CLAUDE.md §1 — accès exceptionnel et limité,
+// authentification renforcée, contrôle strict.
+//
+// CE MODÈLE NE CONTIENT AUCUN FICHIER, ET C'EST TOUT SON INTÉRÊT.
+//
+// Le CLAUDE.md §6 l'interdit en toutes lettres : « ne jamais stocker de document
+// utilisateur (pièce d'identité, diplôme, convention) hors du Digital Safe
+// chiffré ». Le fichier vit donc dans le Coffre-fort, qui lui apporte déjà tout
+// ce qu'une pièce d'identité exige et qu'il aurait fallu réécrire ici :
+//
+//   — chiffrement au repos (AES-256-GCM) ;
+//   — analyse anti-malware avant enregistrement ;
+//   — empreinte permettant de vérifier qu'il n'a pas été altéré ;
+//   — versionnage ;
+//   — JOURNAL D'ACCÈS (`DigitalSafeAccessLog`) — chaque consultation tracée ;
+//   — suppression logique puis définitive, jamais de destruction immédiate.
+//
+// Ce modèle-ci ne porte que le RATTACHEMENT et son instruction : quel document
+// du Coffre-fort sert de pièce pour ce dossier, à quel cycle, et ce que
+// l'administration en a conclu. Recopier le fichier aurait créé une seconde
+// copie hors du périmètre chiffré — c'est-à-dire une fuite, avec le temps.
+//
+// `onDelete: Restrict` sur le document : on ne supprime pas du Coffre-fort une
+// pièce sur laquelle une décision d'activation s'est appuyée.
+model AmbassadorIdentityDocument {
+  id           String @id @default(cuid())
+  ambassadorId String
+  documentId   String
+
+  type AmbassadorIdentityDocumentType
+
+  // Le cycle de candidature auquel cette pièce a été fournie. Un redépôt six
+  // mois plus tard s'accompagne de pièces à jour : sans ce champ, on ne saurait
+  // pas distinguer une pièce du cycle 1 d'une pièce du cycle 2, et on
+  // risquerait d'activer sur la foi d'un document périmé.
+  applicationCycle Int @default(1)
+
+  status AmbassadorIdentityDocumentStatus @default(PENDING)
+
+  // Date d'expiration DÉCLARÉE de la pièce. Une carte expirée ne vérifie plus
+  // rien : le balayage quotidien s'en servira pour redemander une pièce à jour.
+  expiresAt DateTime?
+
+  verifiedAt   DateTime?
+  verifiedById String?
+  // Motif STRUCTURÉ du rejet — le seul qui parte en notification. La note libre
+  // de l'administration vit dans le journal, jamais dans un e-mail.
+  rejectionReasonCode AmbassadorDecisionReason?
+
+  uploadedAt DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  ambassador Ambassador          @relation(fields: [ambassadorId], references: [id], onDelete: Cascade)
+  document   DigitalSafeDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+
+  // La même pièce ne se rattache pas deux fois au même dossier.
+  @@unique([ambassadorId, documentId])
+  @@index([ambassadorId, status])
+}
+
+enum AmbassadorIdentityDocumentType {
+  NATIONAL_ID
+  PASSPORT
+  RESIDENCE_PERMIT
+  DRIVING_LICENCE
+  // Certains pays délivrent d'autres titres ; l'administration tranche au cas
+  // par cas plutôt que de refuser un dossier pour un intitulé absent d'une liste.
+  OTHER_OFFICIAL_ID
+}
+
+enum AmbassadorIdentityDocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  // La pièce était valable, sa date d'expiration est passée. Distinct de
+  // REJECTED : rien n'a été reproché au candidat, il faut simplement une pièce
+  // à jour.
+  EXPIRED
+}
+
+// --- DÉTECTION DE FRAUDE ----------------------------------------------------
+//
+// Arbitrage du promoteur du 2026-08-04 : « un moteur simple, évolutif et
+// entièrement configurable. Pour la première version, elles devront uniquement
+// signaler des comportements inhabituels. Elles ne devront JAMAIS entraîner
+// automatiquement une sanction, une suspension ou un refus de paiement. Leur
+// rôle est uniquement de : détecter ; alerter ; journaliser ; orienter
+// l'administration vers un contrôle manuel. »
+//
+// CE QUE CETTE INTERDICTION IMPOSE AU MODÈLE. Le moteur ne détient AUCUN champ
+// qui pourrait suspendre ou bloquer quoi que ce soit. Une alerte est une
+// OBSERVATION — un fait constaté, une valeur mesurée, un seuil franchi — et
+// rien d'autre. Ce qu'on en fait relève d'une décision humaine, prise ailleurs,
+// par les chemins qui existent déjà et qui exigent tous un motif écrit.
+//
+// Une règle mal réglée doit pouvoir produire du bruit sans jamais produire de
+// dégât. C'est la seule façon d'oser régler les seuils bas au lancement, quand
+// on ne connaît pas encore les comportements normaux.
+model FraudRule {
+  id    String @id @default(cuid())
+  // Identifiant stable, recopié sur chaque alerte : une alerte reste lisible
+  // même si la règle qui l'a produite est un jour supprimée.
+  code  String @unique
+  label String
+
+  signal FraudSignal
+  // NULL = tous pays. Un comportement anormal au Cameroun peut être ordinaire
+  // ailleurs : le seuil se règle par pays, comme le reste.
+  countryCode String?
+
+  // LE SEUIL et LA FENÊTRE — les deux seuls réglages. Volontairement pauvres :
+  // « plus de N en M heures » se comprend sans documentation, et un moteur
+  // qu'on comprend est un moteur qu'on règle.
+  thresholdValue Int
+  windowHours    Int
+
+  severity FraudSeverity @default(WARNING)
+  isActive Boolean       @default(true)
+
+  // Délai avant de re-signaler le même ambassadeur sur la même règle. Sans lui,
+  // un balayage quotidien rejouerait la même alerte chaque matin jusqu'à ce que
+  // l'administration cesse de les lire — et c'est ce jour-là que la vraie
+  // passerait inaperçue.
+  cooldownHours Int @default(24)
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  alerts FraudAlert[]
+
+  @@index([isActive, signal])
+}
+
+// Ce qu'on sait mesurer aujourd'hui. La liste s'allongera — c'est justement
+// pourquoi le signal est une énumération et non une expression à interpréter :
+// chaque signal a son calcul écrit et testé, plutôt qu'un langage de règles
+// qu'on ne saurait plus auditer.
+enum FraudSignal {
+  // Rafale d'attributions : N parrainages ou rattachements en M heures.
+  ATTRIBUTION_BURST
+  // Montant de commissions acquis en M heures au-delà de N unités mineures.
+  COMMISSION_VOLUME
+  // Demande de versement déposée peu après un changement de coordonnées.
+  // Le délai de refroidissement bloque déjà l'exécution ; ce signal-ci sert à
+  // REMARQUER la tentative, qui est le vrai renseignement.
+  PAYOUT_AFTER_DETAILS_CHANGE
+  // Échecs de virement répétés : souvent des coordonnées erronées, parfois un
+  // essai de destination qui n'appartient pas au titulaire.
+  REPEATED_PAYOUT_FAILURE
+}
+
+enum FraudSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum FraudAlertStatus {
+  // Constatée, en attente d'un regard humain.
+  OPEN
+  // Instruite et jugée fondée. Les suites éventuelles se prennent ailleurs.
+  CONFIRMED
+  // Instruite et jugée sans objet. Un motif écrit est exigé : c'est ce qui
+  // permettra plus tard de repérer une règle qu'on écarte toujours, donc mal
+  // réglée.
+  DISMISSED
+}
+
+// UNE ALERTE EST UNE OBSERVATION, pas une décision.
+//
+// Elle porte ce qui a été mesuré, quand, contre quel seuil — assez pour qu'un
+// administrateur comprenne sans relancer le calcul, et pour qu'un contrôleur
+// vérifie deux ans plus tard que le seuil du jour était bien celui-là.
+//
+// Aucun champ ne permet de suspendre, bloquer ou refuser quoi que ce soit. Le
+// suivi administratif (`status`) est mutable ; sa trace, elle, vit dans
+// `AuditLog`, en ajout seul — même partage que Commission / CommissionEvent.
+model FraudAlert {
+  id     String  @id @default(cuid())
+  ruleId String?
+  // Dénormalisés : l'alerte reste lisible si la règle disparaît.
+  ruleCode String
+  signal   FraudSignal
+  severity FraudSeverity
+
+  // Nullable, et en SetNull : un dossier anonymisé ne doit pas emporter
+  // l'observation avec lui. Le journal perd l'auteur, jamais le fait.
+  ambassadorId String?
+  // Recopié pour la même raison — c'est ce qui permet d'identifier le dossier
+  // concerné après anonymisation.
+  ambassadorCode String?
+  countryCode    String?
+
+  // LE CONSTAT CHIFFRÉ, tel qu'il était à l'instant de la mesure.
+  observedValue  Int
+  thresholdValue Int
+  windowHours    Int
+  observedFrom   DateTime
+  observedTo     DateTime
+
+  // Les faits qui ont déclenché l'alerte, sous une forme consultable. JAMAIS de
+  // donnée sensible ici : ni coordonnées de paiement, ni pièce d'identité — une
+  // alerte se lit, s'exporte et se transfère.
+  evidence Json?
+
+  status       FraudAlertStatus @default(OPEN)
+  reviewedAt   DateTime?
+  reviewedById String?
+  reviewNote   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rule       FraudRule?  @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  ambassador Ambassador? @relation(fields: [ambassadorId], references: [id], onDelete: SetNull)
+
+  @@index([status, severity, createdAt])
+  @@index([ambassadorId, ruleCode, createdAt])
+}
+
+// --- COORDONNÉES DE VERSEMENT -----------------------------------------------
+//
+// Arbitrage 13 du promoteur, 2026-08-02 : délai de refroidissement après toute
+// modification des coordonnées de paiement.
+//
+// POURQUOI CE MODÈLE EXISTE. Jusqu'ici, l'ambassadeur saisissait sa destination
+// À CHAQUE DEMANDE de versement. « Modifier ses coordonnées » n'était donc pas un
+// acte identifiable, et un délai de refroidissement n'aurait rien protégé : il
+// aurait suffi de taper un autre numéro dans la demande suivante. Des coordonnées
+// ENREGISTRÉES, modifiables et datées, sont la condition pour que le délai ait un
+// sens.
+//
+// UNE SEULE LIGNE PAR AMBASSADEUR : les coordonnées en vigueur. L'historique des
+// changements vit dans le journal ci-dessous, en ajout seul et masqué.
+model AmbassadorPaymentDetail {
+  id           String @id @default(cuid())
+  ambassadorId String @unique
+
+  // Canal déclaré (« MOBILE_MONEY », « VIREMENT_BANCAIRE »).
+  method String
+
+  // CHIFFRÉ AU REPOS depuis le 2026-08-04, à la demande du promoteur : « les
+  // coordonnées de paiement doivent bénéficier exactement du même niveau de
+  // protection que les documents sensibles du Coffre-fort numérique ».
+  //
+  // AES-256-GCM, clé issue du trousseau d'exécution — JAMAIS de la base. Un
+  // vidage de base volé ne rend donc rien de lisible. La valeur porte
+  // l'identifiant de sa clé, ce qui rend une rotation possible sans perdre
+  // l'existant (voir FieldEncryptionService).
+  //
+  // Le nom du champ dit ce qu'il contient : on ne journalise pas par distraction
+  // quelque chose qui s'appelle « Encrypted ».
+  destinationEncrypted String
+
+  // La forme MASQUÉE, en clair. C'est elle que lisent les écrans, les journaux,
+  // les e-mails et les listes — c'est-à-dire la quasi-totalité des accès. Le
+  // déchiffrement devient ainsi l'exception, réservée à qui prépare réellement
+  // un virement, et non le passage obligé de toute lecture.
+  destinationMasked String
+
+  changedAt DateTime @default(now())
+  // FIN DU DÉLAI DE REFROIDISSEMENT. Aucun virement n'est exécuté avant cette
+  // date. Calculée à la modification d'après la politique du pays, et figée :
+  // rallonger le délai demain ne doit pas geler rétroactivement un versement
+  // déjà autorisé.
+  cooldownUntil DateTime
+
+  // Signalement d'une modification non autorisée, par l'ambassadeur lui-même.
+  // Tant qu'il n'est pas levé par l'administration, aucun virement ne part.
+  reportedAt     DateTime?
+  reportedReason String?
+  clearedAt      DateTime?
+  clearedById    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ambassador Ambassador @relation(fields: [ambassadorId], references: [id], onDelete: Cascade)
+}
+
+// Journal des changements de coordonnées, EN AJOUT SEUL et déjà MASQUÉ.
+//
+// « L'ancienne et la nouvelle destination sont journalisées sous forme
+// masquée. » — arbitrage 13. Le masquage a lieu à l'écriture, par l'unique
+// fonction qui alimente cette table : il ne peut pas être oublié à un appel.
+model AmbassadorPaymentDetailEvent {
+  id           String  @id @default(cuid())
+  ambassadorId String?
+  // CHANGED, REPORTED, CLEARED.
+  type         String
+  actorId      String?
+
+  method           String
+  previousMasked   String?
+  newMasked        String
+  cooldownUntil    DateTime?
+  reason           String?
+
+  createdAt DateTime @default(now())
+
+  @@index([ambassadorId, createdAt])
+}
+
+// --- JOURNAL DES VERSEMENTS -------------------------------------------------
+//
+// « Chaque étape doit enregistrer : l'auteur ; la date ; le montant ; la devise ;
+// la destination masquée ; la référence ; le statut ; le motif lorsqu'il y a
+// refus ou échec. » — arbitrage 12 du promoteur.
+//
+// En AJOUT SEUL, par déclencheur PostgreSQL, comme les trois autres journaux
+// financiers. Et AUTONOME : montant, devise et destination y sont recopiés, si
+// bien que la piste survit à l'effacement de la demande. Un journal qui disparaît
+// avec ce qu'il documente ne documente rien.
+model PayoutEvent {
+  id              String  @id @default(cuid())
+  payoutRequestId String?
+
+  // Reprend PayoutRequestStatus pour une transition, mais reste une chaîne pour
+  // accueillir des faits qui n'en sont pas (« contrôle : solde insuffisant »).
+  type    String
+  status  PayoutRequestStatus
+  actorId String?
+
+  // Faits dénormalisés — le journal ne dépend d'aucune autre ligne pour rester
+  // lisible.
+  amountMinor Int
+  currency    String
+  // DÉJÀ MASQUÉE à l'écriture. Le numéro complet ne descend jamais jusqu'ici :
+  // ce qui n'entre pas en base ne peut fuiter par aucun export ultérieur.
+  destinationMasked String
+  reference         String?
+
+  reasonCode   AmbassadorDecisionReason?
+  internalNote String?
+
+  createdAt DateTime @default(now())
+
+  payoutRequest PayoutRequest? @relation(fields: [payoutRequestId], references: [id], onDelete: SetNull)
+
+  @@index([payoutRequestId])
+  @@index([status, createdAt])
+}
+
+// --- Paramétrage du programme, par pays -------------------------------------------
+//
+// « Configuration par administration plutôt que par code » (exigence du promoteur).
+// Même mécanique que CountryPolicy pour les mineurs : une ligne par pays, et une
+// politique de repli si le pays n'est pas encore configuré.
+//
+// AVERTISSEMENT, appris à nos dépens sur CountryPolicy : ajouter un champ ici ne
+// protège PAS les pays déjà configurés en base. Toute nouvelle colonne doit
+// s'accompagner d'une migration de données qui renseigne les lignes existantes.
+model AmbassadorPolicy {
+  id          String @id @default(cuid())
+  // Code pays ISO, ou "*" pour la politique par défaut.
+  countryCode String @unique
+
+  // Douze mois sans paiement confirmé libèrent l'entreprise (point 7).
+  portfolioExpiryMonths Int   @default(12)
+  // Alertes avant l'échéance, en mois écoulés depuis le dernier achat (point 8).
+  portfolioWarnMonths   Int[] @default([9, 11])
+
+  // Délai avant qu'une commission devienne exigible : couvre annulations et impayés.
+  securityPeriodDays Int @default(30)
+
+  // Montant minimum d'une demande de retrait.
+  minPayoutAmountMinor Int    @default(500000)
+  // Au-delà de ce montant, une seule approbation ne suffit plus (arbitrage 12).
+  // NULL = pas de double contrôle dans ce pays. Le seuil est CONFIGURABLE parce
+  // qu'un montant élevé au Cameroun ne l'est pas ailleurs.
+  doubleApprovalThresholdMinor Int?
+  // Delai de refroidissement apres modification des coordonnees de versement
+  // (arbitrage 13). 72 heures par defaut, configurable par pays. Zero le
+  // desactive — ce doit rester une decision explicite, jamais un oubli.
+  paymentDetailsCooldownHours  Int  @default(72)
+  // Délai avant qu'une personne refusée puisse redéposer une candidature.
+  // Six mois par défaut (arbitrage 11 du promoteur). Zéro l'autorise
+  // immédiatement — ce doit rester une décision explicite d'un pays.
+  reapplicationDelayMonths     Int  @default(6)
+  // Âge minimum pour être ambassadeur. 18 ans par défaut, configurable par pays
+  // comme tous les seuils d'âge du système (CLAUDE.md §5 : jamais de valeur
+  // codée en dur).
+  minAmbassadorAge             Int  @default(18)
+  // Quiz bloquant (arbitrage 9) : 80 % par defaut, trois tentatives.
+  quizPassScorePercent         Int  @default(80)
+  quizMaxAttempts              Int  @default(3)
+  currency             String @default("XAF")
+
+  // Interrupteur d'urgence : coupe la création de commissions dans ce pays sans
+  // toucher au code ni perdre l'historique.
+  commissionsEnabled Boolean @default(true)
+  payoutsEnabled     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Origine déclarée d'une organisation : statistique marketing UNIQUEMENT.
+// Ne jamais brancher cette énumération sur le calcul de commission — répondre
+// « AMBASSADOR » ici ne rattache personne et n'ouvre aucun droit (point 9).
+enum OrganizationAcquisitionSource {
+  AMBASSADOR
+  INTERNET
+  SOCIAL_MEDIA
+  UNIVERSITY
+  SCHOOL
+  TRAINING_CENTER
+  PARTNER_COMPANY
+  TRADE_SHOW
+  ADVERTISING
+  RECOMMENDATION
+  OTHER
+}
+
+// ============================================================================
+// TAXONOMIE DES NOTIFICATIONS
+//
+// Une seule liste de catégories, partagée par le Centre de Notifications, le
+// moteur d'e-mails et les préférences utilisateur. En avoir deux — une pour
+// l'affichage, une pour l'e-mail — garantirait qu'elles divergent au premier
+// ajout de fonctionnalité, et qu'un utilisateur coupe une catégorie sans couper
+// les e-mails correspondants.
+//
+// MENTORING, LEGAL et SUBSCRIPTIONS n'ont encore aucun type rattaché : elles sont
+// déclarées maintenant parce que le promoteur les a nommées au périmètre. Les
+// créer plus tard imposerait de retoucher les préférences déjà enregistrées.
+// ============================================================================
+enum NotificationCategory {
+  APPLICATIONS
+  INTERVIEWS
+  INTERNSHIPS
+  AGREEMENTS
+  ORGANIZATIONS
+  AMBASSADORS
+  MENTORING
+  LEGAL
+  PAYMENTS
+  SUBSCRIPTIONS
+  PARTNERSHIPS
+  ADMINISTRATION
+  SECURITY
+  SYSTEM
+}
+
+// Canaux de diffusion. PUSH est déclaré sans être branché : le déclarer aujourd'hui
+// permet à un utilisateur d'exprimer sa préférence avant même que le canal existe,
+// et évite une migration des préférences le jour où il arrive.
+enum NotificationChannelKind {
+  IN_APP
+  EMAIL
+  SMS
+  PUSH
+}
+
+// Préférence de diffusion, par utilisateur, par catégorie, par canal.
+//
+// ABSENCE DE LIGNE = ACTIVÉ. Le défaut est donc « je reçois tout », et une ligne
+// n'existe que pour enregistrer un refus explicite. Ce choix évite d'avoir à créer
+// 14 × 4 = 56 lignes à chaque inscription, et rend l'ajout d'une catégorie
+// inoffensif pour les comptes existants — la leçon de CountryPolicy.
+model NotificationPreference {
+  id       String                  @id @default(cuid())
+  userId   String
+  category NotificationCategory
+  channel  NotificationChannelKind
+  enabled  Boolean                 @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category, channel])
+  @@index([userId])
+}
+
+enum EmailDeliveryStatus {
+  QUEUED
+  SENT
+  FAILED
+  // Refusé avant tout envoi : préférence utilisateur, absence d'adresse, ou
+  // catégorie coupée. Distingué de FAILED, qui signale un incident technique.
+  SKIPPED
+}
+
+// Journal des e-mails. En ajout seul.
+//
+// NE CONTIENT JAMAIS LE CORPS DU MESSAGE : celui-ci peut porter le nom d'un
+// mineur, une référence de candidature, une décision de refus (CLAUDE.md §1,
+// niveau Confidentiel). On journalise ce qu'il faut pour diagnostiquer un
+// non-reçu — destinataire, gabarit, langue, fournisseur, statut — et rien de plus.
+// Le contenu se reconstitue à partir du gabarit et des variables si besoin.
+model EmailLog {
+  id String @id @default(cuid())
+
+  userId    String?
+  // Adresse au moment de l'envoi : une adresse changée plus tard ne doit pas
+  // réécrire l'histoire de ce qui a été envoyé où.
+  recipient String
+
+  category    NotificationCategory
+  templateKey String
+  language    Language
+  subject     String
+
+  // Nom du fournisseur utilisé pour CET envoi — permet de tracer une bascule de
+  // fournisseur sans migration de schéma (architecture « provider-swap »).
+  providerName      String
+  providerMessageId String?
+
+  status EmailDeliveryStatus @default(QUEUED)
+  // Motif du SKIPPED ou message d'erreur du FAILED, jamais le corps du message.
+  reason String?
+
+  sentAt   DateTime?
+  failedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([category])
+}
+
+// ============================================================================
+// FIL DE CONVERSATION — LA CHARNIÈRE VERS LA MESSAGERIE
+//
+// Le promoteur veut pouvoir greffer une messagerie professionnelle (entreprise ↔
+// candidat, entreprise ↔ ambassadeur, administration ↔ candidat...) SANS refonte
+// du modèle de données. Cette table est la charnière, posée aujourd'hui.
+//
+// Le raisonnement : une notification est un ÉVÉNEMENT SYSTÈME adressé à une
+// personne ; un message est un ÉCRIT D'UNE PERSONNE adressé aux participants
+// d'une conversation. Les confondre — faire d'un message une notification avec
+// un champ « auteur » — obligerait plus tard à démêler les deux dans une table
+// devenue énorme.
+//
+// D'où ce découpage : le fil existe dès maintenant et porte le CONTEXTE (quelle
+// candidature ? quelle organisation ?). Les notifications peuvent s'y rattacher.
+// Le jour venu, la messagerie s'ajoutera par DEUX tables nouvelles —
+// ThreadParticipant et Message — sans qu'aucune ligne existante ne bouge, et
+// l'écran groupera déjà par fil.
+//
+// Aucun code n'écrit encore dans cette table : Notification.threadId reste nul.
+// C'est assumé.
+// ============================================================================
+enum ThreadContextType {
+  APPLICATION
+  ORGANIZATION
+  AMBASSADOR
+  PARTNERSHIP
+  ESTABLISHMENT
+  SUPPORT
+}
+
+model NotificationThread {
+  id       String               @id @default(cuid())
+  category NotificationCategory
+
+  // À quoi se rattache la conversation. Volontairement un couple type + id plutôt
+  // qu'une clé étrangère par cible : ajouter un contexte demain ne doit pas
+  // ajouter une colonne à toutes les lignes déjà écrites.
+  contextType ThreadContextType
+  contextId   String
+
+  // Sujet lisible, calculé à la création (ex. la référence de candidature).
+  subject String?
+
+  // Sert au tri du Centre : un fil remonte quand il bouge.
+  lastActivityAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notifications Notification[]
+
+  @@index([contextType, contextId])
+  @@index([lastActivityAt])
+}
+
+// Pièce jointe d'une notification.
+//
+// NE STOCKE AUCUN FICHIER, JAMAIS : uniquement une RÉFÉRENCE vers un document du
+// coffre-fort numérique chiffré. CLAUDE.md §6 l'interdit sans ambiguïté — « ne
+// jamais stocker de document utilisateur hors du Digital Safe chiffré ». Une
+// convention de stage ou une attestation jointe à une notification reste donc
+// dans le coffre, avec sa journalisation d'accès et son contrôle de partage ;
+// cette table ne fait que pointer dessus.
+model NotificationAttachment {
+  id             String @id @default(cuid())
+  notificationId String
+
+  digitalSafeDocumentId String
+  // Libellé d'affichage, pour ne pas avoir à ouvrir le coffre juste pour nommer
+  // la pièce dans la liste.
+  label                 String?
+
+  createdAt DateTime @default(now())
+
+  notification Notification        @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  document     DigitalSafeDocument @relation(fields: [digitalSafeDocumentId], references: [id], onDelete: Cascade)
+
+  @@index([notificationId])
+}
+
+// Trace des rappels de début de stage déjà envoyés.
+//
+// L'idempotence est portée par la CONTRAINTE D'UNICITÉ, pas par du code : un
+// balayage rejoué, une file qui redélivre un travail, deux instances qui tournent
+// en parallèle — dans tous les cas la base refuse le second envoi. Même principe
+// que Commission.paymentId, et pour la même raison : mieux vaut un garde-fou que
+// personne ne peut contourner qu'une vérification qu'un chemin d'appel oubliera.
+//
+// `offsetDays` plutôt que trois colonnes « rappelJ7 / rappelJ1 / rappelJ0 » :
+// ajouter un palier à J-30 demain sera une valeur de configuration, pas une
+// migration de schéma.
+model InternshipStartReminder {
+  id            String @id @default(cuid())
+  applicationId String
+  offsetDays    Int
+
+  // Le SMS au représentant légal d'un mineur peut échouer alors que la
+  // notification interne au candidat est bien partie : les deux sont donc suivis
+  // séparément, sinon un échec d'envoi passerait pour un rappel complet.
+  parentNotified Boolean @default(false)
+
+  sentAt DateTime @default(now())
+
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@unique([applicationId, offsetDays])
+  @@index([applicationId])
 }

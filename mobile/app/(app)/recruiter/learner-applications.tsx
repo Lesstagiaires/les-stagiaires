@@ -9,6 +9,7 @@ import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type LearnerApplicationSummary } from '../../../lib/api';
 import { useApplicationStatusLabels, APPLICATION_STATUS_TONE } from '../../../lib/application-labels';
 import { useAuth } from '../../../lib/auth-context';
+import { EmptyState } from '../../../components/empty-state';
 
 export default function LearnerApplicationsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -59,7 +60,7 @@ export default function LearnerApplicationsScreen() {
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : applications.length === 0 ? (
-          <Text style={styles.emptyText}>{t('recruiter.learnerApplications.empty')}</Text>
+          <EmptyState message={t('recruiter.learnerApplications.empty')} />
         ) : (
           <View style={styles.list}>
             {applications.map((application) => (
@@ -114,9 +115,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxl,
-  },
-  emptyText: {
-    ...typography.caption,
   },
   list: {
     gap: spacing.sm,

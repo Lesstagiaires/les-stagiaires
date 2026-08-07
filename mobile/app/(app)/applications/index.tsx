@@ -16,6 +16,7 @@ import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type Application } from '../../../lib/api';
 import { useApplicationStatusLabels, APPLICATION_STATUS_TONE } from '../../../lib/application-labels';
 import { useAuth } from '../../../lib/auth-context';
+import { EmptyState } from '../../../components/empty-state';
 
 export default function ApplicationsListScreen() {
   const router = useRouter();
@@ -53,7 +54,7 @@ export default function ApplicationsListScreen() {
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : applications.length === 0 ? (
-          <Text style={styles.emptyText}>{t('applications.list.empty')}</Text>
+          <EmptyState message={t('applications.list.empty')} />
         ) : (
           applications.map((application) => (
             <PressableCard
@@ -99,11 +100,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxl,
-  },
-  emptyText: {
-    ...typography.caption,
-    textAlign: 'center',
-    marginTop: spacing.xl,
   },
   card: {
     gap: spacing.xs,

@@ -1,0 +1,1396 @@
+{
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "add": "Adicionar",
+    "remove": "Remover",
+    "accept": "Aceitar",
+    "decline": "Recusar",
+    "yes": "Sim",
+    "no": "Não",
+    "loading": "A carregar…",
+    "ongoing": "em curso",
+    "genericError": "Ocorreu um erro.",
+    "connectionError": "Não foi possível carregar. Verifique a sua ligação à internet.",
+    "actionError": "Ação impossível.",
+    "addError": "Não foi possível adicionar."
+  },
+  "nav": {
+    "home": "Início",
+    "opportunities": "Ofertas",
+    "applications": "Candidaturas",
+    "recruiter": "Recrutador",
+    "digitalSafe": "Cofre digital",
+    "profile": "Perfil",
+    "security": "Segurança",
+    "moderation": "Moderação",
+    "notifications": "Notificações",
+    "subscriptions": "Subscrições",
+    "subscriptionsAdmin": "Subscrições (Admin)"
+  },
+  "auth": {
+    "login": {
+      "title": "LES STAGIAIRES",
+      "subtitle": "Inicie sessão na sua conta",
+      "identifierPlaceholder": "Telefone (ex.: +237670000000) ou e-mail",
+      "passwordPlaceholder": "Palavra-passe",
+      "submit": "Iniciar sessão",
+      "noAccount": "Ainda não tem conta? Registe-se",
+      "contactLink": "Representa uma organização? Contacte-nos",
+      "forgotPasswordLink": "Esqueceu-se da palavra-passe?",
+      "genericError": "Não foi possível iniciar sessão. Verifique a sua ligação à internet."
+    },
+    "twoFactor": {
+      "title": "Autenticação em duas etapas",
+      "subtitle": "Foi enviado um código por SMS para o seu número. Introduza-o para terminar o início de sessão.",
+      "codePlaceholder": "Código de 6 dígitos",
+      "submit": "Verificar",
+      "back": "Voltar",
+      "genericError": "Não foi possível verificar."
+    },
+    "register": {
+      "title": "Criar uma conta",
+      "firstName": "Nome",
+      "lastName": "Apelido",
+      "male": "Homem",
+      "female": "Mulher",
+      "countryPlaceholder": "País de residência",
+      "countrySearchPlaceholder": "Procurar um país",
+      "phoneNational": "Número de telefone",
+      "email": "E-mail (opcional)",
+      "city": "Cidade de residência",
+      "password": "Palavra-passe (mín. 10 caracteres, maiúscula, minúscula, algarismo)",
+      "confirmPassword": "Confirmar a palavra-passe",
+      "dateOfBirth": "Data de nascimento",
+      "minorNotice": "Consoante o seu país de residência, uma conta com esta idade pode exigir o número de um progenitor ou tutor, que receberá um SMS para dar o seu acordo.",
+      "parentPhoneNational": "Número do progenitor/tutor",
+      "submit": "Registar",
+      "haveAccount": "Já tem conta? Inicie sessão",
+      "missingDob": "Indique a sua data de nascimento.",
+      "missingCountry": "Selecione o seu país de residência.",
+      "invalidPhone": "Número de telefone inválido para o país selecionado.",
+      "passwordMismatch": "As palavras-passe não coincidem.",
+      "genericError": "Não foi possível registar. Verifique a sua ligação à internet.",
+      "ambassadorCodeLabel": "Código de referência (opcional)",
+      "ambassadorCodePlaceholder": "Ex.: AB34CD",
+      "ambassadorCodeHint": "Se um embaixador lhe deu a conhecer a LES STAGIAIRES, introduza o código dele. Um código desconhecido é simplesmente ignorado e nunca impede o seu registo."
+    },
+    "verifyOtp": {
+      "title": "Verificação do telefone",
+      "subtitleDefault": "Foi enviado um código por SMS para {{phone}}.",
+      "codePlaceholder": "Código de 6 dígitos",
+      "submit": "Validar",
+      "genericError": "Não foi possível verificar. Verifique a sua ligação à internet.",
+      "ambassador": {
+        "CODE_NOT_RECOGNIZED": "O código de embaixador introduzido é inválido ou não existe. O seu registo foi guardado, mas nenhum embaixador ficará associado à sua conta. Pode continuar normalmente.",
+        "SELF_REFERRAL_BLOCKED": "Não pode utilizar o seu próprio código de referência. O seu registo foi guardado, mas nenhum embaixador ficará associado à sua conta.",
+        "ALREADY_ATTRIBUTED": "Já existe um embaixador associado à sua conta. O seu registo foi guardado e essa primeira ligação permanece inalterada."
+      }
+    },
+    "forgotPassword": {
+      "title": "Palavra-passe esquecida",
+      "subtitle": "Indique o seu país e o seu número de telefone. Se existir uma conta, receberá um código de verificação por SMS.",
+      "countryPlaceholder": "País",
+      "countrySearchPlaceholder": "Procurar um país",
+      "phoneNational": "Número de telefone",
+      "submit": "Enviar o código",
+      "back": "Voltar ao início de sessão",
+      "missingCountry": "Selecione o seu país.",
+      "invalidPhone": "Número de telefone inválido para o país selecionado.",
+      "genericError": "Não foi possível enviar. Verifique a sua ligação à internet.",
+      "sentMessage": "Se existir uma conta para este número, acabou de ser enviado um código de verificação por SMS."
+    },
+    "resetPassword": {
+      "title": "Nova palavra-passe",
+      "subtitleDefault": "Introduza o código recebido por SMS em {{phone}} e a sua nova palavra-passe.",
+      "codePlaceholder": "Código de 6 dígitos",
+      "newPassword": "Nova palavra-passe (mín. 10 caracteres, maiúscula, minúscula, algarismo)",
+      "confirmPassword": "Confirmar a nova palavra-passe",
+      "submit": "Repor a palavra-passe",
+      "passwordMismatch": "As palavras-passe não coincidem.",
+      "genericError": "Não foi possível repor. Verifique o código e tente novamente.",
+      "successMessage": "Palavra-passe alterada. Inicie sessão com a sua nova palavra-passe."
+    }
+  },
+  "home": {
+    "eyebrow": "LES STAGIAIRES",
+    "welcome": "Bem-vindo",
+    "welcomeNamed": "Bem-vindo, {{name}}",
+    "subtitle": "Descubra as oportunidades de estágio e de emprego em toda a África.",
+    "sectionTitle": "Oportunidades do momento",
+    "empty": "Nenhuma oferta publicada por enquanto."
+  },
+  "profile": {
+    "title": "O meu perfil",
+    "securityLink": "Segurança — autenticação em duas etapas e dispositivos",
+    "contactLink": "Contacte-nos",
+    "subscriptionsLink": "A minha subscrição",
+    "moderationLink": "Painel de moderação",
+    "partnershipRequestsLink": "Pedidos de parceria",
+    "notificationsLink": "Notificações",
+    "subscriptionsAdminLink": "Todas as subscrições",
+    "logout": "Terminar sessão",
+    "language": {
+      "sectionTitle": "Idioma da aplicação",
+      "hint": "Escolha o idioma utilizado na aplicação.",
+      "reloadNotice": "Reinicie manualmente a aplicação para aplicar o novo sentido de escrita."
+    },
+    "header": {
+      "fullNamePlaceholder": "Nome completo",
+      "headlinePlaceholder": "Título (ex.: Estudante de informática)",
+      "summaryPlaceholder": "Apresentação",
+      "saveError": "Não foi possível guardar."
+    },
+    "roles": {
+      "title": "Perfis",
+      "activeHint": "Perfil ativo — toque para mudar.",
+      "noRoles": "Nenhum perfil por enquanto.",
+      "addTitle": "Adicionar um perfil:",
+      "switchError": "Não foi possível mudar."
+    },
+    "establishments": {
+      "title": "Instituição de ensino"
+    },
+    "education": {
+      "title": "Formações",
+      "institutionPlaceholder": "Instituição",
+      "degreePlaceholder": "Diploma",
+      "fieldOfStudyPlaceholder": "Área de estudo",
+      "startDatePlaceholder": "Data de início",
+      "endDatePlaceholder": "Data de fim",
+      "addLink": "+ Adicionar uma formação"
+    },
+    "experience": {
+      "title": "Experiências",
+      "titlePlaceholder": "Designação do cargo",
+      "organizationPlaceholder": "Organização",
+      "addLink": "+ Adicionar uma experiência"
+    },
+    "cvLanguages": {
+      "title": "Idiomas",
+      "languagePlaceholder": "Idioma (ex.: Inglês)",
+      "addLink": "+ Adicionar um idioma",
+      "levels": {
+        "BASIQUE": "Básico",
+        "INTERMEDIAIRE": "Intermédio",
+        "AVANCE": "Avançado",
+        "COURANT": "Fluente",
+        "NATIF": "Nativo"
+      }
+    },
+    "recommendations": {
+      "title": "Recomendações recebidas",
+      "hint": "Uma recomendação permanece oculta enquanto não a mostrar você mesmo no seu perfil.",
+      "visible": "Visível no perfil",
+      "hidden": "Oculta",
+      "show": "Mostrar no perfil",
+      "hide": "Ocultar"
+    },
+    "ambassadorLink": "Espaço de embaixador"
+  },
+  "opportunities": {
+    "detailTitle": "Detalhe da oferta",
+    "alertsTitle": "Os meus alertas",
+    "search": {
+      "filters": "Filtros",
+      "countryPlaceholder": "País",
+      "cityPlaceholder": "Cidade",
+      "sectorPlaceholder": "Setor",
+      "allTypes": "Todos os tipos",
+      "searchButton": "Pesquisar",
+      "searchError": "Não foi possível pesquisar.",
+      "empty": "Nenhuma oferta corresponde a estes critérios.",
+      "loadMore": "Ver mais ofertas",
+      "keywordsPlaceholder": "Profissão, competência, empresa…",
+      "clearKeywords": "Limpar a pesquisa",
+      "emptyKeywords": "Nenhuma oferta para «{{keywords}}». Tente outra palavra: a pesquisa já reconhece abreviaturas e erros de escrita."
+    },
+    "detail": {
+      "notFound": "Oferta indisponível.",
+      "verifiedOrg": "Organização verificada",
+      "relocationRequired": "Deslocação necessária",
+      "accommodationProvided": "Alojamento fornecido",
+      "descriptionTitle": "Descrição",
+      "mobilityBenefitsTitle": "Benefícios ligados à mobilidade",
+      "apply": {
+        "button": "Candidatar-me",
+        "confirmTitle": "Confirmar a minha candidatura",
+        "confirmHint": "O seu processo (perfil, CV, idiomas, experiências) será enviado tal como está à organização.",
+        "relocateQuestion": "Está disposto(a) a mudar de residência?",
+        "familyQuestion": "Tem família no local?",
+        "submit": "Enviar a minha candidatura",
+        "error": "Não foi possível candidatar-se."
+      },
+      "report": {
+        "link": "Denunciar esta oferta",
+        "descriptionPlaceholder": "Descreva o problema (10 caracteres no mínimo)",
+        "submit": "Enviar a denúncia",
+        "confirmation": "Denúncia enviada, obrigado.",
+        "error": "Não foi possível enviar."
+      }
+    },
+    "alerts": {
+      "hint": "Crie um alerta para ser notificado das novas ofertas que correspondam aos seus critérios.",
+      "createLink": "+ Criar um alerta",
+      "createButton": "Criar o alerta",
+      "createError": "Não foi possível criar.",
+      "loadError": "Não foi possível carregar.",
+      "noAlerts": "Nenhum alerta por enquanto.",
+      "allOffers": "Todas as ofertas",
+      "showMatches": "Ver as ofertas correspondentes",
+      "hideMatches": "Ocultar",
+      "noMatches": "Nenhuma correspondência por enquanto."
+    }
+  },
+  "applications": {
+    "detailTitle": "A minha candidatura",
+    "list": {
+      "title": "As minhas candidaturas",
+      "loadError": "Não foi possível carregar.",
+      "empty": "Ainda não se candidatou a nenhuma oferta. Explore o separador Ofertas para começar.",
+      "spontaneous": "Candidatura espontânea"
+    },
+    "detail": {
+      "notFound": "Candidatura indisponível.",
+      "documentRequest": {
+        "sectionTitle": "Documento adicional solicitado",
+        "provideButton": "Fornecer um documento",
+        "submitError": "Não foi possível enviar."
+      },
+      "interview": {
+        "sectionTitle": "Entrevista proposta",
+        "modeLabel": "Modalidade: {{mode}}",
+        "locationLabel": "Local: {{location}}",
+        "confirmButton": "Confirmar a entrevista",
+        "confirmError": "Não foi possível confirmar."
+      },
+      "admissionLetter": {
+        "sectionTitle": "Carta de admissão recebida",
+        "hint": "Parabéns! Aceite a sua carta de admissão para continuar.",
+        "acceptButton": "Aceitar a carta de admissão",
+        "acceptError": "Não foi possível aceitar."
+      },
+      "travelConsent": {
+        "sectionTitle": "Consentimento parental para a deslocação",
+        "hint": "Foi enviado um SMS ao seu progenitor/tutor com um código de 6 dígitos. Peça-lho e introduza-o abaixo para confirmar o consentimento de deslocação.",
+        "codePlaceholder": "Código de 6 dígitos",
+        "confirmButton": "Confirmar o consentimento",
+        "error": "Código inválido ou expirado."
+      },
+      "signature": {
+        "sectionTitle": "Assinatura do acordo",
+        "youLabel": "Você: ",
+        "companyLabel": "Empresa: ",
+        "signedBy": "assinado por {{name}}",
+        "notSigned": "não assinado",
+        "namePlaceholder": "O seu nome completo",
+        "signButton": "Assinar o acordo",
+        "error": "Não foi possível assinar."
+      },
+      "report": {
+        "sectionTitle": "Relatório de estágio",
+        "submitted": "Relatório entregue.",
+        "submitButton": "Entregar o meu relatório de estágio",
+        "error": "Não foi possível enviar."
+      },
+      "documentPicker": {
+        "loadError": "Não foi possível carregar.",
+        "empty": "Nenhum documento no seu cofre — adicione um a partir do separador Cofre digital."
+      },
+      "artifacts": {
+        "sectionTitle": "Documentos",
+        "download": "Transferir",
+        "downloadError": "Não foi possível transferir."
+      },
+      "historyTitle": "Histórico",
+      "withdraw": {
+        "inProgress": "A retirar…",
+        "button": "Retirar a minha candidatura",
+        "confirmTitle": "Retirar esta candidatura?",
+        "error": "Não foi possível retirar.",
+        "errorTitle": "Erro"
+      }
+    }
+  },
+  "digitalSafe": {
+    "layoutTitle": "Cofre digital",
+    "documentTitle": "Documento",
+    "loadError": "Não foi possível carregar.",
+    "empty": "Nenhum documento por enquanto.",
+    "addLink": "+ Adicionar um documento",
+    "categoryLabel": "Categoria",
+    "titlePlaceholder": "Título do documento",
+    "chooseFile": "Escolher um ficheiro",
+    "fileSelected": "Ficheiro: {{name}}",
+    "send": "Enviar",
+    "uploadError": "Não foi possível enviar.",
+    "categories": {
+      "IDENTITY": "Documento de identificação",
+      "DIPLOMA": "Diploma",
+      "CERTIFICATE": "Certificado",
+      "INTERNSHIP_REPORT": "Relatório de estágio",
+      "CONVENTION": "Acordo",
+      "ADMISSION_LETTER": "Carta de admissão",
+      "OTHER": "Outro"
+    },
+    "detail": {
+      "notFound": "Documento não encontrado.",
+      "unavailable": "Documento indisponível.",
+      "rename": {
+        "titlePlaceholder": "Título",
+        "button": "Mudar o nome",
+        "saveError": "Não foi possível guardar."
+      },
+      "versions": {
+        "sectionTitle": "Versões",
+        "downloadLatest": "Transferir a última versão",
+        "downloadError": "Não foi possível transferir.",
+        "versionLabel": "Versão {{number}} — {{fileName}}",
+        "addNew": "Adicionar uma nova versão",
+        "uploadError": "Não foi possível enviar."
+      },
+      "shares": {
+        "sectionTitle": "Partilha",
+        "link": "Ligação",
+        "user": "Utilizador",
+        "expiresOn": "Expira a {{date}}",
+        "noExpiry": "Sem expiração",
+        "revoke": "Revogar",
+        "createLink": "Criar uma ligação de partilha (código QR)",
+        "createError": "Não foi possível criar a partilha."
+      },
+      "accessLog": {
+        "sectionTitle": "Registo de acessos",
+        "empty": "Nenhum acesso registado.",
+        "you": "Você",
+        "actions": {
+          "VIEWED": "Consultado",
+          "DOWNLOADED": "Transferido",
+          "SHARE_CREATED": "Partilha criada",
+          "SHARE_REVOKED": "Partilha revogada"
+        }
+      },
+      "delete": {
+        "button": "Eliminar o documento",
+        "confirmTitle": "Eliminar este documento?",
+        "error": "Não foi possível eliminar.",
+        "errorTitle": "Erro"
+      }
+    }
+  },
+  "recruiter": {
+    "layout": {
+      "organization": "A minha organização",
+      "team": "Equipa",
+      "needs": "Necessidades especiais",
+      "learners": "Formandos",
+      "campaigns": "Campanhas",
+      "learnerApplications": "Acordos",
+      "reports": "Relatórios de estágio",
+      "dashboard": "Painel",
+      "partners": "Empresas parceiras",
+      "subscription": "Subscrição",
+      "sponsor": "Patrocinar uma subscrição",
+      "myOpportunities": "As minhas ofertas",
+      "newOpportunity": "Nova oferta",
+      "manageOpportunity": "Gerir a oferta",
+      "receivedApplications": "Candidaturas recebidas",
+      "applicationDetail": "Candidatura"
+    },
+    "home": {
+      "title": "Espaço do recrutador",
+      "loadError": "Não foi possível carregar.",
+      "noOrgNotice": "A criação de uma organização exige o perfil Empresa ou Instituição de ensino.",
+      "addRoleButton": "Adicionar este perfil ao meu perfil",
+      "myOpportunitiesHint": "Criar e gerir as suas ofertas publicadas.",
+      "receivedApplicationsHint": "Tratar as candidaturas às suas ofertas.",
+      "invitationsTitle": "Convites recebidos",
+      "roleProposed": "Função proposta: {{role}}",
+      "actionError": "Ação impossível.",
+      "newOrgButton": "+ Nova organização",
+      "newOrgTitle": "Nova organização",
+      "orgNamePlaceholder": "Nome da organização",
+      "sectorPlaceholder": "Setor (opcional)",
+      "countryPlaceholder": "País",
+      "cityPlaceholder": "Cidade",
+      "createButton": "Criar",
+      "createError": "Não foi possível criar.",
+      "acquisitionSourceLabel": "Como conheceu a LES STAGIAIRES?",
+      "ambassadorCodeLabel": "Código de embaixador (opcional)",
+      "ambassadorCodePlaceholder": "Ex.: AB34CD",
+      "ambassadorCodeHint": "A pergunta acima é uma estatística. Só este código liga a sua empresa a um embaixador."
+    },
+    "organization": {
+      "notFound": "Organização não encontrada.",
+      "unavailable": "Organização indisponível.",
+      "loadError": "Não foi possível carregar.",
+      "notVerifiedNotice": "Enquanto esta organização não for verificada pela equipa LES STAGIAIRES, as suas ofertas não podem ser publicadas nem retomadas.",
+      "teamHint": "Convidar e gerir os colaboradores.",
+      "needsHint": "Sazonal, voluntariado, temporário.",
+      "learnersHint": "Vincular e verificar os seus formandos.",
+      "campaignsHint": "Períodos de estágio da instituição.",
+      "learnerApplicationsHint": "Acompanhamento das candidaturas dos formandos.",
+      "reportsHint": "Correção e validação.",
+      "dashboardHint": "Taxa de inserção dos formandos.",
+      "partnersHint": "Diretório das organizações de acolhimento.",
+      "subscriptionHint": "Subscrever um plano para a organização.",
+      "page": {
+        "sectionTitle": "Página pública",
+        "descriptionPlaceholder": "Apresentação da organização",
+        "websitePlaceholder": "Site web (https://…)",
+        "logoPlaceholder": "URL do logótipo (https://…)",
+        "saveError": "Não foi possível guardar."
+      }
+    },
+    "team": {
+      "unavailable": "Organização indisponível.",
+      "loadError": "Não foi possível carregar.",
+      "emptyMembers": "Nenhum membro por enquanto.",
+      "revoking": "A revogar…",
+      "revoke": "Revogar o acesso",
+      "revokeError": "Não foi possível revogar.",
+      "inviteSectionTitle": "Convidar um colaborador",
+      "inviteHint": "A pessoa já deve ter uma conta LES STAGIAIRES com este número.",
+      "phonePlaceholder": "Telefone (ex.: +237670000000)",
+      "sendInvite": "Enviar o convite",
+      "inviteError": "Não foi possível convidar."
+    },
+    "needs": {
+      "unavailable": "Organização indisponível.",
+      "loadError": "Não foi possível carregar.",
+      "hint": "As ofertas sazonais, de voluntariado ou temporárias exigem a aprovação da equipa LES STAGIAIRES antes da publicação.",
+      "empty": "Nenhum pedido por enquanto.",
+      "responseLabel": "Resposta: {{note}}",
+      "newRequestTitle": "Novo pedido",
+      "quantityPlaceholder": "Quantidade",
+      "descriptionPlaceholder": "Descreva a sua necessidade",
+      "submit": "Enviar o pedido",
+      "submitError": "Não foi possível enviar."
+    },
+    "opportunityForm": {
+      "loadError": "Não foi possível carregar.",
+      "organizationLabel": "ORGANIZAÇÃO",
+      "titlePlaceholder": "Título da oferta",
+      "descriptionPlaceholder": "Descrição",
+      "typeLabel": "TIPO",
+      "gatedTypeHint": "Este tipo exige um pedido de necessidade especial aprovado antes da publicação (ver «Necessidades especiais» na ficha da organização).",
+      "sectorPlaceholder": "Setor",
+      "countryPlaceholder": "País",
+      "cityPlaceholder": "Cidade",
+      "workModeLabel": "MODALIDADE DE TRABALHO",
+      "relocationLabel": "DESLOCAÇÃO NECESSÁRIA",
+      "accommodationLabel": "ALOJAMENTO FORNECIDO",
+      "mobilityBenefitsPlaceholder": "Benefícios ligados à mobilidade (opcional)",
+      "submit": "Criar como rascunho",
+      "createError": "Não foi possível criar."
+    },
+    "myOpportunities": {
+      "loadError": "Não foi possível carregar.",
+      "newLink": "+ Nova oferta",
+      "empty": "Nenhuma oferta por enquanto."
+    },
+    "manageOpportunity": {
+      "unavailable": "Oferta indisponível.",
+      "loadError": "Não foi possível carregar.",
+      "actionError": "Ação impossível.",
+      "actions": {
+        "publish": "Publicar",
+        "pause": "Colocar em pausa",
+        "resume": "Retomar",
+        "fill": "Marcar como preenchida",
+        "cancel": "Cancelar"
+      },
+      "detailsTitle": "Detalhes",
+      "sectorLabel": "Setor: {{sector}}",
+      "locationLabel": "Local: {{city}}, {{country}}",
+      "modeLabel": "Modalidade: {{mode}}",
+      "relocationLabel": "Deslocação necessária: {{value}}",
+      "accommodationLabel": "Alojamento fornecido: {{value}}",
+      "benefitsLabel": "Benefícios: {{benefits}}",
+      "editTitle": "Editar o rascunho",
+      "titlePlaceholder": "Título",
+      "saveError": "Não foi possível guardar."
+    },
+    "receivedApplications": {
+      "allFilter": "Todas",
+      "loadError": "Não foi possível carregar.",
+      "empty": "Nenhuma candidatura para este filtro.",
+      "candidateLabel": "Candidato: {{lsId}}",
+      "detail": {
+        "unavailable": "Candidatura indisponível.",
+        "candidateLabel": "Candidato: {{lsId}}",
+        "dossier": {
+          "title": "Processo do candidato",
+          "education": "FORMAÇÕES",
+          "experience": "EXPERIÊNCIAS",
+          "languages": "IDIOMAS",
+          "recommendationsCount": "{{count}} recomendação(ões) recebida(s).",
+          "empty": "Perfil não preenchido pelo candidato."
+        },
+        "markUnderReview": "Passar para em análise",
+        "actionError": "Ação impossível.",
+        "documentRequests": {
+          "title": "Documentos adicionais",
+          "fulfilled": "Fornecido pelo candidato",
+          "pending": "Pendente"
+        },
+        "requestDocument": {
+          "openButton": "Pedir um documento",
+          "title": "Pedir um documento adicional",
+          "placeholder": "Ex.: cópia do documento de identificação",
+          "error": "Não foi possível pedir.",
+          "submit": "Enviar o pedido",
+          "cancel": "Cancelar"
+        },
+        "interview": {
+          "title": "Entrevista",
+          "modeLabel": "Modalidade: {{mode}}",
+          "locationLabel": "Local: {{location}}",
+          "confirmed": "Confirmada pelo candidato.",
+          "awaitingConfirmation": "A aguardar confirmação do candidato.",
+          "datePlaceholder": "Data da entrevista",
+          "timePlaceholder": "Hora (ex.: 14:30)",
+          "modePlaceholder": "Modalidade (ex.: videoconferência, presencial)",
+          "locationPlaceholder": "Local (opcional)",
+          "error": "Não foi possível propor.",
+          "reschedule": "Remarcar a entrevista",
+          "propose": "Propor a entrevista",
+          "proposeNew": "Propor uma entrevista",
+          "cancel": "Cancelar"
+        },
+        "travelConsent": {
+          "title": "Consentimento parental pendente",
+          "body": "O candidato é menor e a oferta exige deslocação — aguarda-se a confirmação por SMS do consentimento parental de deslocação."
+        },
+        "admissionLetterSent": {
+          "title": "Carta de admissão enviada",
+          "body": "A aguardar a aceitação da carta de admissão pelo candidato."
+        },
+        "decision": {
+          "title": "Decisão",
+          "notePlaceholder": "Nota (opcional)",
+          "error": "Não foi possível decidir.",
+          "accept": "Aceitar",
+          "reject": "Recusar"
+        },
+        "signature": {
+          "title": "Assinatura do acordo",
+          "candidateLabel": "Candidato:",
+          "yourLabel": "Você:",
+          "signedBy": "assinado por {{name}}",
+          "unsigned": "não assinado",
+          "namePlaceholder": "Nome do signatário (em nome da organização)",
+          "error": "Não foi possível assinar.",
+          "submit": "Assinar o acordo"
+        },
+        "complete": {
+          "title": "Encerramento do estágio",
+          "body": "Encerre o estágio depois de terminado para gerar o certificado de fim de estágio.",
+          "error": "Não foi possível encerrar.",
+          "submit": "Encerrar o estágio"
+        },
+        "recommend": {
+          "title": "Recomendação",
+          "sent": "Recomendação enviada, obrigado.",
+          "placeholder": "A sua recomendação para este estagiário",
+          "error": "Não foi possível enviar.",
+          "submit": "Enviar a recomendação"
+        },
+        "artifacts": {
+          "title": "Documentos",
+          "download": "Transferir",
+          "error": "Não foi possível transferir."
+        },
+        "history": {
+          "title": "Histórico"
+        }
+      }
+    },
+    "learners": {
+      "loadError": "Não foi possível carregar.",
+      "unavailable": "Organização indisponível.",
+      "title": "Formandos",
+      "empty": "Nenhum formando por enquanto.",
+      "verifyError": "Não foi possível verificar.",
+      "revokeError": "Não foi possível revogar.",
+      "verifiedStatus": "Vinculação verificada",
+      "pendingVerification": "A aguardar verificação",
+      "verify": "Verificar",
+      "sponsor": "Oferecer uma subscrição",
+      "revoke": "Revogar",
+      "invite": {
+        "title": "Vincular um formando",
+        "hint": "A pessoa já deve ter uma conta LES STAGIAIRES com este número.",
+        "phonePlaceholder": "Telefone (ex.: +237670000000)",
+        "error": "Não foi possível convidar.",
+        "submit": "Enviar o convite"
+      }
+    },
+    "campaigns": {
+      "loadError": "Não foi possível carregar.",
+      "unavailable": "Organização indisponível.",
+      "title": "Campanhas de estágio",
+      "empty": "Nenhuma campanha por enquanto.",
+      "actionError": "Ação impossível.",
+      "activate": "Ativar",
+      "close": "Encerrar",
+      "create": {
+        "title": "Nova campanha",
+        "namePlaceholder": "Nome da campanha",
+        "startDatePlaceholder": "Data de início",
+        "endDatePlaceholder": "Data de fim",
+        "error": "Não foi possível criar.",
+        "submit": "Criar"
+      }
+    },
+    "learnerApplications": {
+      "loadError": "Não foi possível carregar.",
+      "unavailable": "Organização indisponível.",
+      "title": "Acordos dos formandos",
+      "subtitle": "Acompanhamento das candidaturas dos formandos verificados da sua instituição.",
+      "empty": "Nenhuma candidatura por enquanto.",
+      "signedBy": "Acordo assinado por {{name}}",
+      "participationRequested": "Participação da instituição pedida — não assinada"
+    },
+    "reports": {
+      "loadError": "Não foi possível carregar.",
+      "unavailable": "Organização indisponível.",
+      "title": "Relatórios de estágio",
+      "empty": "Nenhum relatório por enquanto.",
+      "noteLabel": "Nota: {{note}}",
+      "downloadError": "Não foi possível transferir.",
+      "download": "Transferir o relatório",
+      "actionError": "Ação impossível.",
+      "notePlaceholder": "Nota (opcional)",
+      "validate": "Validar",
+      "requestRevision": "Pedir uma correção"
+    },
+    "dashboard": {
+      "loadError": "Não foi possível carregar.",
+      "unavailable": "Organização indisponível.",
+      "eyebrow": "Visão geral",
+      "title": "Painel de inserção",
+      "totalLearners": "Formandos",
+      "verifiedLearners": "Formandos verificados",
+      "totalApplications": "Candidaturas",
+      "learnersWithInternship": "Em estágio / estágio realizado",
+      "completedInternships": "Estágios concluídos",
+      "insertionRate": "Taxa de inserção"
+    },
+    "partners": {
+      "loadError": "Não foi possível carregar.",
+      "unavailable": "Organização indisponível.",
+      "title": "Empresas parceiras",
+      "subtitle": "Organizações que acolheram pelo menos um formando verificado da sua instituição.",
+      "empty": "Nenhuma empresa parceira por enquanto."
+    },
+    "subscribe": {
+      "title": "Subscrição da organização",
+      "intro": "Subscrever o plano {{plan}} para esta organização. O pagamento é feito por Mobile Money, sem nunca introduzir o seu código PIN na aplicação.",
+      "submit": "Subscrever",
+      "error": "Não foi possível subscrever.",
+      "backToOrganization": "Voltar à organização"
+    },
+    "sponsor": {
+      "title": "Oferecer uma subscrição",
+      "intro": "Subscrever uma fórmula individual em nome de {{name}}. Se este beneficiário for menor, é necessário o consentimento ativo de um progenitor ou tutor.",
+      "unavailable": "Beneficiário não encontrado.",
+      "submit": "Continuar para o pagamento",
+      "error": "Não foi possível subscrever.",
+      "backToLearners": "Voltar aos formandos"
+    },
+    "quality": {
+      "title": "Qualidade da sua oferta",
+      "intro": "Este diagnóstico diz respeito apenas à sua oferta. LES STAGIAIRES não a compara com nenhuma outra nem lhe atribui qualquer nota.",
+      "nothingToFix": "Nada a corrigir nesta oferta.",
+      "loadError": "Diagnóstico indisponível de momento."
+    }
+  },
+  "security": {
+    "title": "Segurança",
+    "twoFactorTitle": "Autenticação em duas etapas",
+    "twoFactorDescription": "Será pedido um código por SMS em cada início de sessão, além da palavra-passe.",
+    "enabled": "Ativada",
+    "disabled": "Desativada",
+    "enable": "Ativar",
+    "disable": "Desativar",
+    "disablePasswordPlaceholder": "Palavra-passe (para desativar)",
+    "enableError": "Não foi possível ativar.",
+    "disableError": "Não foi possível desativar.",
+    "devicesTitle": "Dispositivos ligados",
+    "devicesDescription": "Estes dispositivos têm acesso à sua conta. Revogue de imediato qualquer dispositivo que não reconheça.",
+    "noDevices": "Nenhum dispositivo ligado.",
+    "lastActivity": "Última atividade: {{date}}",
+    "disconnectDevice": "Desligar este dispositivo",
+    "revokeError": "Não foi possível revogar."
+  },
+  "labels": {
+    "applicationStatus": {
+      "SUBMITTED": "Enviada",
+      "UNDER_REVIEW": "Em análise",
+      "ADDITIONAL_DOCUMENT_REQUESTED": "Documento adicional pedido",
+      "INTERVIEW_PROPOSED": "Entrevista proposta",
+      "INTERVIEW_CONFIRMED": "Entrevista confirmada",
+      "ADMISSION_LETTER_SENT": "Carta de admissão recebida",
+      "ACCEPTED": "Aceite",
+      "AWAITING_TRAVEL_CONSENT": "A aguardar consentimento parental",
+      "REJECTED": "Não selecionada",
+      "WITHDRAWN": "Retirada",
+      "COMPLETED": "Concluída"
+    },
+    "artifactKind": {
+      "ADMISSION_LETTER": "Carta de admissão",
+      "CONVENTION": "Acordo de estágio",
+      "ATTESTATION": "Certificado de fim de estágio"
+    },
+    "organizationVerification": {
+      "PENDING": "Verificação pendente",
+      "VERIFIED": "Verificada",
+      "REJECTED": "Verificação recusada"
+    },
+    "opportunityStatus": {
+      "DRAFT": "Rascunho",
+      "PENDING_REVIEW": "A aguardar verificação",
+      "ACTIVE": "Publicada",
+      "PAUSED": "Em pausa",
+      "FILLED": "Preenchida",
+      "EXPIRED": "Expirada",
+      "CANCELLED": "Cancelada",
+      "REPORTED": "Denunciada",
+      "SUSPENDED": "Suspensa",
+      "ARCHIVED": "Arquivada"
+    },
+    "memberRole": {
+      "ADMIN": "Administrador",
+      "RECRUITER": "Recrutador",
+      "VIEWER": "Apenas leitura"
+    },
+    "memberStatus": {
+      "PENDING": "Convite pendente",
+      "ACTIVE": "Ativo",
+      "REVOKED": "Revogado"
+    },
+    "needRequestType": {
+      "SEASONAL": "Sazonal",
+      "VOLUNTEER": "Voluntariado",
+      "TEMPORARY": "Temporário"
+    },
+    "needRequestStatus": {
+      "PENDING": "Pendente",
+      "APPROVED": "Aprovado",
+      "REJECTED": "Recusado"
+    },
+    "opportunityType": {
+      "ACADEMIC_INTERNSHIP": "Estágio académico",
+      "PROFESSIONAL_INTERNSHIP": "Estágio profissional",
+      "SEASONAL": "Sazonal",
+      "WORK_STUDY": "Formação em alternância",
+      "VOLUNTEER": "Voluntariado",
+      "TEMPORARY": "Temporário"
+    },
+    "workMode": {
+      "ON_SITE": "Presencial",
+      "REMOTE": "Teletrabalho",
+      "HYBRID": "Híbrido"
+    },
+    "learnerStatus": {
+      "PENDING": "Convite pendente",
+      "ACTIVE": "Vinculado",
+      "REVOKED": "Revogado"
+    },
+    "campaignStatus": {
+      "DRAFT": "Rascunho",
+      "ACTIVE": "Ativa",
+      "CLOSED": "Encerrada"
+    },
+    "reportStatus": {
+      "SUBMITTED": "Entregue",
+      "NEEDS_REVISION": "Correção pedida",
+      "VALIDATED": "Validado"
+    },
+    "reportCategory": {
+      "HARASSMENT": "Assédio",
+      "ABUSE": "Abuso",
+      "DANGER": "Perigo",
+      "FRAUD": "Fraude",
+      "OTHER": "Outro"
+    },
+    "moderationStatus": {
+      "OPEN": "Aberto",
+      "REVIEWED": "Analisado",
+      "CLOSED": "Encerrado"
+    },
+    "partnershipReason": {
+      "BECOME_PARTNER": "Tornar-se parceiro",
+      "PUBLISH_OPPORTUNITIES": "Publicar ofertas de estágio",
+      "RECRUITMENT_CAMPAIGN": "Organizar uma campanha de recrutamento",
+      "MASS_RECRUITMENT": "Recrutamento em massa",
+      "PARTNERSHIP_AGREEMENT": "Assinatura de um acordo de parceria",
+      "PLATFORM_DEMO": "Demonstração da plataforma",
+      "TRAINING_SUPPORT": "Formação ou acompanhamento",
+      "COMMERCIAL_INFO": "Pedido de informações comerciais",
+      "TECHNICAL_SUPPORT": "Apoio técnico",
+      "OTHER": "Outro"
+    },
+    "partnershipOrgType": {
+      "COMPANY": "Empresa",
+      "NGO": "ONG",
+      "PUBLIC_ADMINISTRATION": "Administração pública",
+      "INTERNATIONAL_ORGANIZATION": "Organização internacional",
+      "UNIVERSITY": "Universidade",
+      "SCHOOL": "Escola",
+      "TRAINING_CENTER": "Centro de formação",
+      "CONSULTING_FIRM": "Consultora",
+      "STARTUP": "Startup",
+      "OTHER": "Outro"
+    },
+    "partnershipStatus": {
+      "NEW": "Novo",
+      "IN_PROGRESS": "Em curso",
+      "PROCESSED": "Tratado",
+      "CLOSED": "Encerrado"
+    },
+    "subscriptionStatus": {
+      "PENDING_PAYMENT": "A aguardar pagamento",
+      "ACTIVE": "Ativa",
+      "PAYMENT_FAILED": "Pagamento falhado",
+      "EXPIRED": "Expirada",
+      "CANCELLED": "Cancelada"
+    },
+    "subscriptionPlan": {
+      "BUSINESS": "Empresa",
+      "INSTITUTION": "Instituição",
+      "GRATUIT": "Gratuito",
+      "CARRIERE_SECURISEE": "Carreira Segura",
+      "CARRIERE_PLUS": "Carreira Plus"
+    },
+    "billingCycle": {
+      "ONE_TIME": "Pontual",
+      "QUARTERLY": "Trimestral",
+      "ANNUAL": "Anual"
+    },
+    "ambassadorStatus": {
+      "PENDING": "Pendente",
+      "ACTIVE": "Ativo",
+      "SUSPENDED": "Suspenso",
+      "TERMINATED": "Fora do programa"
+    },
+    "commissionStatus": {
+      "PENDING": "Pendente",
+      "APPROVED": "Aprovada",
+      "PAYABLE": "Exigível",
+      "PAID": "Paga",
+      "CANCELLED": "Anulada",
+      "REVERSED": "Revertida",
+      "DISPUTED": "Contestada",
+      "BLOCKED": "Bloqueada"
+    },
+    "commissionNature": {
+      "ACQUISITION": "Angariação",
+      "NEW_SERVICE": "Novo serviço",
+      "RENEWAL": "Renovação",
+      "BONUS": "Prémio"
+    },
+    "payoutStatus": {
+      "REQUESTED": "Pedido",
+      "VALIDATED": "Validado",
+      "EXECUTED": "Pago",
+      "REJECTED": "Recusado",
+      "CANCELLED": "Anulado"
+    },
+    "acquisitionSource": {
+      "AMBASSADOR": "Embaixador",
+      "INTERNET": "Internet",
+      "SOCIAL_MEDIA": "Redes sociais",
+      "UNIVERSITY": "Universidade",
+      "SCHOOL": "Escola",
+      "TRAINING_CENTER": "Centro de formação",
+      "PARTNER_COMPANY": "Empresa parceira",
+      "TRADE_SHOW": "Feira",
+      "ADVERTISING": "Publicidade",
+      "RECOMMENDATION": "Recomendação",
+      "OTHER": "Outro"
+    },
+    "notificationType": {
+      "PARTNERSHIP_REQUEST_NEW": {
+        "title": "Novo pedido de parceria",
+        "body": "{{organizationName}} submeteu um pedido através do formulário público."
+      },
+      "PARTNERSHIP_APPLIED": {
+        "title": "Candidatura à parceria",
+        "body": "A sua candidatura ao programa de parceria foi registada."
+      },
+      "PARTNERSHIP_ADDITIONAL_INFORMATION_REQUIRED": {
+        "title": "Elementos complementares",
+        "body": "O seu processo de parceria carece de elementos complementares. Nenhuma decisão foi tomada."
+      },
+      "PARTNERSHIP_ADDITIONAL_INFORMATION_PROVIDED": {
+        "title": "Processo completado",
+        "body": "Uma organização completou o seu processo de parceria."
+      },
+      "PARTNERSHIP_APPROVED": {
+        "title": "Parceria aceite",
+        "body": "A sua organização é agora parceira da LES STAGIAIRES."
+      },
+      "PARTNERSHIP_REFUSED": {
+        "title": "Parceria recusada",
+        "body": "A sua candidatura ao programa de parceria não foi aceite."
+      },
+      "PARTNERSHIP_SUSPENDED": {
+        "title": "Parceria suspensa",
+        "body": "A sua parceria está suspensa. O motivo foi-lhe comunicado."
+      },
+      "PARTNERSHIP_REINSTATED": {
+        "title": "Parceria restabelecida",
+        "body": "A sua parceria está novamente ativa."
+      },
+      "PARTNERSHIP_TERMINATION_REQUESTED": {
+        "title": "Pedido de rescisão",
+        "body": "Foi registado um pedido de rescisão da parceria."
+      },
+      "PARTNERSHIP_TERMINATION_REQUEST_WITHDRAWN": {
+        "title": "Pedido de rescisão retirado",
+        "body": "O pedido de rescisão foi retirado. A parceria continua."
+      },
+      "PARTNERSHIP_TERMINATED": {
+        "title": "Parceria rescindida",
+        "body": "A sua parceria terminou. O motivo foi-lhe comunicado."
+      },
+      "AMBASSADOR_APPROVED": {
+        "title": "Candidatura de embaixador aceite",
+        "body": "Bem-vindo ao programa de embaixadores."
+      },
+      "AMBASSADOR_SUSPENDED": {
+        "title": "Conta de embaixador suspensa",
+        "body": "As comissões já adquiridas continuam a ser-lhe devidas."
+      },
+      "AMBASSADOR_REINSTATED": {
+        "title": "Conta de embaixador restabelecida",
+        "body": "Pode voltar a angariar e a receber."
+      },
+      "AMBASSADOR_TERMINATED": {
+        "title": "Fim do programa de embaixador",
+        "body": "A sua participação no programa terminou."
+      },
+      "AMBASSADOR_COMMISSION_EARNED": {
+        "title": "Nova comissão",
+        "body": "Foi registada uma comissão na sua carteira."
+      },
+      "AMBASSADOR_COMMISSION_PAYABLE": {
+        "title": "Comissão exigível",
+        "body": "Uma comissão ficou disponível para levantamento."
+      },
+      "AMBASSADOR_PAYOUT_VALIDATED": {
+        "title": "Pagamento validado",
+        "body": "O seu pedido de pagamento foi validado pela administração."
+      },
+      "AMBASSADOR_PAYOUT_EXECUTED": {
+        "title": "Pagamento executado",
+        "body": "O seu pagamento foi enviado. Comunique-nos se não o receber."
+      },
+      "AMBASSADOR_PAYOUT_REJECTED": {
+        "title": "Pagamento recusado",
+        "body": "O seu pedido de pagamento foi recusado. O motivo está indicado."
+      },
+      "AMBASSADOR_PAYOUT_FAILED": {
+        "title": "Transferência não concluída",
+        "body": "Não foi possível efetuar a transferência. O montante voltou ao seu saldo disponível e continua a ser-lhe devido."
+      },
+      "AMBASSADOR_PAYMENT_DETAILS_CHANGED": {
+        "title": "Dados de pagamento alterados",
+        "body": "Os seus dados de pagamento foram alterados. Se não foi você, comunique-o imediatamente."
+      },
+      "AMBASSADOR_WALLET_DIVERGENCE": {
+        "title": "Discrepância contabilística detetada",
+        "body": "Uma carteira de embaixador diverge do livro-razão. Nenhuma correção automática foi aplicada."
+      },
+      "AMBASSADOR_COMMISSION_REVIEW_REQUIRED": {
+        "title": "Comissão em verificação",
+        "body": "Uma comissão excede um limite configurado. Aguarda validação, correção ou anulação."
+      },
+      "AMBASSADOR_FRAUD_ALERT": {
+        "title": "Alerta antifraude",
+        "body": "Foi detetado um comportamento invulgar num processo de embaixador. É necessária uma verificação manual."
+      },
+      "AMBASSADOR_PORTFOLIO_WARNING_9M": {
+        "title": "Carteira — 9 meses sem compras",
+        "body": "Sem uma nova compra em três meses, esta empresa sairá da sua carteira."
+      },
+      "AMBASSADOR_PORTFOLIO_WARNING_11M": {
+        "title": "Carteira — falta um mês",
+        "body": "Falta apenas um mês antes de esta ligação expirar."
+      },
+      "AMBASSADOR_PORTFOLIO_EXPIRED": {
+        "title": "Empresa libertada",
+        "body": "Após doze meses sem compras, esta empresa saiu da sua carteira."
+      },
+      "APPLICATION_SUBMITTED": {
+        "title": "Candidatura enviada",
+        "body": "A sua candidatura {{reference}} foi registada."
+      },
+      "APPLICATION_DOCUMENT_REQUESTED": {
+        "title": "Documento pedido",
+        "body": "É-lhe pedido um documento adicional para {{reference}}."
+      },
+      "APPLICATION_INTERVIEW_PROPOSED": {
+        "title": "Entrevista proposta",
+        "body": "Foi proposta uma data de entrevista para {{reference}}."
+      },
+      "APPLICATION_REJECTED": {
+        "title": "Candidatura não selecionada",
+        "body": "A sua candidatura {{reference}} não foi selecionada."
+      },
+      "APPLICATION_ADMISSION_LETTER_ISSUED": {
+        "title": "Candidatura aceite",
+        "body": "Espera-o uma carta de admissão para {{reference}}."
+      },
+      "APPLICATION_ACCEPTED_PENDING_TRAVEL_CONSENT": {
+        "title": "A aguardar consentimento parental",
+        "body": "A sua candidatura {{reference}} aguarda o consentimento do seu progenitor ou tutor."
+      },
+      "APPLICATION_TRAVEL_CONSENT_CONFIRMED": {
+        "title": "Consentimento parental confirmado",
+        "body": "A sua candidatura {{reference}} está agora aceite."
+      },
+      "APPLICATION_TRAVEL_CONSENT_EXPIRED": {
+        "title": "Candidatura bloqueada",
+        "body": "O consentimento parental não foi confirmado a tempo para {{reference}}."
+      },
+      "APPLICATION_AGREEMENT_FULLY_SIGNED": {
+        "title": "Acordo assinado",
+        "body": "O acordo de {{reference}} está assinado. O seu estágio pode começar."
+      },
+      "APPLICATION_ESTABLISHMENT_SIGNED": {
+        "title": "Instituição assinou",
+        "body": "A sua instituição assinou o acordo de {{reference}}."
+      },
+      "APPLICATION_INTERNSHIP_STARTING_SOON": {
+        "title": "O seu estágio aproxima-se",
+        "body": "O seu estágio {{reference}} começa em breve."
+      },
+      "APPLICATION_CLOSED": {
+        "title": "Estágio concluído",
+        "body": "O seu certificado de {{reference}} está disponível."
+      },
+      "APPLICATION_RECOMMENDATION_RECEIVED": {
+        "title": "Recomendação recebida",
+        "body": "{{organizationName}} deixou-lhe uma recomendação."
+      },
+      "APPLICATION_RECEIVED_ORG": {
+        "title": "Nova candidatura",
+        "body": "Acaba de ser recebida a candidatura {{reference}}."
+      },
+      "APPLICATION_DOCUMENT_SUBMITTED_ORG": {
+        "title": "Documento recebido",
+        "body": "O documento pedido para {{reference}} foi enviado."
+      },
+      "APPLICATION_INTERVIEW_CONFIRMED_ORG": {
+        "title": "Entrevista confirmada",
+        "body": "O candidato confirmou a entrevista de {{reference}}."
+      },
+      "APPLICATION_ADMISSION_ACCEPTED_ORG": {
+        "title": "Admissão aceite",
+        "body": "O candidato aceitou a carta de admissão de {{reference}}."
+      },
+      "APPLICATION_TRAVEL_CONSENT_CONFIRMED_ORG": {
+        "title": "Consentimento parental confirmado",
+        "body": "O consentimento de deslocação está confirmado para {{reference}}."
+      },
+      "APPLICATION_AGREEMENT_FULLY_SIGNED_ORG": {
+        "title": "Acordo assinado",
+        "body": "O acordo de {{reference}} está assinado por ambas as partes."
+      },
+      "APPLICATION_ESTABLISHMENT_SIGNED_ORG": {
+        "title": "Instituição assinou",
+        "body": "A instituição assinou o acordo de {{reference}}."
+      },
+      "APPLICATION_WITHDRAWN_ORG": {
+        "title": "Candidatura retirada",
+        "body": "O candidato retirou a sua candidatura {{reference}}."
+      },
+      "APPLICATION_ESTABLISHMENT_ASSOCIATION_REQUESTED": {
+        "title": "Associação a um acordo",
+        "body": "Uma empresa deseja associar a sua instituição a {{reference}}."
+      },
+      "LEARNER_INVITED": {
+        "title": "Vinculação proposta",
+        "body": "Uma instituição deseja vinculá-lo à sua conta."
+      },
+      "LEARNER_VERIFIED": {
+        "title": "Vinculação verificada",
+        "body": "A sua vinculação à instituição está confirmada."
+      },
+      "INTERNSHIP_REPORT_REVIEWED": {
+        "title": "Relatório de estágio analisado",
+        "body": "O seu relatório de {{reference}} foi analisado."
+      },
+      "ORGANIZATION_INVITATION_RECEIVED": {
+        "title": "Convite para uma equipa",
+        "body": "{{organizationName}} convida-o a juntar-se à sua equipa."
+      },
+      "ORGANIZATION_ACCESS_REVOKED": {
+        "title": "Acesso revogado",
+        "body": "O seu acesso a esta organização foi retirado."
+      },
+      "NEED_REQUEST_ANSWERED": {
+        "title": "Resposta ao seu pedido",
+        "body": "A administração respondeu ao seu pedido de necessidade."
+      }
+    },
+    "notificationCategory": {
+      "APPLICATIONS": "Candidaturas",
+      "INTERVIEWS": "Entrevistas",
+      "INTERNSHIPS": "Estágios",
+      "AGREEMENTS": "Acordos",
+      "ORGANIZATIONS": "Empresas",
+      "AMBASSADORS": "Embaixadores",
+      "MENTORING": "Mentoria",
+      "LEGAL": "Jurídico",
+      "PAYMENTS": "Pagamentos",
+      "SUBSCRIPTIONS": "Subscrições",
+      "PARTNERSHIPS": "Parcerias",
+      "ADMINISTRATION": "Administração",
+      "SECURITY": "Segurança",
+      "SYSTEM": "Sistema"
+    },
+    "matchReason": {
+      "SKILLS": "Corresponde às suas competências",
+      "OCCUPATION": "Corresponde à profissão que procura",
+      "LOCATION": "Perto de si",
+      "EDUCATION": "Corresponde ao seu nível",
+      "AVAILABILITY": "Compatível com a sua disponibilidade"
+    },
+    "qualityLevel": {
+      "INCOMPLETE": "Oferta incompleta",
+      "PERFECTIBLE": "Oferta a melhorar",
+      "COMPLETE": "Oferta completa"
+    },
+    "qualityCheck": {
+      "SKILLS_DECLARED": "Competências esperadas",
+      "OCCUPATION_LINKED": "Profissão associada",
+      "DESCRIPTION_SUBSTANTIAL": "Descrição",
+      "TITLE_INFORMATIVE": "Título",
+      "START_DATE_SET": "Data de início",
+      "STILL_FRESH": "Antiguidade da oferta",
+      "EDUCATION_STATED": "Nível de estudos esperado",
+      "LOCATION_USABLE": "Local de trabalho"
+    },
+    "qualityAdvice": {
+      "SKILLS_DECLARED": "Declare as competências esperadas: sem elas, a sua oferta não pode ser aproximada de nenhum perfil por aquilo que realmente exige.",
+      "OCCUPATION_LINKED": "Associe uma profissão: a sua oferta não chega aos candidatos que procuram essa profissão nem a sua família.",
+      "DESCRIPTION_SUBSTANTIAL": "Descreva as missões com mais precisão: é o que o candidato lê antes de se candidatar.",
+      "TITLE_INFORMATIVE": "Precise o título do cargo: um título de duas palavras não diz de que se trata.",
+      "START_DATE_SET": "Indique a data de início se a conhecer: os candidatos disponíveis nessa data verão melhor a sua oferta.",
+      "STILL_FRESH": "Esta oferta está publicada há mais de dois meses. Atualize-a ou encerre-a se o cargo estiver preenchido.",
+      "EDUCATION_STATED": "Precise o nível de estudos esperado: o candidato saberá se pode candidatar-se. Não o indicar não exclui ninguém.",
+      "LOCATION_USABLE": "Indique a cidade, ou escolha o modo à distância: o candidato deve saber se pode assumir este cargo."
+    }
+  },
+  "moderation": {
+    "title": "Moderação",
+    "loadError": "Não foi possível carregar.",
+    "unavailable": "Acesso reservado aos administradores.",
+    "filterAll": "Todos",
+    "empty": "Nenhuma denúncia para este filtro.",
+    "reporterLabel": "Denunciado por: {{lsId}}",
+    "targetLabel": "Oferta em causa: {{title}}",
+    "resolvedByLabel": "Tratado por {{lsId}} em {{date}}",
+    "resolutionNoteLabel": "Nota: {{note}}",
+    "resolveAction": "Tratar",
+    "notePlaceholder": "Nota de tratamento (opcional)",
+    "markReviewed": "Marcar como analisado",
+    "close": "Encerrar",
+    "resolveError": "Não foi possível tratar."
+  },
+  "contact": {
+    "title": "Contacte-nos",
+    "intro": "Empresas, ONG, administrações públicas, organizações internacionais, universidades, escolas, centros de formação e outros parceiros: contacte-nos para solicitar os serviços da LES STAGIAIRES.",
+    "organizationNamePlaceholder": "Nome da organização",
+    "organizationTypeLabel": "Tipo de organização",
+    "contactNamePlaceholder": "Nome e apelido do contacto",
+    "contactTitlePlaceholder": "Função (opcional)",
+    "phonePlaceholder": "Telefone (ex.: +237670000000)",
+    "emailPlaceholder": "Endereço de e-mail",
+    "countryPlaceholder": "País",
+    "cityPlaceholder": "Cidade (opcional)",
+    "reasonLabel": "Motivo do pedido",
+    "subjectPlaceholder": "Assunto do pedido",
+    "descriptionPlaceholder": "Descrição detalhada (10 caracteres no mínimo)",
+    "submit": "Enviar o pedido",
+    "successTitle": "Pedido enviado",
+    "successBody": "Obrigado, a nossa equipa entrará em contacto consigo em breve.",
+    "error": "Não foi possível enviar."
+  },
+  "partnershipRequests": {
+    "title": "Pedidos de parceria",
+    "loadError": "Não foi possível carregar.",
+    "unavailable": "Acesso reservado aos administradores.",
+    "filterAll": "Todos",
+    "empty": "Nenhum pedido para este filtro.",
+    "contactLabel": "Contacto: {{name}}",
+    "assignedLabel": "Atribuído a {{name}}",
+    "detail": {
+      "title": "Pedido",
+      "notFound": "Pedido não encontrado.",
+      "contactSection": "Contacto",
+      "requestSection": "Pedido",
+      "statusSection": "Estado",
+      "statusError": "Não foi possível alterar o estado.",
+      "assignSection": "Atribuição",
+      "unassigned": "Não atribuído",
+      "assignError": "Não foi possível atribuir.",
+      "notesSection": "Histórico de trocas",
+      "notePlaceholder": "Adicionar uma nota",
+      "addNote": "Adicionar",
+      "noteError": "Não foi possível enviar.",
+      "statusChangeNote": "{{previous}} → {{next}}",
+      "assignmentNote": "Atribuído a {{name}}",
+      "unassignmentNote": "Atribuição retirada"
+    }
+  },
+  "notifications": {
+    "title": "Notificações",
+    "loadError": "Não foi possível carregar.",
+    "empty": "Nenhuma notificação por enquanto.",
+    "partnershipRequestNew": "Novo pedido de parceria: {{organizationName}}"
+  },
+  "subscriptions": {
+    "title": "As minhas subscrições",
+    "intro": "Carreira Segura e Carreira Plus: apoio jurídico e preparação para a entrevista.",
+    "loadError": "Não foi possível carregar.",
+    "empty": "Nenhuma subscrição por enquanto.",
+    "newLink": "+ Subscrever uma fórmula",
+    "startedLabel": "Ativa desde {{date}}",
+    "periodEndLabel": "Renovação a {{date}}",
+    "cancelledLabel": "Cancelada a {{date}}",
+    "new": {
+      "title": "Subscrever uma fórmula",
+      "intro": "O pagamento é feito por Mobile Money, sem nunca introduzir o seu código PIN na aplicação — receberá instruções oficiais do prestador.",
+      "billingCycleLabel": "Periodicidade",
+      "parentRedirectLabel": "Enviar o pedido ao meu progenitor/tutor",
+      "parentRedirectHint": "Se for menor, pode optar por encaminhar este pedido ao seu progenitor ou tutor — nunca é obrigatório para subscrever por si próprio.",
+      "submit": "Continuar para o pagamento",
+      "error": "Não foi possível subscrever.",
+      "successTitle": "Subscrição registada",
+      "defaultInstructions": "Siga as instruções de pagamento que lhe serão comunicadas pelo prestador.",
+      "viewSubscriptions": "Ver as minhas subscrições",
+      "planLabel": "Fórmula",
+      "planHint": "O preço é calculado pela LES STAGIAIRES consoante a fórmula escolhida."
+    },
+    "detail": {
+      "title": "Subscrição",
+      "notFound": "Subscrição não encontrada.",
+      "planSection": "Plano",
+      "paymentSection": "Pagamento",
+      "pendingNotice": "A aguardar a confirmação oficial do prestador de pagamento — o estado atualiza-se automaticamente assim que o pagamento for confirmado.",
+      "refresh": "Atualizar o estado",
+      "manageSection": "Gestão",
+      "cancelButton": "Cancelar a subscrição",
+      "cancelError": "Não foi possível cancelar."
+    }
+  },
+  "subscriptionsAdmin": {
+    "filterAll": "Todos",
+    "unavailable": "Acesso reservado aos administradores.",
+    "loadError": "Não foi possível carregar.",
+    "empty": "Nenhuma subscrição para este filtro.",
+    "beneficiaryUserLabel": "Beneficiário: {{name}}",
+    "beneficiaryOrganizationLabel": "Organização: {{name}}"
+  },
+  "ambassador": {
+    "title": "Espaço de embaixador",
+    "loadError": "Não foi possível carregar o seu espaço de embaixador.",
+    "notAmbassador": "Ainda não é embaixador. O programa abre por convite da equipa LES STAGIAIRES.",
+    "codeLabel": "O seu código de afiliação",
+    "share": "Partilhar",
+    "shareMessage": "Junte-se à LES STAGIAIRES com o meu código de referência: {{code}}",
+    "contractPending": "As suas comissões acumulam-se normalmente. No entanto, nenhum pagamento poderá ser efetuado antes da assinatura do seu Contrato de Angariador de Negócios.",
+    "suspended": "A sua conta de embaixador está suspensa. As comissões já adquiridas continuam a ser-lhe devidas.",
+    "referralsSubtitle": "Jovens que referenciou",
+    "balance": {
+      "available": "Disponível",
+      "pending": "Pendente",
+      "reserved": "Retido",
+      "paid": "Total pago",
+      "hint": "O valor «pendente» passa a «disponível» no final do período de segurança, que cobre anulações e incumprimentos."
+    },
+    "portfolio": {
+      "title": "Carteira de empresas",
+      "subtitle": "Empresas que angariou",
+      "loadError": "Não foi possível carregar a sua carteira.",
+      "empty": "Ainda não angariou nenhuma empresa.",
+      "ruleTitle": "Como funciona a contagem decrescente",
+      "ruleBody": "Cada compra confirmada de uma empresa repõe o contador a zero por doze meses. Só uma compra confirmada o faz: nem nota, nem chamada, nem acompanhamento declarado. Passados doze meses sem compra, a empresa sai da sua carteira e fica novamente livre.",
+      "daysLeft": "{{count}} d",
+      "lastPurchase": "Última compra",
+      "neverPurchased": "Nenhuma",
+      "expiresAt": "Prazo"
+    },
+    "commissions": {
+      "title": "As minhas comissões",
+      "intro": "Uma comissão nasce apenas de um pagamento confirmado. O montante e a taxa são fixados no momento do cálculo: um extrato emitido hoje continuará verdadeiro daqui a um ano.",
+      "loadError": "Não foi possível carregar as suas comissões.",
+      "empty": "Nenhuma comissão por enquanto.",
+      "availableOn": "Exigível a partir de {{date}}"
+    },
+    "payouts": {
+      "title": "Pagamentos",
+      "subtitle": "Pedir um pagamento e acompanhar os seus pedidos",
+      "loadError": "Não foi possível carregar os seus pagamentos.",
+      "lockedTitle": "Pagamentos indisponíveis",
+      "lockedBody": "A assinatura do Contrato de Angariador de Negócios é necessária antes de qualquer pagamento. As suas comissões continuam adquiridas e ser-lhe-ão pagas logo após a assinatura.",
+      "amountLabel": "Montante a pagar ({{currency}})",
+      "methodLabel": "Meio de pagamento",
+      "methodPlaceholder": "Mobile Money, transferência bancária…",
+      "destinationLabel": "Destino",
+      "destinationPlaceholder": "Ex.: MTN MoMo — Nome Apelido",
+      "privacyHint": "Nunca indique o seu número completo nem o seu código secreto. Basta uma referência: a administração contactá-lo-á para concluir a transferência.",
+      "submit": "Pedir o pagamento",
+      "requested": "O seu pedido foi registado. Será analisado por um administrador.",
+      "error": "Não foi possível registar o seu pedido.",
+      "historyTitle": "Histórico",
+      "empty": "Nenhum pedido de pagamento.",
+      "reference": "Referência da transferência: {{reference}}"
+    }
+  },
+  "ambassadorsAdmin": {
+    "title": "Embaixadores",
+    "unavailable": "Esta secção é reservada aos administradores.",
+    "loadError": "Não foi possível carregar os embaixadores.",
+    "actionError": "A operação falhou.",
+    "tabAmbassadors": "Embaixadores",
+    "tabPayouts": "Pagamentos",
+    "emptyAmbassadors": "Nenhum embaixador registado.",
+    "emptyPayouts": "Nenhum pedido de pagamento.",
+    "contract": "Contrato de angariador",
+    "contractMissing": "Não assinado",
+    "walletSummary": "Disponível {{available}} · Pendente {{pending}}",
+    "approve": "Aceitar a candidatura",
+    "reinstate": "Reintegrar",
+    "validate": "Validar o pedido",
+    "executionReference": "Referência da transferência efetuada",
+    "executionPlaceholder": "Ex.: VIR-2026-0042",
+    "markExecuted": "Marcar como pago",
+    "reject": "Recusar",
+    "rejectPlaceholder": "Motivo da recusa (obrigatório, mínimo 10 caracteres)"
+  },
+  "notificationCentre": {
+    "title": "Centro de notificações",
+    "all": "Tudo",
+    "unread": "Não lidas",
+    "starred": "Favoritos",
+    "archived": "Arquivadas",
+    "searchPlaceholder": "Procurar uma referência, uma empresa…",
+    "empty": "Nenhuma notificação.",
+    "emptyFiltered": "Nenhuma notificação corresponde a este filtro.",
+    "loadError": "Não foi possível carregar as suas notificações.",
+    "markAllRead": "Marcar tudo como lido",
+    "star": "Adicionar aos favoritos",
+    "unstar": "Remover dos favoritos",
+    "archive": "Arquivar",
+    "unarchive": "Restaurar",
+    "open": "Abrir",
+    "loadMore": "Ver mais",
+    "attachments": "Anexos"
+  }
+}

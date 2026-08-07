@@ -1,10 +1,12 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Inject, Logger } from '@nestjs/common';
-import { TravelConsentStatus } from '../../generated/prisma/enums';
+import { Logger } from '@nestjs/common';
+import {
+  NotificationType,
+  TravelConsentStatus,
+} from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { SMS_PROVIDER } from '../sms/sms-provider.interface';
-import type { SmsProvider } from '../sms/sms-provider.interface';
 
 // Signalement d'un accord parental de déplacement resté sans réponse au-delà du délai
 // (par défaut 7 jours, TRAVEL_CONSENT_TTL_DAYS aligné sur consentExpiresAt). Ne clôture
@@ -17,7 +19,7 @@ export class TravelConsentSweepProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
-    @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
+    private readonly notifications: NotificationsService,
   ) {
     super();
   }
@@ -47,15 +49,17 @@ export class TravelConsentSweepProcessor extends WorkerHost {
         { applicationId: consent.applicationId },
       );
 
-      const candidate = await this.prisma.user.findUnique({
-        where: { id: consent.application.candidateId },
-      });
-      if (candidate?.phone) {
-        await this.sms.send(
-          candidate.phone,
-          `LES STAGIAIRES — votre candidature ${consent.application.reference} reste bloquée : l'accord de vos parents pour le déplacement n'a pas été confirmé à temps. Vous pouvez retirer la candidature ou redemander le consentement.`,
-        );
-      }
+      // Le CANDIDAT est prévenu par notification interne : il possède un compte.
+      // Le parent, lui, a déjà reçu son SMS porteur du code au moment de la demande —
+      // c'était là le canal irremplaçable, pas ici.
+      await this.notifications.notifyUser(
+        consent.application.candidateId,
+        NotificationType.APPLICATION_TRAVEL_CONSENT_EXPIRED,
+        {
+          applicationId: consent.applicationId,
+          reference: consent.application.reference,
+        },
+      );
     }
 
     if (overdue.length > 0) {

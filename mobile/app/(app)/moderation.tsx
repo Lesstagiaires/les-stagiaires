@@ -14,6 +14,7 @@ import {
   useReportCategoryLabels,
 } from '../../lib/report-labels';
 import { useAuth } from '../../lib/auth-context';
+import { EmptyState } from '../../components/empty-state';
 
 type StatusFilter = ReportStatus | '__all__';
 
@@ -40,6 +41,7 @@ export default function ModerationScreen() {
       setReports(await api.listAllReports(accessToken, status));
       setError(null);
     } catch (err) {
+      setReports([]);
       if (err instanceof ApiError && err.statusCode === 401) {
         void logout();
         return;
@@ -78,7 +80,7 @@ export default function ModerationScreen() {
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : reports.length === 0 ? (
-          <Text style={styles.emptyText}>{t('moderation.empty')}</Text>
+          <EmptyState message={t('moderation.empty')} />
         ) : (
           <View style={styles.list}>
             {reports.map((report) => (
@@ -220,11 +222,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxl,
-  },
-  emptyText: {
-    ...typography.caption,
-    textAlign: 'center',
-    marginTop: spacing.xl,
   },
   list: {
     gap: spacing.sm,

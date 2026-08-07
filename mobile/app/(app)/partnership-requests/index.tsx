@@ -14,6 +14,7 @@ import {
   usePartnershipStatusLabels,
 } from '../../../lib/partnership-request-labels';
 import { useAuth } from '../../../lib/auth-context';
+import { EmptyState } from '../../../components/empty-state';
 
 type StatusFilter = PartnershipRequestStatus | '__all__';
 
@@ -42,6 +43,7 @@ export default function PartnershipRequestsScreen() {
       setRequests(await api.listPartnershipRequests(accessToken, { status }));
       setError(null);
     } catch (err) {
+      setRequests([]);
       if (err instanceof ApiError && err.statusCode === 401) {
         void logout();
         return;
@@ -78,7 +80,7 @@ export default function PartnershipRequestsScreen() {
         ) : error ? (
           <ErrorText>{error}</ErrorText>
         ) : requests.length === 0 ? (
-          <Text style={styles.emptyText}>{t('partnershipRequests.empty')}</Text>
+          <EmptyState message={t('partnershipRequests.empty')} />
         ) : (
           <View style={styles.list}>
             {requests.map((request) => (
@@ -132,11 +134,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: spacing.xxl,
-  },
-  emptyText: {
-    ...typography.caption,
-    textAlign: 'center',
-    marginTop: spacing.xl,
   },
   list: {
     gap: spacing.md,

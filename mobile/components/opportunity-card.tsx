@@ -1,11 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Opportunity } from '../lib/api';
-import { useOpportunityTypeLabels, useWorkModeLabels } from '../lib/opportunity-labels';
+import {
+  useMatchReasonLabels,
+  useOpportunityTypeLabels,
+  useWorkModeLabels,
+} from '../lib/opportunity-labels';
 import { useOrganizationVerificationLabels } from '../lib/organization-labels';
 import { Badge } from './badge';
 import { PressableCard } from './card';
 import { colors, radius, spacing, typography } from './theme';
+
+// Largeur d'une carte compacte + l'espacement du carrousel — utilisé par l'écran
+// d'accueil pour calculer les positions de défilement automatique (une carte à la fois).
+export const OPPORTUNITY_CARD_STRIDE = 260 + spacing.md;
 
 export function OpportunityCard({
   opportunity,
@@ -23,6 +31,12 @@ export function OpportunityCard({
   const opportunityTypeLabels = useOpportunityTypeLabels();
   const workModeLabels = useWorkModeLabels();
   const organizationVerificationLabels = useOrganizationVerificationLabels();
+  const matchReasonLabels = useMatchReasonLabels();
+
+  // Les motifs ne s'affichent pas sur une carte compacte : le carrousel
+  // d'accueil ne classe rien, il montre les dernières offres. Y afficher
+  // « correspond à vos compétences » serait faux.
+  const reasons = compact ? [] : (opportunity.matchReasons ?? []);
   return (
     <PressableCard onPress={onPress} style={compact ? styles.compactCard : styles.card}>
       <View style={styles.header}>
@@ -66,6 +80,25 @@ export function OpportunityCard({
           <Text style={styles.metaText}>{workModeLabels[opportunity.workMode]}</Text>
         </View>
       </View>
+
+      {/*
+        POURQUOI cette offre vous est proposée — jamais à quel point.
+
+        Le candidat voit des motifs, pas un score : « le candidat finirait par
+        vouloir jouer l'algorithme ». Et des motifs GÉNÉRIQUES, qui ne lui
+        réapprennent rien sur lui-même que quelqu'un lisant par-dessus son
+        épaule pourrait retenir.
+      */}
+      {reasons.length > 0 && (
+        <View style={styles.reasons}>
+          {reasons.map((reason) => (
+            <View key={reason} style={styles.reason}>
+              <Ionicons name="checkmark-circle" size={13} color={colors.success} />
+              <Text style={styles.reasonText}>{matchReasonLabels[reason]}</Text>
+            </View>
+          ))}
+        </View>
+      )}
     </PressableCard>
   );
 }
@@ -110,5 +143,25 @@ const styles = StyleSheet.create({
   },
   metaText: {
     ...typography.caption,
+  },
+  reasons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  reason: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    backgroundColor: colors.primaryLight,
+    borderRadius: radius.full,
+  },
+  reasonText: {
+    ...typography.caption,
+    color: colors.primaryDark,
+    fontWeight: '600',
   },
 });

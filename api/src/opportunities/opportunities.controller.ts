@@ -20,6 +20,7 @@ import { ReportsService } from '../reports/reports.service';
 import { CreateOpportunityDto } from './dto/create-opportunity.dto';
 import { SearchOpportunitiesDto } from './dto/search-opportunities.dto';
 import { UpdateOpportunityDto } from './dto/update-opportunity.dto';
+import { OfferQualityService } from './offer-quality.service';
 import { OpportunitiesService } from './opportunities.service';
 
 @Controller('opportunities')
@@ -27,19 +28,37 @@ export class OpportunitiesController {
   constructor(
     private readonly opportunities: OpportunitiesService,
     private readonly reports: ReportsService,
+    private readonly offerQuality: OfferQualityService,
   ) {}
 
   // --- FR-M4-003 / FR-M4-004 : recherche et consultation, sans restriction de ville/pays ---
 
+  // PUBLIQUE, mais avec le profil quand il y en a un. Un visiteur non connecte
+  // obtient un classement sans criteres de profil — le meme code, sans branche
+  // particuliere : les criteres valent alors zero pour tout le monde.
   @Public()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get()
-  search(@Query() query: SearchOpportunitiesDto) {
-    return this.opportunities.search(query);
+  search(
+    @Query() query: SearchOpportunitiesDto,
+    @CurrentUser() viewer?: AccessTokenPayload,
+  ) {
+    return this.opportunities.search(query, viewer?.sub);
   }
 
   @Get('mine')
   listMine(@CurrentUser() user: AccessTokenPayload) {
     return this.opportunities.listMine(user.sub);
+  }
+
+  // DIAGNOSTIC DE QUALITÉ — pour l'organisation qui publie, jamais pour le
+  // public. Déclarée AVANT `GET :id`, sans quoi la route générique l'avalerait.
+  //
+  // Elle ne rend ni score, ni rang, ni comparaison : le service qui la sert
+  // n'a accès à aucune autre offre.
+  @Get(':id/quality')
+  quality(@Param('id') id: string, @CurrentUser() user: AccessTokenPayload) {
+    return this.offerQuality.diagnose(id, user.sub);
   }
 
   @Public()

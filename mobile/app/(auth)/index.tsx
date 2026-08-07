@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -8,12 +8,20 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { colors, ErrorText, FormInput, LinkButton, PrimaryButton } from '../../components/form';
+import {
+  colors,
+  ErrorText,
+  FormInput,
+  LinkButton,
+  PasswordInput,
+  PrimaryButton,
+} from '../../components/form';
 import { ApiError } from '../../lib/api';
 import { useAuth } from '../../lib/auth-context';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { message } = useLocalSearchParams<{ message?: string }>();
   const { t } = useTranslation();
   const { login, completeTwoFactorLogin } = useAuth();
   const [identifier, setIdentifier] = useState('');
@@ -92,6 +100,7 @@ export default function LoginScreen() {
       <View style={styles.content}>
         <Text style={styles.title}>{t('auth.login.title')}</Text>
         <Text style={styles.subtitle}>{t('auth.login.subtitle')}</Text>
+        {!!message && <Text style={styles.successMessage}>{message}</Text>}
 
         <View style={styles.form}>
           <FormInput
@@ -102,11 +111,10 @@ export default function LoginScreen() {
             autoCorrect={false}
             keyboardType="email-address"
           />
-          <FormInput
+          <PasswordInput
             placeholder={t('auth.login.passwordPlaceholder')}
             value={password}
             onChangeText={setPassword}
-            secureTextEntry
           />
           <ErrorText>{error}</ErrorText>
           <PrimaryButton
@@ -117,6 +125,10 @@ export default function LoginScreen() {
           />
         </View>
 
+        <LinkButton
+          title={t('auth.login.forgotPasswordLink')}
+          onPress={() => router.push('/(auth)/forgot-password')}
+        />
         <LinkButton
           title={t('auth.login.noAccount')}
           onPress={() => router.push('/(auth)/register')}
@@ -152,6 +164,16 @@ const styles = StyleSheet.create({
     color: colors.muted,
     textAlign: 'center',
     marginTop: -16,
+  },
+  successMessage: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.success,
+    backgroundColor: colors.successLight,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    textAlign: 'center',
   },
   form: {
     gap: 12,

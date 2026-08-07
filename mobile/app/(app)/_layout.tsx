@@ -54,6 +54,20 @@ export default function AppLayout() {
         options={{ href: null, headerShown: true, title: t('nav.moderation') }}
       />
       <Tabs.Screen name="partnership-requests" options={{ href: null }} />
+      <Tabs.Screen name="subscriptions" options={{ href: null }} />
+      {/* Hors barre d'onglets (href: null) : le programme est ouvert sur invitation,
+          la très grande majorité des comptes n'est pas ambassadeur. L'accès se fait
+          depuis le profil, pas depuis une navigation permanente qui afficherait à
+          tous une porte fermée. */}
+      <Tabs.Screen name="ambassador" options={{ href: null }} />
+      <Tabs.Screen
+        name="ambassadors-admin"
+        options={{ href: null, headerShown: true, title: t('ambassadorsAdmin.title') }}
+      />
+      <Tabs.Screen
+        name="subscriptions-admin"
+        options={{ href: null, headerShown: true, title: t('nav.subscriptionsAdmin') }}
+      />
       <Tabs.Screen
         name="notifications"
         options={{ href: null, headerShown: true, title: t('nav.notifications') }}
