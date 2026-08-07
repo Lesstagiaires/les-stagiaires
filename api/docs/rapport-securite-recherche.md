@@ -273,18 +273,25 @@ Défendable au lancement, à revoir dès qu'une équipe compte plusieurs
 administrateurs. Le correctif naturel est le mécanisme déjà écrit pour les
 versements.
 
-**R3 — Les référentiels sont vides.** Compté sur la base de développement le
-7 août 2026 : **0 compétence, 0 métier, 0 synonyme, 0 offre**. Le moteur
-fonctionne et rend un classement, mais les 60 points de compétence et de métier
-valent zéro pour toutes les offres tant que le référentiel n'est pas alimenté.
-**Ce n'est pas un défaut de code, c'est un prérequis d'exploitation** — et il
-conditionne l'intérêt réel de tout le chantier.
+**R3 — ~~Les référentiels sont vides~~ — LEVÉ le 7 août 2026.** Le référentiel
+de départ est en base : **14 familles de métiers, 90 métiers, 81 compétences,
+106 synonymes**, tous en cinq langues. Alimenté par
+`scripts/seed-referentiels.mjs`, idempotent, à partir du fichier de données
+relisable `scripts/referentiel-donnees.mjs`.
 
-Corollaire à ne pas perdre de vue : aucune des vérifications de ce rapport n'a
-été menée sur des données réelles, puisqu'il n'y en a aucune. Les garanties
-énoncées reposent sur la lecture du code, les tests automatisés, et les
-contraintes éprouvées sur une copie de base — pas sur l'observation du système
-en fonctionnement.
+Il reste un point d'attention, de nature différente : **ce référentiel est un
+point de départ conçu pour le marché camerounais**, pas une nomenclature
+validée. Il devra être confronté aux offres réellement déposées, et complété
+depuis le back-office. Un métier absent du référentiel rend inclassables toutes
+les offres qui le concernent — c'est le mode d'échec à surveiller.
+
+**R3 bis — La vérification sur données réelles reste partielle.** La recette
+`test/recette/recherche-pertinence.mjs` éprouve désormais la chaîne complète sur
+un vrai PostgreSQL — vecteur généré, trigramme, synonymes, reproductibilité,
+contraintes, absence de sponsoring — mais sur **quatre offres fabriquées pour
+l'occasion**. Le comportement du classement à l'échelle de plusieurs centaines
+d'offres et de profils réels n'a pas été observé, et le réglage de la
+diversification reste un choix a priori (R5).
 
 **R4 — Le barème n'a pas été éprouvé sur des données réelles.** Les six poids
 (35/25/15/10/5/10) sont un arbitrage de conception, pas un résultat de mesure.
@@ -314,18 +321,24 @@ comportement est vérifié unitairement sur de petits ensembles. Le réglage
 
 ## 9. Recommandations, par ordre de priorité
 
-1. **Alimenter les référentiels** (R3) avant toute démonstration. Sans
-   compétences ni métiers, la recherche par pertinence ne se distingue pas d'un
-   tri par date — et c'est la seule chose que verra celui à qui on la montre.
-2. **Recette sur base peuplée** : au moins cinquante offres et dix profils, pour
-   observer le classement réel et vérifier que la diversification n'écarte pas
-   d'offres légitimes.
-3. **Corriger le `total` plafonné** (R1) avant l'ouverture publique.
-4. **Ajouter la séparation des pouvoirs sur les pondérations** (R2) dès qu'un
+1. ~~**Alimenter les référentiels**~~ — **fait le 7 août 2026** (R3).
+2. ~~**Recette sur base peuplée**~~ — **faite partiellement** : la chaîne
+   complète est éprouvée sur PostgreSQL par
+   `test/recette/recherche-pertinence.mjs`, mais sur quatre offres seulement.
+   **Reste à faire** : cinquante offres et dix profils, pour observer le
+   classement réel et vérifier que la diversification n'écarte pas d'offres
+   légitimes. C'est la vérification qui manque encore.
+3. **Confronter le référentiel aux offres réelles** dès les premiers dépôts. Un
+   métier absent rend inclassables toutes les offres qui le concernent, et
+   personne ne le signalera : le recruteur laissera simplement le champ vide.
+4. **Corriger le `total` plafonné** (R1) avant l'ouverture publique.
+5. **Ajouter la séparation des pouvoirs sur les pondérations** (R2) dès qu'un
    deuxième administrateur existe.
-5. **Restreindre `session_replication_role` en production** — vaut pour tous les
+6. **Traiter la configuration linguistique unique** (§10) avant toute ouverture
+   hors zone francophone.
+7. **Restreindre `session_replication_role` en production** — vaut pour tous les
    journaux en ajout seul du projet, pas seulement ce chantier.
-6. **Faire relire ce module par un tiers.** `CLAUDE.md` §7 l'exige avant
+8. **Faire relire ce module par un tiers.** `CLAUDE.md` §7 l'exige avant
    lancement. Le classement est ce que la plateforme promet de ne pas manipuler :
    c'est exactement le genre d'engagement qu'un regard extérieur doit vérifier.
 

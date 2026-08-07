@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import {
   MAX_EXPANSIONS,
   expandedTextQuery,
@@ -135,5 +137,47 @@ describe('Expansion de la requête', () => {
       expect(rendu).not.toContain('"');
       expect(rendu).not.toContain('-');
     });
+  });
+});
+
+// ============================================================================
+// LE SCRIPT DE PEUPLEMENT DOIT NORMALISER COMME LA RECHERCHE
+//
+// `scripts/seed-referentiels.mjs` écrit `termNormalized` ; `normalizeTerm()`
+// ci-dessus le relit. Les deux sont des implémentations SÉPARÉES — l'une en
+// TypeScript compilé, l'autre dans un script Node autonome qui ne peut pas
+// l'importer.
+//
+// SI ELLES DIVERGENT, LA PANNE EST TOTALE ET SILENCIEUSE : la table de
+// synonymes est pleine, chaque ligne est correcte, et aucune ne remonte jamais.
+// Rien ne casse, rien n'alerte, et le dispositif entier cesse de servir sans
+// que personne s'en aperçoive.
+// ============================================================================
+describe('Normalisation partagée avec le script de peuplement', () => {
+  const CORPS_ATTENDU = [
+    "normalize('NFD')",
+    'toLowerCase()',
+    "replace(/[^a-z0-9]+/g, ' ')",
+    'trim()',
+  ];
+
+  it('applique les mêmes transformations, dans le même ordre', () => {
+    const script = readFileSync(
+      join(__dirname, '..', '..', 'scripts', 'seed-referentiels.mjs'),
+      'utf8',
+    );
+    const corps = /function normaliser\([\s\S]*?\n}/.exec(script)?.[0];
+    expect(corps).toBeDefined();
+
+    let position = -1;
+    for (const etape of CORPS_ATTENDU) {
+      const trouvee = corps!.indexOf(etape);
+      expect(trouvee).toBeGreaterThan(position);
+      position = trouvee;
+    }
+
+    // Le retrait des diacritiques, écrit avec une classe Unicode combinante
+    // que l'on cherche par sa forme plutôt que par sa graphie.
+    expect(/replace\(\/\[[^\]]+\]\/g, ''\)/.test(corps!)).toBe(true);
   });
 });
