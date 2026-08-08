@@ -275,6 +275,48 @@ describe('Durcissement du consentement parental', () => {
     });
 
     // ------------------------------------------------------------------------
+    // LE SMS DOIT PERMETTRE AU PARENT D'AGIR LUI-MÊME
+    // ------------------------------------------------------------------------
+    describe('SMS envoyé au parent', () => {
+      beforeEach(() => {
+        prisma.user.findUniqueOrThrow.mockResolvedValue({
+          id: 'enfant_1',
+          isMinor: true,
+          phone: '+237690000001',
+        });
+      });
+
+      // L'ancien message disait « communiquez-lui ce code » : le consentement
+      // était donné par l'ENFANT, à qui son parent dictait un code. Un parent
+      // qui ne peut que transmettre un code ne peut pas REFUSER — le refus
+      // n'avait aucune surface, quel que soit le code écrit au serveur.
+      it('porte un lien vers l’écran de décision', async () => {
+        await service.requestConsent('enfant_1', '+237690001111');
+
+        const [, message] = sms.send.mock.calls[0] as [string, string];
+        expect(message).toContain('/consent/lien_neuf');
+        expect(message).not.toContain('communiquez-lui');
+      });
+
+      // Le lien dit DE QUELLE demande il s'agit, le code prouve que c'est bien
+      // ce téléphone qui répond. Sans le code, quiconque obtiendrait un
+      // identifiant de lien pourrait bloquer le compte d'un mineur.
+      it('porte aussi le code, qui prouve la possession du téléphone', async () => {
+        await service.requestConsent('enfant_1', '+237690001111');
+
+        const [, message] = sms.send.mock.calls[0] as [string, string];
+        expect(message).toMatch(/\b\d{6}\b/);
+      });
+
+      it('part bien vers le numéro du parent, jamais vers celui de l’enfant', async () => {
+        await service.requestConsent('enfant_1', '+237690001111');
+
+        const [destinataire] = sms.send.mock.calls[0] as [string, string];
+        expect(destinataire).toBe('+237690001111');
+      });
+    });
+
+    // ------------------------------------------------------------------------
     // 3. LE REFUS EXPLICITE
     // ------------------------------------------------------------------------
     describe('Refus explicite du parent', () => {

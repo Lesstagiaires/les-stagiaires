@@ -116,6 +116,31 @@
       "passwordMismatch": "Les mots de passe ne correspondent pas.",
       "genericError": "Réinitialisation impossible. Vérifiez le code et réessayez.",
       "successMessage": "Mot de passe modifié. Connectez-vous avec votre nouveau mot de passe."
+    },
+    "parentalConsent": {
+      "title": "Accord parental",
+      "intro": "{{name}} ({{phone}}) s’est inscrit sur LES STAGIAIRES, une plateforme de stages et d’apprentissage pour les jeunes, et vous a désigné comme parent ou tuteur.",
+      "whatItAllows": "Votre accord lui permettra de candidater à une offre, de signer une convention de stage et de partager ses documents. Sans votre réponse, ces actions restent bloquées et son compte sera suspendu au bout de 30 jours.",
+      "codeLabel": "Le code reçu par SMS",
+      "codePlaceholder": "6 chiffres",
+      "confirm": "Je donne mon accord",
+      "decline": "Je refuse",
+      "declineHint": "Un refus bloque le compte immédiatement, sans attendre les 30 jours.",
+      "declineTitle": "Refuser l’inscription ?",
+      "declineWarning": "Le compte de {{name}} sera bloqué immédiatement. Cette décision ne peut pas être annulée depuis cet écran.",
+      "declineConfirm": "Refuser",
+      "confirmed": "Merci, votre accord est enregistré.",
+      "declined": "Votre refus est enregistré. Le compte a été bloqué.",
+      "notFound": "Cette demande n’existe pas ou n’est plus valide.",
+      "loadError": "Impossible d’afficher cette demande pour le moment.",
+      "genericError": "L’opération n’a pas pu aboutir.",
+      "status": {
+        "ACTIVE": "Cette inscription a déjà été validée.",
+        "DECLINED": "Cette inscription a été refusée.",
+        "EXPIRED": "Ce délai est dépassé. Le jeune peut relancer la demande.",
+        "REVOKED": "Cette demande a été remplacée par une autre.",
+        "PENDING": "Ce code a expiré. Le jeune peut relancer la demande."
+      }
     }
   },
   "home": {

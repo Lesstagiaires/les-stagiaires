@@ -116,6 +116,31 @@
       "passwordMismatch": "Las contraseñas no coinciden.",
       "genericError": "No se pudo restablecer la contraseña. Verifique el código e inténtelo de nuevo.",
       "successMessage": "Contraseña modificada. Inicia sesión con tu nueva contraseña."
+    },
+    "parentalConsent": {
+      "title": "Consentimiento parental",
+      "intro": "{{name}} ({{phone}}) se ha inscrito en LES STAGIAIRES, una plataforma de pasantías y aprendizaje para jóvenes, y le ha designado como padre o tutor.",
+      "whatItAllows": "Su consentimiento le permitirá postularse a una oferta, firmar un convenio de pasantía y compartir sus documentos. Sin su respuesta, estas acciones quedan bloqueadas y la cuenta se suspenderá a los 30 días.",
+      "codeLabel": "El código recibido por SMS",
+      "codePlaceholder": "6 cifras",
+      "confirm": "Doy mi consentimiento",
+      "decline": "Lo rechazo",
+      "declineHint": "Un rechazo bloquea la cuenta de inmediato, sin esperar los 30 días.",
+      "declineTitle": "¿Rechazar la inscripción?",
+      "declineWarning": "La cuenta de {{name}} quedará bloqueada de inmediato. Esta decisión no puede anularse desde esta pantalla.",
+      "declineConfirm": "Rechazar",
+      "confirmed": "Gracias, su consentimiento ha quedado registrado.",
+      "declined": "Su rechazo ha quedado registrado. La cuenta ha sido bloqueada.",
+      "notFound": "Esta solicitud no existe o ya no es válida.",
+      "loadError": "No se puede mostrar esta solicitud por el momento.",
+      "genericError": "La operación no ha podido completarse.",
+      "status": {
+        "ACTIVE": "Esta inscripción ya ha sido validada.",
+        "DECLINED": "Esta inscripción fue rechazada.",
+        "EXPIRED": "El plazo ha vencido. El joven puede volver a solicitarlo.",
+        "REVOKED": "Esta solicitud fue sustituida por otra.",
+        "PENDING": "Este código ha caducado. El joven puede volver a solicitarlo."
+      }
     }
   },
   "home": {

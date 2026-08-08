@@ -116,6 +116,31 @@
       "passwordMismatch": "Passwords don't match.",
       "genericError": "Couldn't reset the password. Check the code and try again.",
       "successMessage": "Password changed. Sign in with your new password."
+    },
+    "parentalConsent": {
+      "title": "Parental approval",
+      "intro": "{{name}} ({{phone}}) has registered on LES STAGIAIRES, an internship and apprenticeship platform for young people, and named you as parent or guardian.",
+      "whatItAllows": "Your approval will let them apply to an opportunity, sign an internship agreement and share their documents. Without your reply these actions stay blocked, and the account will be suspended after 30 days.",
+      "codeLabel": "The code received by SMS",
+      "codePlaceholder": "6 digits",
+      "confirm": "I give my approval",
+      "decline": "I refuse",
+      "declineHint": "A refusal blocks the account immediately, without waiting 30 days.",
+      "declineTitle": "Refuse the registration?",
+      "declineWarning": "{{name}}’s account will be blocked immediately. This decision cannot be undone from this screen.",
+      "declineConfirm": "Refuse",
+      "confirmed": "Thank you, your approval has been recorded.",
+      "declined": "Your refusal has been recorded. The account has been blocked.",
+      "notFound": "This request does not exist or is no longer valid.",
+      "loadError": "This request cannot be displayed at the moment.",
+      "genericError": "The operation could not be completed.",
+      "status": {
+        "ACTIVE": "This registration has already been approved.",
+        "DECLINED": "This registration was refused.",
+        "EXPIRED": "The deadline has passed. The young person can request again.",
+        "REVOKED": "This request was replaced by another one.",
+        "PENDING": "This code has expired. The young person can request again."
+      }
     }
   },
   "home": {

@@ -116,6 +116,31 @@
       "passwordMismatch": "As palavras-passe não coincidem.",
       "genericError": "Não foi possível repor. Verifique o código e tente novamente.",
       "successMessage": "Palavra-passe alterada. Inicie sessão com a sua nova palavra-passe."
+    },
+    "parentalConsent": {
+      "title": "Autorização parental",
+      "intro": "{{name}} ({{phone}}) inscreveu-se na LES STAGIAIRES, uma plataforma de estágios e aprendizagem para jovens, e indicou-o como pai ou tutor.",
+      "whatItAllows": "A sua autorização permitir-lhe-á candidatar-se a uma oferta, assinar um protocolo de estágio e partilhar os seus documentos. Sem a sua resposta, estas ações ficam bloqueadas e a conta será suspensa ao fim de 30 dias.",
+      "codeLabel": "O código recebido por SMS",
+      "codePlaceholder": "6 dígitos",
+      "confirm": "Dou a minha autorização",
+      "decline": "Recuso",
+      "declineHint": "Uma recusa bloqueia a conta imediatamente, sem esperar os 30 dias.",
+      "declineTitle": "Recusar a inscrição?",
+      "declineWarning": "A conta de {{name}} será bloqueada imediatamente. Esta decisão não pode ser anulada a partir deste ecrã.",
+      "declineConfirm": "Recusar",
+      "confirmed": "Obrigado, a sua autorização foi registada.",
+      "declined": "A sua recusa foi registada. A conta foi bloqueada.",
+      "notFound": "Este pedido não existe ou já não é válido.",
+      "loadError": "Não é possível mostrar este pedido de momento.",
+      "genericError": "A operação não pôde ser concluída.",
+      "status": {
+        "ACTIVE": "Esta inscrição já foi validada.",
+        "DECLINED": "Esta inscrição foi recusada.",
+        "EXPIRED": "O prazo terminou. O jovem pode voltar a pedir.",
+        "REVOKED": "Este pedido foi substituído por outro.",
+        "PENDING": "Este código expirou. O jovem pode voltar a pedir."
+      }
     }
   },
   "home": {

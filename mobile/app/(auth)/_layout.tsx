@@ -8,6 +8,8 @@ export default function AuthLayout() {
       <Stack.Screen name="verify-otp" />
       <Stack.Screen name="forgot-password" />
       <Stack.Screen name="reset-password" />
+      {/* Ouvert depuis le SMS du parent — publique, sans compte. */}
+      <Stack.Screen name="consent/[linkId]" />
     </Stack>
   );
 }

@@ -170,6 +170,15 @@ export class AuthController {
 
   // Public : le parent/tuteur n'a pas forcément de compte pour consentir — seule la
   // connaissance du code envoyé par SMS fait foi (CLAUDE.md §5).
+  // Ce que le parent voit avant de trancher. Publique : le parent n'a pas de
+  // compte, il n'a qu'un SMS. Réduite au prénom et à un numéro masqué.
+  @Public()
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
+  @Get('minors/consent/:linkId')
+  describeConsent(@Param('linkId') linkId: string) {
+    return this.parentalConsent.describeForParent(linkId);
+  }
+
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)

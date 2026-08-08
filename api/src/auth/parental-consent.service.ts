@@ -30,6 +30,23 @@ export class ParentalConsentService {
     return createHash('sha256').update(code).digest('hex');
   }
 
+  // Le lien de décision envoyé au parent.
+  //
+  // Il ne porte QUE l'identifiant du lien — ni le nom de l'enfant, ni son
+  // numéro, ni rien qui subsisterait dans un historique de navigation ou dans
+  // les journaux d'un relais SMS. Seul, il ne suffit pas : l'écran réclame le
+  // code, qui prouve la possession du téléphone.
+  //
+  // En production, le garde-fou de démarrage refuse une APP_PUBLIC_URL locale
+  // ou non chiffrée — un lien mort dans un SMS ne se rattrape pas.
+  private buildConsentLink(linkId: string): string {
+    const baseUrl = this.config.get<string>(
+      'APP_PUBLIC_URL',
+      'http://localhost:3000',
+    );
+    return `${baseUrl}/consent/${linkId}`;
+  }
+
   // Le parent/tuteur n'a pas besoin d'un compte existant : le téléphone déclaré par le
   // mineur est la seule source de vérité de la demande (CLAUDE.md §5).
   async requestConsent(childId: string, parentPhone: string) {
@@ -133,9 +150,25 @@ export class ParentalConsentService {
           },
         });
 
+    // ========================================================================
+    // LE PARENT AGIT LUI-MÊME — IL NE TRANSMET PLUS UN CODE
+    //
+    // L'ancien message disait « communiquez-lui ce code ». Le consentement
+    // était donc donné par L'ENFANT, qui tapait un code que son parent lui
+    // avait dicté. C'est précisément ce que le cahier des charges refuse :
+    // « une action positive et traçable de sa part », pas une délégation.
+    //
+    // Et un parent qui ne peut que transmettre un code ne peut pas REFUSER.
+    // Le refus n'avait aucune surface, quel que soit le code écrit au serveur.
+    //
+    // Le message porte donc un LIEN vers l'écran de décision — accepter ou
+    // refuser — et le code qui prouve la possession du téléphone. Les deux sont
+    // nécessaires : le lien dit DE QUELLE demande il s'agit, le code prouve que
+    // c'est bien ce téléphone qui répond.
+    // ========================================================================
     await this.sms.send(
       parentPhone,
-      `LES STAGIAIRES : votre enfant (${child.phone}) a créé un profil sur notre plateforme de stages et vous a désigné comme parent/tuteur. Pour donner votre consentement actif, communiquez-lui ce code : ${code}. Sans réponse, son compte reste en mode restreint (candidature, convention et partage de documents bloqués).`,
+      `LES STAGIAIRES : votre enfant (${child.phone}) vous a désigné comme parent/tuteur pour son inscription sur notre plateforme de stages. Pour donner ou refuser votre accord : ${this.buildConsentLink(link.id)} — votre code : ${code}. Sans réponse, son compte reste en mode restreint (candidature, convention et partage de documents bloqués).`,
     );
 
     await this.audit.record('PARENTAL_CONSENT_REQUESTED', childId, {
@@ -298,6 +331,55 @@ export class ParentalConsentService {
     // mineur : un motif libre finirait par circuler entre eux via la
     // plateforme, ce qui n'est pas son rôle.
     return { message: 'Refus enregistré.' };
+  }
+
+  // ==========================================================================
+  // CE QUE LE PARENT VOIT AVANT DE DÉCIDER
+  //
+  // « Le message doit expliquer ce qu'est LES STAGIAIRES et ce que le mineur a
+  // renseigné. » Un parent à qui l'on demande d'approuver sans rien montrer
+  // n'approuve rien : il clique.
+  //
+  // PUBLIQUE, donc RÉDUITE AU STRICT NÉCESSAIRE. L'identifiant de lien est
+  // imprévisible et n'existe que dans le SMS du parent, mais cette réponse
+  // reste lisible par quiconque l'obtiendrait. On ne sort donc que le prénom et
+  // un numéro masqué — de quoi reconnaître son enfant, rien de plus. Ni nom de
+  // famille, ni date de naissance, ni ville, ni adresse.
+  //
+  // Construite par LISTE BLANCHE : un champ ajouté demain au modèle ne se
+  // retrouvera pas ici par accident.
+  // ==========================================================================
+  async describeForParent(linkId: string) {
+    const link = await this.prisma.parentalLink.findUnique({
+      where: { id: linkId },
+      select: {
+        id: true,
+        status: true,
+        consentExpiresAt: true,
+        child: { select: { firstName: true, phone: true } },
+      },
+    });
+    if (!link)
+      throw new NotFoundException('Demande de consentement introuvable.');
+
+    const expire = !link.consentExpiresAt || link.consentExpiresAt < new Date();
+
+    return {
+      linkId: link.id,
+      childFirstName: link.child.firstName,
+      childPhoneMasked: this.maskPhone(link.child.phone),
+      status: link.status,
+      // L'écran a besoin de savoir s'il doit encore proposer des boutons, ou
+      // simplement rendre compte d'une décision déjà prise.
+      isActionable: link.status === ParentalLinkStatus.PENDING && !expire,
+    };
+  }
+
+  // Les quatre derniers chiffres suffisent à un parent pour reconnaître le
+  // numéro de son enfant, sans le divulguer à qui lirait cette réponse.
+  private maskPhone(phone: string | null): string | null {
+    if (!phone) return null;
+    return phone.slice(0, -4).replace(/./g, '*') + phone.slice(-4);
   }
 
   async listForChild(childId: string) {

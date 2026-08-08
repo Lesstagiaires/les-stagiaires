@@ -447,6 +447,18 @@ export interface OfferQualityReport {
 // L'application les LIT, elle ne les décide pas : « nous ne devons pas figer
 // les valeurs dans le code ». Un pays reconfiguré au back-office change le
 // comportement de l'inscription sans nouvelle version sur les magasins.
+// La demande de consentement, telle que le parent la voit. Volontairement
+// pauvre : le lien vit dans un SMS, et cette réponse est publique.
+export interface ParentalConsentRequest {
+  linkId: string;
+  childFirstName: string;
+  childPhoneMasked: string | null;
+  status: 'PENDING' | 'ACTIVE' | 'REVOKED' | 'EXPIRED' | 'DECLINED';
+  // Faux quand la décision est déjà prise ou le délai passé : l'écran rend
+  // compte au lieu de proposer des boutons sans effet.
+  isActionable: boolean;
+}
+
 export interface AgeThresholds {
   countryCode: string;
   minInternshipAge: number;
@@ -1650,6 +1662,31 @@ export const api = {
   //
   // On envoie le PAYS, jamais la date de naissance : celle-ci ne quitte
   // l'appareil qu'à l'inscription proprement dite.
+  // --- Consentement parental (côté parent, sans compte) --------------------
+  //
+  // Le parent n'a pas de compte : il n'a qu'un SMS portant un lien et un code.
+  // Ces trois appels sont donc publics, et le code fait office de preuve de
+  // possession du téléphone.
+
+  // Ce que le parent voit avant de trancher : prénom de l'enfant et numéro
+  // masqué, rien de plus.
+  getParentalConsentRequest: (linkId: string) =>
+    request<ParentalConsentRequest>(`/auth/minors/consent/${linkId}`),
+
+  confirmParentalConsent: (linkId: string, code: string) =>
+    request<{ message: string }>(`/auth/minors/consent/${linkId}`, {
+      method: 'POST',
+      body: { code },
+    }),
+
+  // Le refus BLOQUE le compte de l'enfant immédiatement, sans attendre les
+  // trente jours. L'écran doit le dire avant de laisser appuyer.
+  declineParentalConsent: (linkId: string, code: string) =>
+    request<{ message: string }>(`/auth/minors/consent/${linkId}/decline`, {
+      method: 'POST',
+      body: { code },
+    }),
+
   getAgeThresholds: (countryCode: string) =>
     request<AgeThresholds>(`/auth/age-thresholds/${countryCode}`),
 
