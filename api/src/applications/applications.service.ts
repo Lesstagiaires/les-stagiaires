@@ -182,7 +182,10 @@ export class ApplicationsService {
         }
         willingToRelocate = dto.willingToRelocate;
 
-        if (candidate.isMinor) {
+        // L'âge est RECALCULÉ, jamais lu dans `User.isMinor` : ce champ est
+        // écrit à l'inscription et ne bouge plus. Un jeune inscrit à 17 ans se
+        // voyait encore réclamer ce champ à vingt-cinq ans.
+        if (await this.minorPolicy.requiresParentalConsent(candidate)) {
           if (dto.hasFamilyInDestination === undefined) {
             throw new BadRequestException(
               'hasFamilyInDestination est requis pour cette offre (compte mineur).',

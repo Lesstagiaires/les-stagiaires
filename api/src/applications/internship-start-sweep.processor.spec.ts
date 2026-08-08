@@ -1,5 +1,6 @@
 import type { ConfigService } from '@nestjs/config';
 import { NotificationType } from '../../generated/prisma/enums';
+import type { MinorPolicyService } from '../auth/minor-policy.service';
 import type { NotificationsService } from '../notifications/notifications.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import { InternshipStartSweepProcessor } from './internship-start-sweep.processor';
@@ -19,16 +20,35 @@ describe('InternshipStartSweepProcessor', () => {
   let config: { get: jest.Mock };
   let notifications: { notifyUser: jest.Mock };
   let sms: { send: jest.Mock };
+  let minorPolicy: { requiresParentalConsent: jest.Mock };
   let processor: InternshipStartSweepProcessor;
 
+  // LES JEUX D'ESSAI PORTENT UNE DATE DE NAISSANCE, PLUS UN BOOLÉEN.
+  //
+  // Ils déclaraient `candidate: { isMinor: false }`. C'était le même raccourci
+  // que celui corrigé dans le code : un âge décrit par un drapeau qui ne bouge
+  // jamais. Le processeur recalcule désormais l'âge par la politique du pays, et
+  // les jeux d'essai doivent décrire ce qui sert vraiment à ce calcul.
   const MAJOR = {
     id: 'app-1',
     reference: 'CAND-2026-0042',
     candidateId: 'user-1',
     internshipStartDate: new Date('2026-08-08'),
-    candidate: { isMinor: false },
+    candidate: {
+      dateOfBirth: new Date('2000-01-01'),
+      countryOfResidence: 'CM',
+      status: 'ACTIVE',
+    },
   };
-  const MINOR = { ...MAJOR, id: 'app-2', candidate: { isMinor: true } };
+  const MINOR = {
+    ...MAJOR,
+    id: 'app-2',
+    candidate: {
+      dateOfBirth: new Date('2011-01-01'),
+      countryOfResidence: 'CM',
+      status: 'AWAITING_PARENTAL_CONSENT',
+    },
+  };
 
   const whereOfCall = (index: number) => {
     const calls = prisma.application.findMany.mock.calls as [
@@ -53,12 +73,23 @@ describe('InternshipStartSweepProcessor', () => {
     config = { get: jest.fn().mockReturnValue(undefined) };
     notifications = { notifyUser: jest.fn() };
     sms = { send: jest.fn() };
+    // Le bouchon tranche sur la DATE DE NAISSANCE reçue, comme le vrai moteur.
+    // Une valeur fixe ferait passer les deux cas pour la même raison.
+    minorPolicy = {
+      requiresParentalConsent: jest.fn((user: { dateOfBirth: Date | null }) =>
+        Promise.resolve(
+          !!user.dateOfBirth &&
+            new Date().getFullYear() - user.dateOfBirth.getFullYear() < 18,
+        ),
+      ),
+    };
 
     processor = new InternshipStartSweepProcessor(
       prisma as unknown as PrismaService,
       config as unknown as ConfigService,
       notifications as unknown as NotificationsService,
       sms,
+      minorPolicy as unknown as MinorPolicyService,
     );
   });
 

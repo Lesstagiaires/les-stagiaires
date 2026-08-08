@@ -8,6 +8,7 @@ import {
   SectionVisibility,
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
+import { MinorPolicyService } from '../auth/minor-policy.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ShareSectionDto } from './dto/share-section.dto';
 import { SetVisibilityDto } from './dto/set-visibility.dto';
@@ -17,6 +18,7 @@ export class VisibilityService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly minorPolicy: MinorPolicyService,
   ) {}
 
   async setVisibility(
@@ -30,7 +32,19 @@ export class VisibilityService {
 
     // Visibilité publique limitée automatiquement pour les mineurs, sans possibilité de
     // contournement par l'utilisateur lui-même (CLAUDE.md §5).
-    if (user.isMinor && dto.visibility === SectionVisibility.PUBLIC) {
+    //
+    // L'ÂGE EST RECALCULÉ, jamais lu dans `User.isMinor`. Ce champ est écrit à
+    // l'inscription et ne bouge plus : un jeune inscrit à 17 ans n'aurait
+    // JAMAIS pu rendre une rubrique publique, même à trente ans — et sans
+    // jamais comprendre pourquoi, puisque le message parle d'un « compte
+    // mineur » qu'il n'est plus.
+    //
+    // L'erreur allait dans le sens protecteur, contrairement au balayage de
+    // début de stage qui écrivait au parent d'un adulte. Elle n'en était pas
+    // moins une restriction définitive imposée à un majeur sur son propre
+    // profil.
+    const encoreMineur = await this.minorPolicy.requiresParentalConsent(user);
+    if (encoreMineur && dto.visibility === SectionVisibility.PUBLIC) {
       throw new ForbiddenException(
         'Un compte mineur ne peut pas rendre une rubrique publique — visibilité maximale : réseau.',
       );

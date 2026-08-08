@@ -183,6 +183,38 @@ export class MinorPolicyService {
   // dans un service métier. Ne couvre pas MOBILITY, qui a son propre mécanisme de
   // consentement en direct (code envoyé au parent déjà actif) plutôt qu'une vérification
   // d'un lien déjà confirmé — voir isActionGated() pour décider de le déclencher.
+  // ==========================================================================
+  // CE COMPTE EST-IL ENCORE MINEUR, AUJOURD'HUI ?
+  //
+  // À utiliser PARTOUT à la place de `User.isMinor`. Ce champ est écrit à
+  // l'inscription et n'est jamais mis à jour : un jeune inscrit à 17 ans le
+  // reste indéfiniment, y compris à vingt-cinq ans. Deux modules s'appuyaient
+  // dessus, dont le balayage de début de stage — qui envoyait alors un SMS au
+  // « représentant légal » d'un adulte, c'est-à-dire une information sur sa
+  // situation professionnelle à un tiers sans titre pour la recevoir.
+  //
+  // Ici, l'âge est recalculé depuis la date de naissance et la politique du
+  // pays. Rien n'est stocké, donc rien ne périme.
+  //
+  // SANS DATE DE NAISSANCE NI PAYS, on répond « oui ». On ne peut pas prouver
+  // que l'obligation est éteinte, et un compte dont le statut porte encore
+  // l'attente d'un consentement doit rester protégé — sens sûr de l'erreur.
+  // ==========================================================================
+  async requiresParentalConsent(user: {
+    dateOfBirth: Date | null;
+    countryOfResidence: string | null;
+    status?: AccountStatus;
+  }): Promise<boolean> {
+    if (!user.dateOfBirth || !user.countryOfResidence) {
+      return user.status === AccountStatus.AWAITING_PARENTAL_CONSENT;
+    }
+    const classification = await this.classify(
+      user.dateOfBirth,
+      user.countryOfResidence,
+    );
+    return classification.tier === 'PARENTAL_CONSENT_REQUIRED';
+  }
+
   async assertActionAllowed(
     user: {
       id: string;

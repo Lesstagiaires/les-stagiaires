@@ -2,12 +2,14 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  AccountStatus,
   ApplicationStatus,
   NotificationType,
   ParentalLinkStatus,
 } from '../../generated/prisma/enums';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { MinorPolicyService } from '../auth/minor-policy.service';
 import { SMS_PROVIDER, type SmsProvider } from '../sms/sms-provider.interface';
 
 // ============================================================================
@@ -40,6 +42,7 @@ export class InternshipStartSweepProcessor extends WorkerHost {
     private readonly config: ConfigService,
     private readonly notifications: NotificationsService,
     @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
+    private readonly minorPolicy: MinorPolicyService,
   ) {
     super();
   }
@@ -65,7 +68,15 @@ export class InternshipStartSweepProcessor extends WorkerHost {
           reference: true,
           candidateId: true,
           internshipStartDate: true,
-          candidate: { select: { isMinor: true } },
+          // Ce qu'il faut pour RECALCULER l'âge, et non le booléen gelé
+          // `isMinor` : il est écrit à l'inscription et ne bouge plus.
+          candidate: {
+            select: {
+              dateOfBirth: true,
+              countryOfResidence: true,
+              status: true,
+            },
+          },
         },
       });
 
@@ -85,7 +96,11 @@ export class InternshipStartSweepProcessor extends WorkerHost {
       reference: string;
       candidateId: string;
       internshipStartDate: Date | null;
-      candidate: { isMinor: boolean };
+      candidate: {
+        dateOfBirth: Date | null;
+        countryOfResidence: string | null;
+        status: AccountStatus;
+      };
     },
     offsetDays: number,
   ): Promise<number> {
@@ -111,7 +126,12 @@ export class InternshipStartSweepProcessor extends WorkerHost {
       },
     );
 
-    if (application.candidate.isMinor) {
+    // LE DÉFAUT CORRIGÉ ICI. Ce balayage lisait `isMinor`, jamais recalculé :
+    // un majeur de vingt-cinq ans voyait donc un SMS partir vers le numéro
+    // déclaré comme parental à ses seize ans. Ce n'est pas une gêne
+    // fonctionnelle, c'est une information sur sa situation professionnelle
+    // envoyée à un tiers sans titre pour la recevoir.
+    if (await this.minorPolicy.requiresParentalConsent(application.candidate)) {
       await this.notifyLegalGuardian(application.id, application.reference);
     }
     return 1;

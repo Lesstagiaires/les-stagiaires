@@ -40,7 +40,18 @@ Chaque ligne ci-dessous a été lue dans le code, pas déduite d'une intention.
 
 ## 2. Écarts identifiés
 
-### 2.1 — `User.isMinor` est un booléen gelé, jamais recalculé (MOYEN — non corrigé)
+### 2.1 — `User.isMinor` est un booléen gelé, jamais recalculé (MOYEN — **CORRIGÉ le 2026-08-08**)
+
+> **Correction du 2026-08-08, et rectification de ce constat.** Le promoteur a
+> validé le correctif. En l'appliquant, le test de source écrit pour empêcher la
+> récidive a trouvé **une troisième occurrence** que cet audit avait manquée :
+> `profiles/visibility.service.ts`. Mon `grep` initial était trop étroit — le
+> paragraphe ci-dessous annonçait « deux fichiers », il y en avait trois.
+>
+> C'est la démonstration du point que ce rapport défend ailleurs : une règle
+> écrite dans un commentaire ne s'applique pas, et un audit conduit à la main ne
+> voit que ce qu'il a pensé à chercher. Le détail des trois corrections est en
+> §3.9.
 
 **Constat.** `isMinor` est écrit à l'inscription et **aucune écriture ne le met
 jamais à jour** — vérifié par recherche sur tout le code. Un jeune inscrit à
@@ -175,6 +186,43 @@ consentement contre leur propre législation.
 
 ---
 
+### 3.9 — `User.isMinor` confiné au module d'authentification (2026-08-08)
+
+Correctif validé par le promoteur et appliqué après la remise du rapport.
+
+`MinorPolicyService.requiresParentalConsent(user)` devient la source unique :
+l'âge est recalculé depuis la date de naissance et la politique du pays, rien
+n'est stocké, donc rien ne périme. Sans date de naissance ni pays, la réponse
+suit le statut du compte — protection maintenue.
+
+**Trois lectures remplacées**, et non deux comme annoncé au §2.1 :
+
+| Fichier | Ce que le drapeau gelé produisait |
+|---|---|
+| `applications/internship-start-sweep.processor.ts` | Un SMS au « représentant légal » d'un adulte de vingt-cinq ans, vers le numéro déclaré à ses seize ans. Divulgation à un tiers sans titre. |
+| `applications/applications.service.ts` | Un champ de mobilité réclamé indéfiniment à un majeur. |
+| `profiles/visibility.service.ts` | **Trouvé par le test, manqué par l'audit.** Un adulte inscrit mineur ne pouvait JAMAIS rendre une rubrique publique — et le message d'erreur lui parlait d'un « compte mineur » qu'il n'était plus. L'erreur allait dans le sens protecteur, mais restait une restriction définitive imposée à un majeur sur son propre profil. |
+
+**Prévention** : `auth/is-minor-not-read-elsewhere.spec.ts` échoue si `isMinor`
+réapparaît hors du module d'authentification. La règle existait déjà, écrite
+dans `auth.module.ts` — écrite, et violée trois fois. Un commentaire ne
+s'exécute pas.
+
+Les fichiers de test sont hors périmètre de ce contrôle, délibérément : un jeu
+d'essai construit légitimement un objet `User` complet, et mentionner la colonne
+n'est pas en tirer une décision. Les trois occurrences problématiques étaient
+toutes dans du code de production.
+
+Vérifié en remettant `isMinor` exprès dans `visibility.service.ts` : le test
+échoue et nomme le fichier. Restauré, il passe.
+
+Les jeux d'essai du balayage ont été repris au passage : ils décrivaient l'âge
+par `candidate: { isMinor: false }`, le même raccourci que le code. Ils portent
+désormais une date de naissance, et le bouchon du moteur tranche dessus — une
+valeur fixe aurait fait passer les deux cas pour la même raison.
+
+---
+
 ## 4. Risques résiduels
 
 **R1 — Le numéro du parent est déclaratif.** Rien n'empêche un mineur de saisir
@@ -187,7 +235,7 @@ SMS du parent détient le lien et le code. C'est le modèle de sécurité retenu
 la possession du téléphone vaut identité. Un membre de la famille ayant accès au
 téléphone peut donc consentir à la place du parent.
 
-**R3 — `isMinor` gelé** (§2.1). Non corrigé, deux usages hors module.
+~~**R3 — `isMinor` gelé.**~~ Corrigé le 2026-08-08, trois usages ramenés au moteur, récidive interdite par un test (§3.9).
 
 **R4 — Oracle d'énumération sur la vérification OTP** (§2.2).
 
@@ -234,9 +282,7 @@ du SMS ne mène nulle part et la recette ne prouverait rien.
 
 Par ordre de priorité.
 
-1. **Corriger `isMinor`** (§2.1). C'est le seul écart de ce rapport qui peut
-   envoyer une information sur un adulte à un tiers. Correctif simple, et un
-   test de source empêchera la récidive.
+1. ~~**Corriger `isMinor`**~~ — fait le 2026-08-08 (§3.9).
 2. **Construire le parcours mineur** (R7) : état de la demande, relance,
    messages explicites. Sans lui, un compte bloqué reste inexpliqué pour son
    titulaire — et c'est un mineur.
