@@ -73,7 +73,13 @@
       "genericError": "Couldn't sign up. Check your internet connection.",
       "ambassadorCodeLabel": "Referral code (optional)",
       "ambassadorCodePlaceholder": "e.g. AB34CD",
-      "ambassadorCodeHint": "If an ambassador introduced you to LES STAGIAIRES, enter their code. An unknown code is simply ignored and never blocks your registration."
+      "ambassadorCodeHint": "If an ambassador introduced you to LES STAGIAIRES, enter their code. An unknown code is simply ignored and never blocks your registration.",
+      "tier": {
+        "BELOW_MINIMUM": "Registration with LES STAGIAIRES opens at {{age}}, the minimum legal age for an internship or apprenticeship.",
+        "PARENTAL_CONSENT_REQUIRED": "As you are under {{age}}, a parent or guardian must approve your registration. Enter their number: they will receive an SMS to confirm, and you will then be able to apply, sign an agreement and share your documents safely.",
+        "PARENTAL_INFO_OPTIONAL": "You are of age, no approval is needed. As a precaution you may give the number of a parent or guardian simply informed of your registration — it is optional and has no effect on your use of the app."
+      },
+      "parentPhoneRequired": "A parent or guardian’s number is required to continue."
     },
     "verifyOtp": {
       "title": "Phone verification",

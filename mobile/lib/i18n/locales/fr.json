@@ -73,7 +73,13 @@
       "genericError": "Inscription impossible. Vérifiez votre connexion internet.",
       "ambassadorCodeLabel": "Code de parrainage (facultatif)",
       "ambassadorCodePlaceholder": "Ex. AB34CD",
-      "ambassadorCodeHint": "Si un ambassadeur vous a fait connaître LES STAGIAIRES, saisissez son code. Un code inconnu est simplement ignoré et n'empêche jamais votre inscription."
+      "ambassadorCodeHint": "Si un ambassadeur vous a fait connaître LES STAGIAIRES, saisissez son code. Un code inconnu est simplement ignoré et n'empêche jamais votre inscription.",
+      "tier": {
+        "BELOW_MINIMUM": "L’inscription à LES STAGIAIRES est ouverte à partir de {{age}} ans, l’âge légal minimum pour un stage ou un apprentissage.",
+        "PARENTAL_CONSENT_REQUIRED": "Comme vous avez moins de {{age}} ans, un parent ou tuteur doit valider votre inscription. Indiquez son numéro : il recevra un SMS pour confirmer, et vous pourrez ensuite candidater, signer une convention et partager vos documents en toute sécurité.",
+        "PARENTAL_INFO_OPTIONAL": "Vous êtes majeur, aucune validation n’est nécessaire. Par précaution, vous pouvez indiquer le numéro d’un parent ou tuteur simplement informé de votre inscription — c’est facultatif et n’a aucun effet sur votre utilisation de l’application."
+      },
+      "parentPhoneRequired": "Le numéro d’un parent ou tuteur est nécessaire pour poursuivre."
     },
     "verifyOtp": {
       "title": "Vérification du téléphone",

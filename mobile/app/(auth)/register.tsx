@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -23,23 +23,26 @@ import {
 } from '../../components/form';
 import { spacing, typography } from '../../components/theme';
 import { AFRICAN_COUNTRIES } from '../../lib/countries';
-import { ApiError, type Sex } from '../../lib/api';
+import { api, ApiError, type AgeThresholds, type Sex } from '../../lib/api';
+import {
+  requiresParentalPhone,
+  showsParentalField,
+  tierForDateOfBirth,
+} from '../../lib/age-tiers';
 import { useAuth } from '../../lib/auth-context';
 import { toIsoDateString } from '../../lib/date';
 import { getCurrentLanguage } from '../../lib/i18n';
 
-// Approximation cliente affichant le champ parent par anticipation — le seuil réel,
-// configurable par pays (CountryPolicy), n'est tranché qu'au serveur (moteur de règles,
-// jamais un seuil fixe côté client non plus).
-function isLikelyMinor(dateOfBirth: Date): boolean {
-  const now = new Date();
-  let age = now.getFullYear() - dateOfBirth.getFullYear();
-  const monthDiff = now.getMonth() - dateOfBirth.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < dateOfBirth.getDate())) {
-    age--;
-  }
-  return age < 18;
-}
+// Les seuils ne sont plus ici.
+//
+// Cet écran portait un « âge < 18 » codé en dur. Le Cameroun exige désormais un
+// parent dès 14 ans, et le palier 18-20 propose un contact sans effet — deux
+// choses qu'un booléen mineur/majeur ne peut pas dire. Les seuils viennent
+// maintenant du serveur (`GET /auth/age-thresholds/:pays`) et le palier se
+// calcule dans `lib/age-tiers`, à partir de ce qu'il a répondu.
+//
+// La date de naissance ne quitte pas l'appareil pour autant : on reçoit des
+// SEUILS, pas un verdict.
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -64,10 +67,45 @@ export default function RegisterScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const likelyMinor = useMemo(
-    () => (dateOfBirth ? isLikelyMinor(dateOfBirth) : false),
-    [dateOfBirth],
+  // Les seuils du pays choisi. Rechargés à chaque changement de pays : une
+  // même date de naissance ne donne pas le même palier partout.
+  const [thresholds, setThresholds] = useState<AgeThresholds | null>(null);
+
+  useEffect(() => {
+    if (!countryOfResidence) {
+      setThresholds(null);
+      return;
+    }
+    let annule = false;
+    api
+      .getAgeThresholds(countryOfResidence)
+      .then((recus) => {
+        if (!annule) setThresholds(recus);
+      })
+      // Réseau indisponible : on n'invente aucun seuil. Le champ parent
+      // n'apparaît pas, et c'est le SERVEUR qui refusera l'inscription s'il
+      // manque — mieux vaut un formulaire incomplet qu'un formulaire qui ment
+      // sur ce qui est exigé.
+      .catch(() => {
+        if (!annule) setThresholds(null);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [countryOfResidence]);
+
+  // Le palier courant. `null` tant qu'il manque la date ou les seuils : on
+  // n'affiche rien plutôt que de deviner.
+  const tier = useMemo(
+    () =>
+      dateOfBirth && thresholds
+        ? tierForDateOfBirth(dateOfBirth, thresholds)
+        : null,
+    [dateOfBirth, thresholds],
   );
+
+  const montreChampParent = tier ? showsParentalField(tier) : false;
+  const parentObligatoire = tier ? requiresParentalPhone(tier) : false;
 
   const callingCode = useMemo(
     () => AFRICAN_COUNTRIES.find((c) => c.code === countryOfResidence)?.callingCode ?? null,
@@ -83,9 +121,12 @@ export default function RegisterScreen() {
   );
 
   const isParentPhoneValid = useMemo(() => {
-    if (!parentPhoneNational) return true; // facultatif — orientation informative seulement
+    // Au palier 14-17 le numéro est EXIGÉ : sans lui, aucun parent ne sera
+    // jamais sollicité et le compte resterait restreint sans que l'utilisateur
+    // comprenne pourquoi.
+    if (!parentPhoneNational) return !parentObligatoire;
     return !!countryOfResidence && isValidPhoneNumber(parentPhoneNational, countryOfResidence);
-  }, [countryOfResidence, parentPhoneNational]);
+  }, [countryOfResidence, parentPhoneNational, parentObligatoire]);
 
   const passwordsMatch = password.length > 0 && password === confirmPassword;
 
@@ -107,6 +148,13 @@ export default function RegisterScreen() {
       setError(t('auth.register.passwordMismatch'));
       return;
     }
+    // Le numéro du parent est EXIGÉ au palier 14-17 : sans lui, aucun parent
+    // n'est jamais sollicité et le compte resterait restreint sans que
+    // l'utilisateur comprenne pourquoi.
+    if (parentObligatoire && !parentPhoneNational) {
+      setError(t('auth.register.parentPhoneRequired'));
+      return;
+    }
     if (parentPhoneNational && !isParentPhoneValid) {
       setError(t('auth.register.invalidPhone'));
       return;
@@ -117,7 +165,7 @@ export default function RegisterScreen() {
       return;
     }
     const parentPhone =
-      likelyMinor && parentPhoneNational
+      montreChampParent && parentPhoneNational
         ? parsePhoneNumberFromString(parentPhoneNational, countryOfResidence)?.number
         : undefined;
 
@@ -244,9 +292,34 @@ export default function RegisterScreen() {
             maximumDate={new Date()}
           />
 
-          {likelyMinor && (
+          {/*
+            SOUS L'ÂGE MINIMUM : on l'explique, on ne bloque pas en silence.
+            « afficher un message explicite plutôt qu'un blocage silencieux ».
+            Le serveur refusera de toute façon ; l'écran doit dire pourquoi.
+          */}
+          {tier === 'BELOW_MINIMUM' && thresholds && (
+            <Text style={styles.minorNotice}>
+              {t('auth.register.tier.BELOW_MINIMUM', {
+                age: thresholds.minInternshipAge,
+              })}
+            </Text>
+          )}
+
+          {montreChampParent && (
             <>
-              <Text style={styles.minorNotice}>{t('auth.register.minorNotice')}</Text>
+              {/*
+                DEUX TEXTES DIFFÉRENTS pour deux paliers qui se ressemblent à
+                l'écran. À 14-17 ans le numéro conditionne tout ; à 18-20 ans il
+                n'a aucun effet, et le dire évite qu'un majeur croie devoir
+                attendre une validation qui ne viendra jamais.
+              */}
+              <Text style={styles.minorNotice}>
+                {tier === 'PARENTAL_CONSENT_REQUIRED'
+                  ? t('auth.register.tier.PARENTAL_CONSENT_REQUIRED', {
+                      age: thresholds?.civilMajorityAge,
+                    })
+                  : t('auth.register.tier.PARENTAL_INFO_OPTIONAL')}
+              </Text>
               <View style={styles.phoneRow}>
                 <View style={styles.phonePrefix}>
                   <Text style={styles.phonePrefixText}>{callingCode ? `+${callingCode}` : '+…'}</Text>

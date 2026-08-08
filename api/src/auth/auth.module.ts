@@ -8,7 +8,10 @@ import { AccountCleanupScheduler } from './account-cleanup.scheduler';
 import { AmbassadorsModule } from '../ambassadors/ambassadors.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { CountryPolicyController } from './country-policy.controller';
+import {
+  AgeThresholdsController,
+  CountryPolicyController,
+} from './country-policy.controller';
 import { CountryPolicyService } from './country-policy.service';
 import { MinorPolicyService } from './minor-policy.service';
 import { OtpService } from './otp.service';
@@ -29,7 +32,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
       { name: 'parental-consent-sweep' },
     ),
   ],
-  controllers: [AuthController, CountryPolicyController],
+  controllers: [
+    AuthController,
+    // Route publique /auth/age-thresholds/:pays — l'écran d'inscription lit les
+    // seuils du pays au lieu d'en coder un en dur.
+    AgeThresholdsController,
+    CountryPolicyController,
+  ],
   providers: [
     AuthService,
     OtpService,

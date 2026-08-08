@@ -442,6 +442,21 @@ export interface OfferQualityReport {
   points: QualityPoint[];
 }
 
+// Les seuils d'âge d'un pays, tels que le serveur les publie.
+//
+// L'application les LIT, elle ne les décide pas : « nous ne devons pas figer
+// les valeurs dans le code ». Un pays reconfiguré au back-office change le
+// comportement de l'inscription sans nouvelle version sur les magasins.
+export interface AgeThresholds {
+  countryCode: string;
+  minInternshipAge: number;
+  minParentRequiredAge: number;
+  civilMajorityAge: number;
+  parentalInfoMaxAge: number;
+  // Le pays n'est pas encore configuré : un repli protecteur s'applique.
+  isFallback: boolean;
+}
+
 export interface SearchOpportunitiesInput {
   // Les MOTS-CLÉS. Le moteur les traite en trois passes : plein texte,
   // similarité (fautes de frappe), puis synonymes — « RH » trouve « ressources
@@ -1628,6 +1643,15 @@ export const api = {
     request<SearchOpportunitiesResult>(
       `/opportunities${buildQueryString(query as Record<string, string | number | undefined>)}`,
     ),
+
+  // Les seuils d'âge d'un pays. PUBLIQUE, et volontairement : l'écran
+  // d'inscription doit les connaître avant toute création de compte, sinon il
+  // code un seuil en dur — ce qu'il faisait.
+  //
+  // On envoie le PAYS, jamais la date de naissance : celle-ci ne quitte
+  // l'appareil qu'à l'inscription proprement dite.
+  getAgeThresholds: (countryCode: string) =>
+    request<AgeThresholds>(`/auth/age-thresholds/${countryCode}`),
 
   getOpportunity: (id: string, accessToken?: string) =>
     request<Opportunity>(`/opportunities/${id}`, { accessToken }),

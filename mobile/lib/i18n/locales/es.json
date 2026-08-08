@@ -73,7 +73,13 @@
       "genericError": "No se pudo registrar. Verifique su conexión a internet.",
       "ambassadorCodeLabel": "Código de referido (opcional)",
       "ambassadorCodePlaceholder": "Ej. AB34CD",
-      "ambassadorCodeHint": "Si un embajador le dio a conocer LES STAGIAIRES, introduzca su código. Un código desconocido simplemente se ignora y nunca impide su registro."
+      "ambassadorCodeHint": "Si un embajador le dio a conocer LES STAGIAIRES, introduzca su código. Un código desconocido simplemente se ignora y nunca impide su registro.",
+      "tier": {
+        "BELOW_MINIMUM": "La inscripción en LES STAGIAIRES está abierta a partir de los {{age}} años, la edad legal mínima para una pasantía o un aprendizaje.",
+        "PARENTAL_CONSENT_REQUIRED": "Como es menor de {{age}} años, un padre o tutor debe validar su inscripción. Indique su número: recibirá un SMS para confirmar, y después podrá postularse, firmar un convenio y compartir sus documentos con total seguridad.",
+        "PARENTAL_INFO_OPTIONAL": "Es mayor de edad, no se necesita ninguna validación. Por precaución, puede indicar el número de un padre o tutor simplemente informado de su inscripción — es opcional y no afecta en nada al uso de la aplicación."
+      },
+      "parentPhoneRequired": "Se necesita el número de un padre o tutor para continuar."
     },
     "verifyOtp": {
       "title": "Verificación del teléfono",
