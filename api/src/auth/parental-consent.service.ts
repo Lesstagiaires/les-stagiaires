@@ -78,6 +78,39 @@ export class ParentalConsentService {
     });
 
     // ========================================================================
+    // LE DÉLAI DE GARDE DE LA RELANCE
+    //
+    // Une relance est indispensable : sans elle, un compte reste bloqué pour
+    // toujours dès que le premier SMS se perd. Mais une relance sans garde-fou
+    // est une arme, et le pire des trois risques n'est pas celui qu'on imagine
+    // en écrivant un bouton « renvoyer » :
+    //
+    //   — LE PARENT. Un adolescent contrarié qui appuie vingt fois transforme
+    //     la plateforme en outil de harcèlement du numéro qu'il a lui-même
+    //     déclaré.
+    //   — L'ARGENT. Chaque envoi est facturé par l'opérateur.
+    //   — LE CODE. Relancer invalide le précédent. Un parent qui lit le SMS
+    //     pendant que son enfant en demande un autre saisit un code déjà mort,
+    //     et conclut que la plateforme ne fonctionne pas.
+    //
+    // La limitation de débit HTTP ne remplace pas ce contrôle : elle porte sur
+    // une adresse IP et une minute, alors que la règle porte sur un LIEN
+    // parental et se compte en minutes.
+    // ========================================================================
+    const cooldownMinutes = Number(
+      this.config.get<string>('PARENTAL_CONSENT_RESEND_COOLDOWN_MINUTES', '3'),
+    );
+    if (existing?.lastConsentSentAt) {
+      const ecoule = Date.now() - existing.lastConsentSentAt.getTime();
+      const reste = cooldownMinutes * 60_000 - ecoule;
+      if (reste > 0) {
+        throw new ConflictException(
+          `Un SMS vient d'être envoyé. Merci d'attendre ${Math.ceil(reste / 60_000)} minute(s) avant de relancer.`,
+        );
+      }
+    }
+
+    // ========================================================================
     // CHANGER DE PARENT REBLOQUE LE COMPTE
     //
     // Défaut corrigé le 2026-08-07. Demander le consentement d'un NOUVEAU
@@ -139,6 +172,7 @@ export class ParentalConsentService {
             consentExpiresAt,
             consentAttempts: 0,
             flaggedAt: null,
+            lastConsentSentAt: new Date(),
           },
         })
       : await this.prisma.parentalLink.create({
@@ -147,6 +181,7 @@ export class ParentalConsentService {
             parentPhone,
             consentCodeHash: this.hashCode(code),
             consentExpiresAt,
+            lastConsentSentAt: new Date(),
           },
         });
 
@@ -382,10 +417,33 @@ export class ParentalConsentService {
     return phone.slice(0, -4).replace(/./g, '*') + phone.slice(-4);
   }
 
+  // ==========================================================================
+  // CE QUE LE MINEUR VOIT DE SA PROPRE DEMANDE
+  //
+  // Il ne voyait rien : ni où en était la demande, ni quand le code expire, ni
+  // comment relancer. Un compte pouvait donc rester bloqué sans que son
+  // titulaire — un mineur — comprenne pourquoi. C'est le sens de ce parcours.
+  //
+  // `consentExpiresAt` et `declinedAt` manquaient à la projection. Sans le
+  // premier, impossible de dire « le code expire demain » ; sans le second,
+  // impossible de distinguer un refus d'un silence.
+  //
+  // JAMAIS `consentCodeHash` : c'est un secret de vérification, pas une donnée
+  // consultable, même par le titulaire du compte (CLAUDE.md §6). Le mineur
+  // n'est pas censé connaître le code de son parent — sinon il consentirait à
+  // sa place, ce que tout ce dispositif cherche à empêcher.
+  //
+  // `parentPhone` EN CLAIR est assumé : c'est le mineur qui l'a saisi, et il
+  // doit pouvoir vérifier qu'il ne s'est pas trompé de chiffre avant de
+  // relancer. Le masquer l'empêcherait de corriger la seule erreur qu'il puisse
+  // corriger seul.
+  // ==========================================================================
   async listForChild(childId: string) {
-    // Ne jamais exposer consentCodeHash — c'est un secret de vérification, pas une
-    // donnée consultable, même par le titulaire du compte (CLAUDE.md §6).
-    return this.prisma.parentalLink.findMany({
+    const cooldownMinutes = Number(
+      this.config.get<string>('PARENTAL_CONSENT_RESEND_COOLDOWN_MINUTES', '3'),
+    );
+
+    const links = await this.prisma.parentalLink.findMany({
       where: { childId },
       select: {
         id: true,
@@ -395,10 +453,29 @@ export class ParentalConsentService {
         status: true,
         consentAttempts: true,
         maxConsentAttempts: true,
+        consentExpiresAt: true,
         flaggedAt: true,
+        declinedAt: true,
+        lastConsentSentAt: true,
         createdAt: true,
         confirmedAt: true,
       },
+      orderBy: { createdAt: 'desc' },
     });
+
+    const maintenant = Date.now();
+    return links.map((link) => ({
+      ...link,
+      // Deux états que l'écran devrait sinon recalculer — et recalculer un délai
+      // côté client, c'est le recalculer avec l'horloge du téléphone, qui peut
+      // être fausse de plusieurs heures.
+      codeExpired:
+        link.status === ParentalLinkStatus.PENDING &&
+        (!link.consentExpiresAt ||
+          link.consentExpiresAt.getTime() < maintenant),
+      resendAvailableAt: link.lastConsentSentAt
+        ? new Date(link.lastConsentSentAt.getTime() + cooldownMinutes * 60_000)
+        : null,
+    }));
   }
 }

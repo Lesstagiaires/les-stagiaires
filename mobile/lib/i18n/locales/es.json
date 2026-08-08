@@ -141,6 +141,26 @@
         "REVOKED": "Esta solicitud fue sustituida por otra.",
         "PENDING": "Este código ha caducado. El joven puede volver a solicitarlo."
       }
+    },
+    "parentalStatus": {
+      "title": "Consentimiento de su padre o tutor",
+      "sentTo": "Solicitud enviada al {{phone}}.",
+      "whatIsBlocked": "Mientras espera su respuesta, puede explorar y completar su perfil. Postularse, firmar un convenio y compartir un documento siguen bloqueados.",
+      "notReceived": "¿Su padre no ha recibido nada, o el código ha caducado?",
+      "resend": "Reenviar el SMS",
+      "resendWait": "Espere antes de reenviar",
+      "resent": "Se acaba de enviar un nuevo SMS.",
+      "resendError": "El reenvío no se ha completado.",
+      "loadError": "No se puede mostrar el estado de su solicitud.",
+      "declinedHelp": "Su padre o tutor lo ha rechazado. Otro SMS no cambiaría nada: háblelo con él, o contáctenos desde la sección de ayuda.",
+      "status": {
+        "PENDING": "Esperando su respuesta",
+        "CODE_EXPIRED": "El código ha caducado",
+        "ACTIVE": "Consentimiento concedido",
+        "DECLINED": "Consentimiento rechazado",
+        "EXPIRED": "Plazo vencido",
+        "REVOKED": "Solicitud sustituida"
+      }
     }
   },
   "home": {

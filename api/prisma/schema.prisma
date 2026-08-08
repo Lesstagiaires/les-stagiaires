@@ -249,6 +249,11 @@ model ParentalLink {
 
   // Horodatage du signalement automatique à 30 jours sans réponse (CLAUDE.md §5).
   flaggedAt DateTime?
+  // Quand le dernier SMS de consentement est parti. Porte le délai de garde
+  // de la relance : sans lui, chaque appui renverrait un SMS payant au parent,
+  // et un adolescent contrarié transformerait le bouton en outil de
+  // harcèlement du numéro qu'il a lui-même déclaré.
+  lastConsentSentAt DateTime?
   // Quand le parent a refusé. Distinct de flaggedAt, qui marque l'expiration.
   declinedAt DateTime?
 

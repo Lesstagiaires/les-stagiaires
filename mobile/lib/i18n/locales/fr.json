@@ -141,6 +141,26 @@
         "REVOKED": "Cette demande a été remplacée par une autre.",
         "PENDING": "Ce code a expiré. Le jeune peut relancer la demande."
       }
+    },
+    "parentalStatus": {
+      "title": "Accord de votre parent ou tuteur",
+      "sentTo": "Demande envoyée au {{phone}}.",
+      "whatIsBlocked": "En attendant sa réponse, vous pouvez explorer et compléter votre profil. Candidater, signer une convention et partager un document restent bloqués.",
+      "notReceived": "Votre parent n’a rien reçu, ou le code a expiré ?",
+      "resend": "Renvoyer le SMS",
+      "resendWait": "Patientez avant de renvoyer",
+      "resent": "Un nouveau SMS vient d’être envoyé.",
+      "resendError": "Le renvoi n’a pas abouti.",
+      "loadError": "Impossible d’afficher l’état de votre demande.",
+      "declinedHelp": "Votre parent ou tuteur a refusé. Un nouveau SMS ne changerait rien : parlez-en avec lui, ou contactez-nous depuis la rubrique d’aide.",
+      "status": {
+        "PENDING": "En attente de sa réponse",
+        "CODE_EXPIRED": "Le code a expiré",
+        "ACTIVE": "Accord donné",
+        "DECLINED": "Accord refusé",
+        "EXPIRED": "Délai dépassé",
+        "REVOKED": "Demande remplacée"
+      }
     }
   },
   "home": {

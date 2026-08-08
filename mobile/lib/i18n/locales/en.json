@@ -141,6 +141,26 @@
         "REVOKED": "This request was replaced by another one.",
         "PENDING": "This code has expired. The young person can request again."
       }
+    },
+    "parentalStatus": {
+      "title": "Your parent or guardian’s approval",
+      "sentTo": "Request sent to {{phone}}.",
+      "whatIsBlocked": "While waiting for their reply you can explore and complete your profile. Applying, signing an agreement and sharing a document stay blocked.",
+      "notReceived": "Your parent received nothing, or the code expired?",
+      "resend": "Send the SMS again",
+      "resendWait": "Please wait before resending",
+      "resent": "A new SMS has just been sent.",
+      "resendError": "Resending did not go through.",
+      "loadError": "Cannot display the state of your request.",
+      "declinedHelp": "Your parent or guardian refused. Another SMS would change nothing: talk to them, or contact us from the help section.",
+      "status": {
+        "PENDING": "Waiting for their reply",
+        "CODE_EXPIRED": "The code has expired",
+        "ACTIVE": "Approved",
+        "DECLINED": "Refused",
+        "EXPIRED": "Deadline passed",
+        "REVOKED": "Request replaced"
+      }
     }
   },
   "home": {

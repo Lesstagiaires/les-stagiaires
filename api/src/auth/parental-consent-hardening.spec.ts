@@ -275,6 +275,91 @@ describe('Durcissement du consentement parental', () => {
     });
 
     // ------------------------------------------------------------------------
+    // LE DÉLAI DE GARDE DE LA RELANCE
+    //
+    // Une relance est indispensable — sans elle un compte reste bloqué dès que
+    // le premier SMS se perd. Mais le pire risque n'est ni l'argent ni la
+    // technique : c'est LE PARENT. Un adolescent contrarié qui appuie vingt fois
+    // transforme la plateforme en outil de harcèlement du numéro qu'il a
+    // lui-même déclaré.
+    // ------------------------------------------------------------------------
+    describe('Relance du SMS', () => {
+      beforeEach(() => {
+        prisma.user.findUniqueOrThrow.mockResolvedValue({
+          id: 'enfant_1',
+          isMinor: true,
+          phone: '+237690000001',
+        });
+      });
+
+      it('refuse une relance immédiate et dit combien de temps attendre', async () => {
+        prisma.parentalLink.findUnique.mockResolvedValue({
+          id: 'lien_1',
+          status: ParentalLinkStatus.PENDING,
+          lastConsentSentAt: new Date(),
+        });
+
+        await expect(
+          service.requestConsent('enfant_1', '+237690001111'),
+        ).rejects.toThrow(/attendre/);
+
+        // AUCUN SMS ne part, et le code précédent reste valide : relancer
+        // l'invalide, et un parent qui lit son SMS pendant ce temps saisirait un
+        // code déjà mort.
+        expect(sms.send).not.toHaveBeenCalled();
+        expect(prisma.parentalLink.update).not.toHaveBeenCalled();
+      });
+
+      it('autorise la relance une fois le délai écoulé', async () => {
+        prisma.parentalLink.findUnique.mockResolvedValue({
+          id: 'lien_1',
+          status: ParentalLinkStatus.PENDING,
+          lastConsentSentAt: new Date(Date.now() - 10 * 60_000),
+        });
+        prisma.parentalLink.update.mockResolvedValue({
+          id: 'lien_1',
+          status: ParentalLinkStatus.PENDING,
+        });
+
+        await service.requestConsent('enfant_1', '+237690001111');
+        expect(sms.send).toHaveBeenCalledTimes(1);
+      });
+
+      // Un lien sans date d'envoi se lit « on ne sait pas quand ». Refuser par
+      // défaut bloquerait les comptes déjà en attente — l'inverse du but.
+      it('autorise la relance quand aucune date d’envoi n’est connue', async () => {
+        prisma.parentalLink.findUnique.mockResolvedValue({
+          id: 'lien_1',
+          status: ParentalLinkStatus.PENDING,
+          lastConsentSentAt: null,
+        });
+        prisma.parentalLink.update.mockResolvedValue({
+          id: 'lien_1',
+          status: ParentalLinkStatus.PENDING,
+        });
+
+        await service.requestConsent('enfant_1', '+237690001111');
+        expect(sms.send).toHaveBeenCalledTimes(1);
+      });
+
+      it('horodate chaque envoi, sinon le délai ne mordrait qu’une fois', async () => {
+        prisma.parentalLink.findUnique.mockResolvedValue(null);
+        prisma.parentalLink.create.mockResolvedValue({
+          id: 'lien_neuf',
+          status: ParentalLinkStatus.PENDING,
+        });
+
+        await service.requestConsent('enfant_1', '+237690001111');
+
+        const appels = prisma.parentalLink.create.mock.calls as unknown[][];
+        const { data } = appels[0][0] as {
+          data: { lastConsentSentAt?: Date };
+        };
+        expect(data.lastConsentSentAt).toBeInstanceOf(Date);
+      });
+    });
+
+    // ------------------------------------------------------------------------
     // LE SMS DOIT PERMETTRE AU PARENT D'AGIR LUI-MÊME
     // ------------------------------------------------------------------------
     describe('SMS envoyé au parent', () => {

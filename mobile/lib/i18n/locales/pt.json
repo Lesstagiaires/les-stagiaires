@@ -141,6 +141,26 @@
         "REVOKED": "Este pedido foi substituído por outro.",
         "PENDING": "Este código expirou. O jovem pode voltar a pedir."
       }
+    },
+    "parentalStatus": {
+      "title": "Autorização do seu pai ou tutor",
+      "sentTo": "Pedido enviado para {{phone}}.",
+      "whatIsBlocked": "Enquanto aguarda a resposta, pode explorar e completar o seu perfil. Candidatar-se, assinar um protocolo e partilhar um documento continuam bloqueados.",
+      "notReceived": "O seu pai não recebeu nada, ou o código expirou?",
+      "resend": "Reenviar o SMS",
+      "resendWait": "Aguarde antes de reenviar",
+      "resent": "Acabou de ser enviado um novo SMS.",
+      "resendError": "O reenvio não foi concluído.",
+      "loadError": "Não é possível mostrar o estado do seu pedido.",
+      "declinedHelp": "O seu pai ou tutor recusou. Outro SMS não mudaria nada: fale com ele, ou contacte-nos a partir da secção de ajuda.",
+      "status": {
+        "PENDING": "A aguardar a resposta",
+        "CODE_EXPIRED": "O código expirou",
+        "ACTIVE": "Autorização concedida",
+        "DECLINED": "Autorização recusada",
+        "EXPIRED": "Prazo terminado",
+        "REVOKED": "Pedido substituído"
+      }
     }
   },
   "home": {

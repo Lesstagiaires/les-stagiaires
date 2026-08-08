@@ -459,6 +459,40 @@ export interface ParentalConsentRequest {
   isActionable: boolean;
 }
 
+export type ParentalLinkStatus =
+  | 'PENDING'
+  | 'ACTIVE'
+  | 'REVOKED'
+  | 'EXPIRED'
+  | 'DECLINED';
+
+// La demande telle que le MINEUR la voit, sur son propre compte.
+//
+// Le numéro du parent est en clair : c'est lui qui l'a saisi, et il doit pouvoir
+// vérifier qu'il ne s'est pas trompé d'un chiffre avant de relancer. Le masquer
+// l'empêcherait de corriger la seule erreur qu'il puisse corriger seul.
+//
+// Le code, lui, n'est JAMAIS transmis — même à lui. Le connaître reviendrait à
+// consentir à la place de son parent, ce que tout ce dispositif empêche.
+export interface ParentalLink {
+  id: string;
+  parentPhone: string;
+  status: ParentalLinkStatus;
+  consentAttempts: number;
+  maxConsentAttempts: number;
+  consentExpiresAt: string | null;
+  confirmedAt: string | null;
+  declinedAt: string | null;
+  flaggedAt: string | null;
+  lastConsentSentAt: string | null;
+  createdAt: string;
+  // Calculés par le SERVEUR. Recalculer un délai côté client, c'est le
+  // recalculer avec l'horloge du téléphone — qui peut être fausse de plusieurs
+  // heures.
+  codeExpired: boolean;
+  resendAvailableAt: string | null;
+}
+
 export interface AgeThresholds {
   countryCode: string;
   minInternshipAge: number;
@@ -1686,6 +1720,23 @@ export const api = {
       method: 'POST',
       body: { code },
     }),
+
+  // --- Consentement parental (côté mineur) ----------------------------------
+  //
+  // Le titulaire du compte doit pouvoir voir où en est SA demande, et la
+  // relancer. Sans cela, un compte reste bloqué sans que son titulaire — un
+  // mineur — comprenne pourquoi.
+  listMyParentalLinks: (accessToken: string) =>
+    request<ParentalLink[]>('/auth/minors/parental-links', { accessToken }),
+
+  // Sert à la fois à déclarer un parent et à RELANCER le SMS. Le serveur
+  // applique un délai de garde : sans lui, chaque appui renverrait un message
+  // payant au numéro que le mineur a lui-même déclaré.
+  requestParentalConsent: (accessToken: string, parentPhone: string) =>
+    request<{ linkId: string; status: ParentalLinkStatus }>(
+      '/auth/minors/request-consent',
+      { method: 'POST', body: { parentPhone }, accessToken },
+    ),
 
   getAgeThresholds: (countryCode: string) =>
     request<AgeThresholds>(`/auth/age-thresholds/${countryCode}`),

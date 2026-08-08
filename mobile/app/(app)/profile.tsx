@@ -15,6 +15,7 @@ import { Card } from '../../components/card';
 import { ChipSelect } from '../../components/chip-select';
 import { DateInput } from '../../components/date-input';
 import { colors, ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../components/form';
+import { ParentalConsentStatus } from '../../components/parental-consent-status';
 import { Section } from '../../components/section';
 import {
   api,
@@ -105,6 +106,13 @@ export default function ProfileScreen() {
           profile={profile}
           onSaved={reload}
         />
+
+        {/*
+          L'ÉTAT DE L'ACCORD PARENTAL, tout en haut du profil.
+          Un compte restreint sans explication est le pire des silences pour un
+          mineur. Le composant ne s'affiche pas si aucun accord n'est en jeu.
+        */}
+        <ParentalConsentStatus accessToken={accessToken} />
 
         <RolesSection
           accessToken={accessToken}
