@@ -9,6 +9,7 @@ export interface ResolvedCountryPolicy {
   minInternshipAge: number;
   minParentRequiredAge: number;
   civilMajorityAge: number;
+  parentalInfoMaxAge: number;
   gatedActions: MinorGatedAction[];
   // true si aucune CountryPolicy n'est configurée pour ce pays et que la politique de
   // repli sûre s'applique (CLAUDE.md §5 : jamais d'absence de protection par défaut).
@@ -35,6 +36,10 @@ const FALLBACK_POLICY: Omit<
   minInternshipAge: 16,
   minParentRequiredAge: 16,
   civilMajorityAge: 18,
+  // Le repli reste PRUDENT : il ne propose aucun champ parent au-delà de la
+  // majorité. Un pays non configuré ne doit pas se voir prêter une politique
+  // que personne n'a arbitrée pour lui.
+  parentalInfoMaxAge: 18,
   gatedActions: [
     MinorGatedAction.REGISTRATION,
     MinorGatedAction.APPLICATION_SUBMIT,
@@ -65,6 +70,7 @@ export class CountryPolicyService {
       minInternshipAge: policy.minInternshipAge,
       minParentRequiredAge: policy.minParentRequiredAge,
       civilMajorityAge: policy.civilMajorityAge,
+      parentalInfoMaxAge: policy.parentalInfoMaxAge,
       gatedActions: policy.gatedActions,
       isFallback: false,
     };
@@ -88,6 +94,7 @@ export class CountryPolicyService {
         minInternshipAge: dto.minInternshipAge,
         minParentRequiredAge: dto.minParentRequiredAge,
         civilMajorityAge: dto.civilMajorityAge,
+        parentalInfoMaxAge: dto.parentalInfoMaxAge,
         gatedActions: dto.gatedActions,
       },
       create: {
@@ -95,6 +102,7 @@ export class CountryPolicyService {
         minInternshipAge: dto.minInternshipAge,
         minParentRequiredAge: dto.minParentRequiredAge,
         civilMajorityAge: dto.civilMajorityAge,
+        parentalInfoMaxAge: dto.parentalInfoMaxAge,
         gatedActions: dto.gatedActions,
       },
     });

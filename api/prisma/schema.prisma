@@ -71,6 +71,10 @@ enum ParentalLinkStatus {
   REVOKED
   // Consentement jamais obtenu au-delà du délai (CLAUDE.md §5 : signalement puis suspension à 30 jours).
   EXPIRED
+  // Le parent a REFUSÉ activement — ce qui n'est pas la même chose que ne pas
+  // répondre. Le compte est bloqué immédiatement, sans attendre les 30 jours :
+  // un refus explicite dit quelque chose que le silence ne dit pas.
+  DECLINED
 }
 
 model User {
@@ -245,6 +249,8 @@ model ParentalLink {
 
   // Horodatage du signalement automatique à 30 jours sans réponse (CLAUDE.md §5).
   flaggedAt DateTime?
+  // Quand le parent a refusé. Distinct de flaggedAt, qui marque l'expiration.
+  declinedAt DateTime?
 
   createdAt   DateTime  @default(now())
   confirmedAt DateTime?
@@ -271,6 +277,14 @@ model CountryPolicy {
   minParentRequiredAge Int
   // Âge de la majorité civile — remplace le seuil de 18 ans autrefois codé en dur.
   civilMajorityAge     Int
+  // LE QUATRIÈME PALIER. Entre la majorité civile et cet âge, un contact
+  // parental peut être proposé PAR COURTOISIE, sans aucun effet fonctionnel :
+  // ni blocage, ni validation attendue, ni droit de regard. Au-delà, plus aucun
+  // champ parent n'est affiché.
+  //
+  // Sans ce seuil, les deux derniers paliers se confondent et quelqu'un de
+  // trente ans se verrait proposer d'indiquer son parent.
+  parentalInfoMaxAge   Int
 
   gatedActions MinorGatedAction[]
 

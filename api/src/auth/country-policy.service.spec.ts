@@ -83,6 +83,7 @@ describe('CountryPolicyService', () => {
         minInternshipAge: 16,
         minParentRequiredAge: 16,
         civilMajorityAge: 18,
+        parentalInfoMaxAge: 21,
         gatedActions: [MinorGatedAction.APPLICATION_SUBMIT],
       });
 

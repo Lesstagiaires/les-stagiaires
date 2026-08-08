@@ -60,6 +60,53 @@ export class ParentalConsentService {
       where: { childId_parentPhone: { childId, parentPhone } },
     });
 
+    // ========================================================================
+    // CHANGER DE PARENT REBLOQUE LE COMPTE
+    //
+    // Défaut corrigé le 2026-08-07. Demander le consentement d'un NOUVEAU
+    // numéro créait bien un lien PENDING — mais laissait l'ancien lien ACTIVE.
+    // Or le contrôle d'accès cherche `findFirst({ status: ACTIVE })` : il
+    // trouvait l'ancien, et laissait tout passer.
+    //
+    // Autrement dit, un mineur pouvait faire valider son compte par un adulte
+    // complaisant, puis « changer de parent » sans aucune conséquence : le
+    // nouveau numéro ne recevait qu'un code sans portée. C'est exactement la
+    // « modification silencieuse » que le cahier des charges interdit.
+    //
+    // On révoque donc les liens actifs vers d'AUTRES numéros avant d'ouvrir le
+    // nouveau cycle. Le compte retombe en attente, ce qui est le sens voulu :
+    // un changement de tuteur est un fait qui se reconfirme.
+    // ========================================================================
+    const autresLiensActifs = await this.prisma.parentalLink.findMany({
+      where: {
+        childId,
+        status: ParentalLinkStatus.ACTIVE,
+        parentPhone: { not: parentPhone },
+      },
+    });
+
+    for (const ancien of autresLiensActifs) {
+      await this.prisma.parentalLink.update({
+        where: { id: ancien.id },
+        data: { status: ParentalLinkStatus.REVOKED },
+      });
+      await this.audit.record('PARENTAL_LINK_REVOKED_ON_CHANGE', childId, {
+        linkId: ancien.id,
+        // Le numéro n'est PAS journalisé : c'est une donnée personnelle, et
+        // l'identifiant du lien suffit à retrouver la ligne.
+        raison: 'Nouveau parent/tuteur déclaré par le titulaire du compte.',
+      });
+    }
+
+    if (autresLiensActifs.length > 0) {
+      // Le compte redevient restreint tant que le nouveau tuteur n'a pas
+      // confirmé — sinon la révocation ne changerait rien à ce qu'il peut faire.
+      await this.prisma.user.update({
+        where: { id: childId },
+        data: { status: AccountStatus.AWAITING_PARENTAL_CONSENT },
+      });
+    }
+
     if (existing?.status === ParentalLinkStatus.ACTIVE) {
       throw new ConflictException(
         'Ce parent/tuteur a déjà confirmé le rattachement.',
@@ -168,6 +215,89 @@ export class ParentalConsentService {
       linkId: link.id,
     });
     return { message: 'Consentement confirmé.' };
+  }
+
+  // ==========================================================================
+  // LE PARENT REFUSE — CE QUI N'EST PAS LA MÊME CHOSE QUE NE PAS RÉPONDRE
+  //
+  // Exigence du cahier des charges : « prévoir un état où le parent peut
+  // refuser (pas seulement ignorer) — le compte reste alors bloqué au-delà du
+  // délai de 30 jours, sans attendre l'expiration automatique ».
+  //
+  // Jusqu'ici le silence et le refus se confondaient : dans les deux cas le
+  // compte restait ouvert en mode restreint pendant trente jours. Un parent
+  // qui prend la peine de répondre NON dit quelque chose de plus fort que
+  // celui qui n'a rien vu passer, et le système n'avait pas de mot pour
+  // l'entendre.
+  //
+  // LE MÊME CODE QUE POUR CONFIRMER. Refuser exige de prouver qu'on détient le
+  // téléphone, exactement comme accepter — sinon n'importe qui pourrait
+  // bloquer le compte d'un mineur en connaissant son identifiant de lien.
+  // ==========================================================================
+  async declineConsent(linkId: string, code: string) {
+    const link = await this.prisma.parentalLink.findUnique({
+      where: { id: linkId },
+    });
+    if (!link)
+      throw new NotFoundException('Demande de consentement introuvable.');
+    if (link.status === ParentalLinkStatus.DECLINED) {
+      throw new BadRequestException('Ce consentement a déjà été refusé.');
+    }
+    if (
+      !link.consentCodeHash ||
+      !link.consentExpiresAt ||
+      link.consentExpiresAt < new Date()
+    ) {
+      throw new UnauthorizedException('Code invalide ou expiré.');
+    }
+    if (link.consentAttempts >= link.maxConsentAttempts) {
+      throw new UnauthorizedException('Nombre maximal de tentatives atteint.');
+    }
+
+    // Comparaison en temps constant, comme pour la confirmation (CLAUDE.md §2).
+    const isMatch = timingSafeEqual(
+      Buffer.from(link.consentCodeHash),
+      Buffer.from(this.hashCode(code)),
+    );
+    if (!isMatch) {
+      await this.prisma.parentalLink.update({
+        where: { id: link.id },
+        data: { consentAttempts: { increment: 1 } },
+      });
+      throw new UnauthorizedException('Code invalide ou expiré.');
+    }
+
+    await this.prisma.parentalLink.update({
+      where: { id: link.id },
+      data: {
+        status: ParentalLinkStatus.DECLINED,
+        declinedAt: new Date(),
+        // Le code est consommé : un refus ne se rejoue pas, et ne se
+        // retransforme pas en acceptation avec le même secret.
+        consentCodeHash: null,
+      },
+    });
+
+    // BLOCAGE IMMÉDIAT, sans attendre les trente jours. C'est toute la
+    // différence entre un refus et un silence.
+    const child = await this.prisma.user.findUniqueOrThrow({
+      where: { id: link.childId },
+    });
+    if (child.status !== AccountStatus.DEACTIVATED) {
+      await this.prisma.user.update({
+        where: { id: child.id },
+        data: { status: AccountStatus.DEACTIVATED, deactivatedAt: new Date() },
+      });
+    }
+
+    await this.audit.record('PARENTAL_CONSENT_DECLINED', link.childId, {
+      linkId: link.id,
+    });
+
+    // Aucune raison n'est demandée au parent, et aucune ne serait transmise au
+    // mineur : un motif libre finirait par circuler entre eux via la
+    // plateforme, ce qui n'est pas son rôle.
+    return { message: 'Refus enregistré.' };
   }
 
   async listForChild(childId: string) {

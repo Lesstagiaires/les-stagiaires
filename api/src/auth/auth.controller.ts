@@ -181,6 +181,23 @@ export class AuthController {
     return this.parentalConsent.confirmConsent(linkId, dto.code);
   }
 
+  // LE REFUS EXPLICITE DU PARENT. Publique comme la confirmation : le parent
+  // n'a pas de compte sur la plateforme, il n'a qu'un SMS et un code.
+  //
+  // Même limitation de débit que la confirmation — le code protège des deux
+  // côtés, et un refus arraché par force brute bloquerait le compte d'un
+  // mineur aussi sûrement qu'une acceptation volée l'ouvrirait.
+  @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('minors/consent/:linkId/decline')
+  declineConsent(
+    @Param('linkId') linkId: string,
+    @Body() dto: ConfirmConsentDto,
+  ) {
+    return this.parentalConsent.declineConsent(linkId, dto.code);
+  }
+
   @Get('minors/parental-links')
   listParentalLinks(@CurrentUser() user: AccessTokenPayload) {
     return this.parentalConsent.listForChild(user.sub);
