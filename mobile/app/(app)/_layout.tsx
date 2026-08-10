@@ -68,6 +68,18 @@ export default function AppLayout() {
         name="subscriptions-admin"
         options={{ href: null, headerShown: true, title: t('nav.subscriptionsAdmin') }}
       />
+      {/* Hors barre d'onglets comme les autres back-offices : le contrôle de
+          rôle qui compte est celui du SERVEUR, qui rejette /admin/* sans rôle
+          ADMIN. Masquer l'onglet évite d'afficher une porte fermée, mais ce
+          n'est pas ce qui protège la route. */}
+      <Tabs.Screen
+        name="guardian-changes-admin"
+        options={{
+          href: null,
+          headerShown: true,
+          title: t('auth.guardianChangesAdmin.title'),
+        }}
+      />
       <Tabs.Screen
         name="notifications"
         options={{ href: null, headerShown: true, title: t('nav.notifications') }}

@@ -65,6 +65,88 @@ enum MinorGatedAction {
   SUBSCRIPTION_ORG_SPONSORED
 }
 
+// ============================================================================
+// CHANGEMENT RÉEL DE REPRÉSENTANT LÉGAL
+//
+// Dès qu'un refus a été enregistré, changer de tuteur devient la porte de
+// sortie évidente pour le contourner. La demande passe donc par un
+// administrateur.
+//
+// C'est volontairement lourd. Un déménagement, un décès, une séparation, un
+// placement : ces situations existent et méritent d'être traitées. Elles
+// méritent aussi un regard humain, parce qu'aucune règle automatique ne
+// distingue un vrai changement de tuteur d'un adolescent qui a trouvé un
+// adulte plus complaisant.
+//
+// La décision NE REMET JAMAIS le compteur de refus à zéro : elle autorise une
+// demande, elle n'efface pas l'historique.
+// ============================================================================
+model GuardianChangeRequest {
+  id      String @id @default(cuid())
+  childId String
+
+  requestedParentPhone           String
+  // Comparée sous forme canonique : une variation d'écriture du même numéro
+  // n'est pas un changement de tuteur, et n'atteint jamais l'administrateur.
+  requestedParentPhoneNormalized String
+
+  // La justification du mineur, OBLIGATOIRE : c'est ce que l'administrateur
+  // lira pour décider, et une demande sans motif ne se décide pas.
+  reason String
+
+  status GuardianChangeStatus @default(SUBMITTED)
+
+  // Obligatoires dès qu'une décision est prise (contrainte CHECK en base) :
+  // « refusé » sans raison n'est pas une réponse qu'on peut opposer à
+  // quelqu'un, et une décision sans auteur serait un changement anonyme sur le
+  // compte d'un mineur.
+  decisionReason String?
+  decidedById    String?
+  decidedAt      DateTime?
+
+  // Photographie du compteur au moment de la demande — l'information qui
+  // distingue un cas de vie d'un contournement.
+  refusalCountAtRequest Int
+
+  // ==========================================================================
+  // L'APPROBATION EST UNE AUTORISATION NOMINATIVE, ET ELLE S'USE
+  //
+  // Une ligne APPROVED dont `consumedAt` est NULL signifie : « ce numéro-là, et
+  // lui seul, peut recevoir une demande malgré le délai de refus en cours ».
+  //
+  // LA CONSOMMATION SE FAIT À LA DÉCISION, PAS À LA DEMANDE. Consommée au
+  // premier envoi, l'autorisation enfermerait le mineur dès qu'un SMS se perd :
+  // il ne pourrait plus relancer le tuteur que l'administrateur vient pourtant
+  // d'autoriser. Elle vaut donc « droit d'obtenir une décision de ce tuteur »,
+  // et s'éteint quand la décision arrive — acceptation ou refus.
+  //
+  // Si le nouveau tuteur refuse à son tour : compteur à n+1, nouveau délai, et
+  // plus aucune autorisation vivante. Il faut repasser devant un administrateur.
+  consumedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  child   User  @relation("GuardianChangeChild", fields: [childId], references: [id], onDelete: Cascade)
+  // L'administrateur n'est PAS supprimé en cascade : son départ de la
+  // plateforme ne doit pas effacer la trace de sa décision.
+  decider User? @relation("GuardianChangeDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  // L'index qui sert la recherche d'autorisation vivante
+  // (`GuardianChangeRequest_live_authorization_idx`) est PARTIEL — il ne porte
+  // que sur APPROVED non consommées. Prisma ne sait pas exprimer une clause
+  // WHERE d'index : le déclarer ici produirait une dérive permanente, le moteur
+  // voulant sans cesse le renommer en index complet. Il vit donc dans la
+  // migration seule, comme `GuardianChangeRequest_one_pending_per_child`.
+}
+
+enum GuardianChangeStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
 enum ParentalLinkStatus {
   PENDING
   ACTIVE
@@ -112,10 +194,48 @@ model User {
   language Language      @default(FR)
   status   AccountStatus @default(PENDING_VERIFICATION)
 
+  // ==========================================================================
+  // LA PREUVE DE POSSESSION DU TÉLÉPHONE — un FAIT, jamais une déduction
+  //
+  // Renseigné UNIQUEMENT par la validation du code à usage unique
+  // d'inscription, et par rien d'autre. Un test de confinement l'impose.
+  //
+  // POURQUOI CE CHAMP EXISTE. Cette preuve était auparavant déduite du statut
+  // du compte — « si status ≠ PENDING_VERIFICATION, c'est que le téléphone a
+  // été vérifié ». Or NEUF endroits écrivent le statut, dont six sans aucun
+  // rapport avec la vérification. Le refus parental, notamment, l'écrivait sans
+  // condition : un compte jamais vérifié en sortait, et devenait connectable.
+  //
+  // Prouvé en recette réelle le 2026-08-10 : un compte portait un LOGIN_SUCCESS
+  // sans le moindre ACCOUNT_PHONE_VERIFIED, et sans LS-ID.
+  //
+  // IL NE SE REMET JAMAIS À NULL. Une preuve qu'on peut effacer n'est pas une
+  // preuve — c'est un état, et les états se font écraser par le premier service
+  // qui n'y pense pas.
+  phoneVerifiedAt DateTime?
+
   // Dérivé à l'inscription depuis dateOfBirth + l'âge de majorité civile de
   // CountryPolicy(countryOfResidence) — jamais un seuil de 18 ans codé en dur.
   isMinor     Boolean   @default(false)
   dateOfBirth DateTime?
+
+  // LE COMPTEUR DE REFUS PARENTAUX VIT ICI, ET PAS SUR ParentalLink.
+  //
+  // C'est le point central du modèle validé le 2026-08-08. Un compteur porté
+  // par le lien se remettrait à zéro à la première nouvelle demande — la même
+  // ligne est réutilisée — et s'effacerait à chaque changement de tuteur,
+  // c'est-à-dire précisément là où il sert le plus.
+  //
+  // Ces trois champs ne sont écrits QUE lors d'un refus. Ni une nouvelle
+  // demande, ni une décision d'administrateur, ni l'arrivée à la majorité ne
+  // les touchent. Le compteur ne se décrémente jamais.
+  //
+  // Ils restent RECONSTRUCTIBLES depuis AuditLog, qui est en ajout seul : le
+  // journal est la source de vérité, ceci n'est qu'une dénormalisation
+  // d'exécution.
+  parentalRefusalCount        Int       @default(0)
+  lastParentalRefusalAt       DateTime?
+  parentalRequestBlockedUntil DateTime?
 
   // Facultatif, réservé en pratique aux comptes majeurs (pas de contrôle d'accès
   // dédié — un mineur a de toute façon un parent/tuteur rattaché via ParentalLink).
@@ -177,9 +297,16 @@ model User {
   payoutRequestsValidated PayoutRequest[]          @relation("PayoutValidator")
   notificationPreferences NotificationPreference[]
   emailLogs               EmailLog[]
+  guardianChangeRequests  GuardianChangeRequest[]  @relation("GuardianChangeChild")
+  guardianChangesDecided  GuardianChangeRequest[]  @relation("GuardianChangeDecider")
 
   @@index([email])
   @@index([phone])
+  @@index([phoneVerifiedAt])
+  // L'unicité « un seul code vivant par (compte, usage) » est un index PARTIEL
+  // (`OtpCode_un_seul_vivant`, clause WHERE "consumedAt" IS NULL). Prisma ne
+  // sait pas exprimer une clause WHERE d'index : le déclarer ici produirait une
+  // dérive permanente. Il vit dans la migration seule.
   @@index([isDemo])
 }
 
@@ -235,6 +362,14 @@ model ParentalLink {
   // n'a pas besoin d'un compte existant sur la plateforme pour consentir (CLAUDE.md §5 :
   // limite assumée du MVP, numéro déclaratif non vérifié par pièce d'identité).
   parentPhone String
+  // LA FORME CANONIQUE E.164, et c'est elle qui porte l'unicité.
+  //
+  // Vérifié le 2026-08-08 : « +237690001111 », « +237 690 00 11 11 » et
+  // « +237-690-001-111 » passent tous la validation comme des chaînes
+  // DISTINCTES désignant le même téléphone. Sur la forme brute, une simple
+  // variation d'espacement contournait d'un coup le délai de garde, le
+  // compteur de refus et la détection d'un vrai changement de tuteur.
+  parentPhoneNormalized String
   // Rattaché a posteriori si un compte existe déjà ou est créé avec ce numéro — jamais requis.
   parentId    String?
 
@@ -263,7 +398,7 @@ model ParentalLink {
   child  User  @relation("ChildLinks", fields: [childId], references: [id], onDelete: Cascade)
   parent User? @relation("ParentLinks", fields: [parentId], references: [id], onDelete: SetNull)
 
-  @@unique([childId, parentPhone])
+  @@unique([childId, parentPhoneNormalized])
   @@index([status, createdAt])
 }
 
@@ -290,6 +425,17 @@ model CountryPolicy {
   // Sans ce seuil, les deux derniers paliers se confondent et quelqu'un de
   // trente ans se verrait proposer d'indiquer son parent.
   parentalInfoMaxAge   Int
+
+  // Délais avant qu'une nouvelle demande de consentement soit recevable après
+  // un refus. CROISSANTS, et configurables par pays comme tous les seuils de
+  // protection des mineurs : la culture de l'autorité parentale n'est pas la
+  // même d'un pays à l'autre.
+  //
+  // Au-delà du troisième refus, le dernier délai est RÉARMÉ à chaque fois :
+  // rien n'est jamais définitif, mais rien ne s'use non plus.
+  refusalDelay1Days     Int
+  refusalDelay2Days     Int
+  refusalDelayFinalDays Int
 
   gatedActions MinorGatedAction[]
 

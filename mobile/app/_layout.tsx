@@ -67,6 +67,24 @@ function RootNavigator() {
           (entreprises, ONG, administrations, universités...) qui n'ont pas nécessairement
           de compte candidat. */}
       <Stack.Screen name="contact" options={{ headerShown: true, title: t('contact.title') }} />
+
+      {/* Hors des deux groupes protégés, et volontairement : la page destinée au
+          parent ou tuteur doit s'ouvrir que le jeune soit connecté ou non. Elle
+          ne lit aucune donnée de compte — c'est ce qui la rend montrable à un
+          adulte sans rien lui exposer. */}
+      <Stack.Screen
+        name="parental-guide"
+        options={{ headerShown: true, title: t('auth.parentalGuide.title') }}
+      />
+
+      {/* Changement réel de représentant légal. Protégé : la demande porte sur
+          le compte de l'appelant, et le serveur la rejetterait sans jeton. */}
+      <Stack.Protected guard={!!accessToken}>
+        <Stack.Screen
+          name="guardian-change"
+          options={{ headerShown: true, title: t('auth.guardianChange.title') }}
+        />
+      </Stack.Protected>
     </Stack>
   );
 }

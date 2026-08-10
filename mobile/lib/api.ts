@@ -493,6 +493,59 @@ export interface ParentalLink {
   resendAvailableAt: string | null;
 }
 
+// Ce que le mineur voit de sa propre situation.
+//
+// LE CYCLE DE REFUS EST À CÔTÉ DE LA LISTE, PAS DEDANS. Le blocage vit sur le
+// COMPTE : il survit à un changement de tuteur, et c'est précisément son
+// intérêt. Le recopier dans chaque lien laisserait croire qu'il se lève en
+// changeant de numéro.
+export interface ParentalLinksView {
+  links: ParentalLink[];
+  refusal: {
+    count: number;
+    blockedUntil: string | null;
+    // CALCULÉ PAR LE SERVEUR. Comparer `blockedUntil` à `Date.now()` ici
+    // reviendrait à faire confiance à l'horloge du téléphone — fausse de
+    // plusieurs heures sur beaucoup d'appareils, et réglable à la main.
+    canRequestNow: boolean;
+  };
+}
+
+export type GuardianChangeStatus = 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+
+export interface GuardianChangeRequest {
+  id: string;
+  requestedParentPhone: string;
+  reason: string;
+  status: GuardianChangeStatus;
+  // Le motif de la décision EST communiqué : une décision qu'on ne peut pas
+  // connaître n'est opposable à personne. L'identité de l'administrateur, non.
+  decisionReason: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+}
+
+// Ce que l'administration voit d'une demande en attente.
+//
+// Le compteur de refus accompagne la demande : c'est l'information qui permet
+// de distinguer un cas de vie d'un contournement, et sans elle la décision se
+// prendrait à l'aveugle. Le compte est désigné par son LS-ID, pas par son nom —
+// une décision se prend sur une situation, pas sur une personne.
+export interface PendingGuardianChange {
+  id: string;
+  childId: string;
+  requestedParentPhone: string;
+  reason: string;
+  refusalCountAtRequest: number;
+  createdAt: string;
+  child: {
+    lsId: string;
+    parentalRefusalCount: number;
+    lastParentalRefusalAt: string | null;
+    parentalRequestBlockedUntil: string | null;
+  };
+}
+
 export interface AgeThresholds {
   countryCode: string;
   minInternshipAge: number;
@@ -1727,7 +1780,52 @@ export const api = {
   // relancer. Sans cela, un compte reste bloqué sans que son titulaire — un
   // mineur — comprenne pourquoi.
   listMyParentalLinks: (accessToken: string) =>
-    request<ParentalLink[]>('/auth/minors/parental-links', { accessToken }),
+    request<ParentalLinksView>('/auth/minors/parental-links', { accessToken }),
+
+  // --- Changement réel de représentant légal ------------------------------
+  //
+  // La porte de sortie du cycle de refus, et la seule. Elle passe par un
+  // administrateur : sans cela, désigner un adulte plus complaisant suffirait à
+  // rendre le compteur de refus décoratif.
+  requestGuardianChange: (
+    accessToken: string,
+    requestedParentPhone: string,
+    reason: string,
+  ) =>
+    request<{ id: string; status: GuardianChangeStatus }>(
+      '/auth/minors/guardian-change',
+      {
+        method: 'POST',
+        body: { requestedParentPhone, reason },
+        accessToken,
+      },
+    ),
+
+  listMyGuardianChanges: (accessToken: string) =>
+    request<GuardianChangeRequest[]>('/auth/minors/guardian-change', {
+      accessToken,
+    }),
+
+  // --- Côté administration -------------------------------------------------
+  adminListGuardianChanges: (accessToken: string) =>
+    request<PendingGuardianChange[]>('/admin/guardian-changes', {
+      accessToken,
+    }),
+
+  adminDecideGuardianChange: (
+    accessToken: string,
+    requestId: string,
+    approve: boolean,
+    decisionReason: string,
+  ) =>
+    request<{ id: string; status: GuardianChangeStatus }>(
+      '/admin/guardian-changes/decide',
+      {
+        method: 'POST',
+        body: { requestId, approve, decisionReason },
+        accessToken,
+      },
+    ),
 
   // Sert à la fois à déclarer un parent et à RELANCER le SMS. Le serveur
   // applique un délai de garde : sans lui, chaque appui renverrait un message

@@ -84,6 +84,9 @@ describe('CountryPolicyService', () => {
         minParentRequiredAge: 16,
         civilMajorityAge: 18,
         parentalInfoMaxAge: 21,
+        refusalDelay1Days: 7,
+        refusalDelay2Days: 30,
+        refusalDelayFinalDays: 182,
         gatedActions: [MinorGatedAction.APPLICATION_SUBMIT],
       });
 

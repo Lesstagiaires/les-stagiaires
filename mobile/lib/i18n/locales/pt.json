@@ -125,12 +125,12 @@
       "codePlaceholder": "6 dígitos",
       "confirm": "Dou a minha autorização",
       "decline": "Recuso",
-      "declineHint": "Uma recusa bloqueia a conta imediatamente, sem esperar os 30 dias.",
+      "declineHint": "Recusar bloqueia a conta imediatamente. Não é definitivo: um novo pedido continuará a ser possível após um prazo.",
       "declineTitle": "Recusar a inscrição?",
-      "declineWarning": "A conta de {{name}} será bloqueada imediatamente. Esta decisão não pode ser anulada a partir deste ecrã.",
+      "declineWarning": "A conta de {{name}} será bloqueada imediatamente, em modo restrito. A sua decisão fica registada. {{name}} poderá pedir-lhe novamente após um prazo — uma semana no caso de uma primeira recusa.",
       "declineConfirm": "Recusar",
       "confirmed": "Obrigado, a sua autorização foi registada.",
-      "declined": "A sua recusa foi registada. A conta foi bloqueada.",
+      "declined": "A sua recusa fica registada. A conta permanece em modo restrito.",
       "notFound": "Este pedido não existe ou já não é válido.",
       "loadError": "Não é possível mostrar este pedido de momento.",
       "genericError": "A operação não pôde ser concluída.",
@@ -152,7 +152,7 @@
       "resent": "Acabou de ser enviado um novo SMS.",
       "resendError": "O reenvio não foi concluído.",
       "loadError": "Não é possível mostrar o estado do seu pedido.",
-      "declinedHelp": "O seu pai ou tutor recusou. Outro SMS não mudaria nada: fale com ele, ou contacte-nos a partir da secção de ajuda.",
+      "declinedHelp": "O seu pai, mãe ou tutor recusou. Não é definitivo: poderá apresentar um novo pedido após um prazo. Entretanto, fale com ele — a página seguinte serve para isso.",
       "status": {
         "PENDING": "A aguardar a resposta",
         "CODE_EXPIRED": "O código expirou",
@@ -160,7 +160,72 @@
         "DECLINED": "Autorização recusada",
         "EXPIRED": "Prazo terminado",
         "REVOKED": "Pedido substituído"
+      },
+      "blockedUntil": "Um novo pedido será possível a partir de {{date}}.",
+      "showGuide": "Ver a página para mostrar ao meu pai, mãe ou tutor",
+      "guardianChange": "O meu representante legal mudou",
+      "guardianChangeHelp": "Apenas em caso de mudança real (falecimento, separação, acolhimento, mudança de residência). O pedido é analisado pela nossa equipa."
+    },
+    "parentalGuide": {
+      "title": "O que deve saber antes de decidir",
+      "intro": "Esta página destina-se ao pai, à mãe ou ao tutor. Explica o que é LES STAGIAIRES, o que o seu consentimento permite e o que não permite.",
+      "whatIsIt": {
+        "title": "O que é LES STAGIAIRES?",
+        "body": "Uma plataforma que liga jovens a empresas e instituições que oferecem estágios, aprendizagem e primeiras experiências profissionais. A inscrição é gratuita para o jovem."
+      },
+      "guarantees": {
+        "title": "As garantias para o seu filho ou filha",
+        "blocked": "Sem o seu consentimento, não pode candidatar-se, assinar um protocolo de estágio nem partilhar um documento. Apenas pode consultar e preparar o seu perfil.",
+        "visibility": "O perfil tem visibilidade reduzida por predefinição, sem qualquer ação da sua parte.",
+        "documents": "Os documentos (diplomas, documentos de identidade) são cifrados e só são partilhados com quem ele ou ela escolher expressamente.",
+        "revoke": "Pode retirar o seu consentimento a qualquer momento; a conta volta então ao modo restrito.",
+        "noSale": "Os dados não são vendidos nem cedidos a terceiros para fins publicitários.",
+        "report": "Um canal de denúncia (assédio, abuso, perigo) está disponível na aplicação a qualquer momento."
+      },
+      "whatConsentOpens": {
+        "title": "O que o consentimento abriria",
+        "body": "Candidatar-se a uma oferta, aceitar uma proposta, assinar um protocolo de estágio, deslocar-se no âmbito de um estágio e partilhar documentos com uma empresa. Nada mais muda."
+      },
+      "rightToRefuse": {
+        "title": "Tem o direito de recusar",
+        "body": "Recusar é uma resposta legítima e fica registada como tal. O seu filho ou filha mantém a conta em modo restrito e não perde nada do que preparou. Poderá pedir-lhe novamente mais tarde, após um prazo: primeiro uma semana, depois um mês, depois seis meses. Esse prazo existe precisamente para que a sua decisão seja respeitada e não seja solicitado sem fim."
+      },
+      "howToAnswer": {
+        "title": "Como responder",
+        "body": "Recebeu um SMS com uma ligação e um código de seis algarismos. Abra essa ligação a partir do seu próprio telemóvel: poderá dar ou recusar o seu consentimento.",
+        "notHere": "A decisão não se toma neste ecrã, nem no telemóvel do seu filho ou filha. Toma-se apenas a partir da ligação recebida no seu."
       }
+    },
+    "guardianChange": {
+      "title": "Mudança de representante legal",
+      "intro": "Este pedido diz respeito a uma mudança real de situação: falecimento, separação, acolhimento, mudança de residência. É analisado por uma pessoa da nossa equipa e não é um recurso contra uma recusa.",
+      "phoneLabel": "Número do novo pai, mãe ou tutor",
+      "reasonLabel": "Explique o que mudou",
+      "reasonPlaceholder": "Descreva a sua situação em algumas frases: quem é agora o seu representante legal e desde quando.",
+      "reasonHelp": "Mínimo de 30 caracteres. A decisão será tomada com base neste texto.",
+      "submit": "Enviar o pedido",
+      "pendingTitle": "Pedido em análise",
+      "pendingBody": "O seu pedido relativo ao {{phone}} foi recebido. Será informado da decisão.",
+      "loadError": "Não é possível mostrar os seus pedidos neste momento.",
+      "submitError": "Não foi possível enviar o pedido.",
+      "status": {
+        "APPROVED": "Pedido aceite",
+        "REJECTED": "Pedido recusado"
+      }
+    },
+    "guardianChangesAdmin": {
+      "title": "Mudanças de representante legal",
+      "emptyBody": "Os pedidos de mudança de tutor aparecerão aqui.",
+      "refusalCount_one": "{{count}} recusa parental antes deste pedido",
+      "refusalCount_other": "{{count}} recusas parentais antes deste pedido",
+      "refusalCount_zero": "Nenhuma recusa parental antes deste pedido",
+      "requestedPhone": "Novo tutor pedido: {{phone}}",
+      "decisionReasonPlaceholder": "Motivo da sua decisão",
+      "decisionReasonHelp": "Mínimo de 10 caracteres. Este motivo será comunicado ao titular da conta.",
+      "approve": "Autorizar a mudança",
+      "reject": "Recusar o pedido",
+      "loadError": "Não é possível carregar os pedidos.",
+      "decideError": "Não foi possível registar a decisão."
     }
   },
   "home": {

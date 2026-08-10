@@ -6,6 +6,7 @@ import {
 } from '../../generated/prisma/enums';
 import type { AuditService } from '../audit/audit.service';
 import type { PrismaService } from '../prisma/prisma.service';
+import type { CountryPolicyService } from './country-policy.service';
 import type { MinorPolicyService } from './minor-policy.service';
 import { ParentalConsentService } from './parental-consent.service';
 import { ParentalConsentSweepProcessor } from './parental-consent-sweep.processor';
@@ -164,6 +165,7 @@ describe('Durcissement du consentement parental', () => {
         upsert: jest.Mock;
         create: jest.Mock;
       };
+      guardianChangeRequest: { findFirst: jest.Mock; update: jest.Mock };
     };
     let audit: { record: jest.Mock };
     let sms: { send: jest.Mock };
@@ -183,6 +185,12 @@ describe('Durcissement du consentement parental', () => {
           upsert: jest.fn().mockResolvedValue({ id: 'lien_neuf' }),
           create: jest.fn().mockResolvedValue({ id: 'lien_neuf' }),
         },
+        // Aucune autorisation de changement de tuteur : ce fichier teste le
+        // rattachement parental lui-même, pas la porte de sortie ADMIN.
+        guardianChangeRequest: {
+          findFirst: jest.fn().mockResolvedValue(null),
+          update: jest.fn(),
+        },
       };
       audit = { record: jest.fn() };
       sms = { send: jest.fn() };
@@ -192,6 +200,19 @@ describe('Durcissement du consentement parental', () => {
         new ConfigService({ PARENTAL_CONSENT_TTL_HOURS: '72' }),
         sms,
         audit as unknown as AuditService,
+        // Le palier d'âge est RECALCULÉ, jamais lu dans `User.isMinor`. Ce
+        // double répond « oui, consentement requis » : c'est le cas nominal de
+        // ce fichier, qui teste le rattachement parental lui-même.
+        {
+          requiresParentalConsent: jest.fn().mockResolvedValue(true),
+        } as unknown as MinorPolicyService,
+        {
+          resolve: jest.fn().mockResolvedValue({
+            refusalDelay1Days: 7,
+            refusalDelay2Days: 30,
+            refusalDelayFinalDays: 182,
+          }),
+        } as unknown as CountryPolicyService,
       );
     });
 
@@ -420,14 +441,29 @@ describe('Durcissement du consentement parental', () => {
         };
       }
 
-      // « Le compte reste alors bloqué au-delà du délai de 30 jours, sans
-      // attendre l'expiration automatique. » Toute la différence entre un refus
-      // et un silence tient dans cette immédiateté.
-      it('bloque le compte immédiatement, sans attendre les 30 jours', async () => {
+      // ======================================================================
+      // RÈGLE RÉVISÉE LE 2026-08-08 — ce test encodait la règle précédente
+      //
+      // Il exigeait DEACTIVATED. Le promoteur a renversé cet arbitrage : « je ne
+      // souhaite pas que le premier refus rende la demande définitivement
+      // impossible ». Le mineur doit pouvoir consulter, pendant tout le
+      // blocage, la présentation destinée à son tuteur — or DEACTIVATED
+      // INTERDIT LA CONNEXION, ce qui rendait cette page inatteignable.
+      //
+      // CE QUI NE CHANGE PAS, et que ce test continue de garder : le refus
+      // bloque IMMÉDIATEMENT, sans attendre les trente jours. Toute la
+      // différence entre un refus et un silence tient dans cette immédiateté.
+      // Seul le statut employé change — AWAITING_PARENTAL_CONSENT bloque déjà
+      // exactement les actions voulues (candidature, convention, partage) et
+      // laisse la navigation, ce que le cahier des charges appelle « restreint ».
+      // ======================================================================
+      it('bloque le compte immédiatement, en mode restreint et non désactivé', async () => {
         prisma.parentalLink.findUnique.mockResolvedValue(lienEnAttente());
         prisma.user.findUniqueOrThrow.mockResolvedValue({
           id: 'enfant_1',
           status: AccountStatus.AWAITING_PARENTAL_CONSENT,
+          countryOfResidence: 'CM',
+          parentalRefusalCount: 0,
         });
 
         await service.declineConsent('lien_1', CODE);
@@ -435,8 +471,16 @@ describe('Durcissement du consentement parental', () => {
         expect(donneesEcrites(prisma.parentalLink.update).status).toBe(
           ParentalLinkStatus.DECLINED,
         );
-        expect(donneesEcrites(prisma.user.update).status).toBe(
-          AccountStatus.DEACTIVATED,
+        const ecrit = donneesEcrites(prisma.user.update) as {
+          status: AccountStatus;
+          parentalRequestBlockedUntil?: Date;
+        };
+        expect(ecrit.status).toBe(AccountStatus.AWAITING_PARENTAL_CONSENT);
+        // Le blocage est effectif TOUT DE SUITE : c'est lui qui remplace la
+        // désactivation, et sans lui le refus n'aurait plus aucun effet.
+        expect(ecrit.parentalRequestBlockedUntil).toBeInstanceOf(Date);
+        expect(ecrit.parentalRequestBlockedUntil!.getTime()).toBeGreaterThan(
+          Date.now(),
         );
         expect(audit.record).toHaveBeenCalledWith(
           'PARENTAL_CONSENT_DECLINED',

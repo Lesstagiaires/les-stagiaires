@@ -125,12 +125,12 @@
       "codePlaceholder": "6 chiffres",
       "confirm": "Je donne mon accord",
       "decline": "Je refuse",
-      "declineHint": "Un refus bloque le compte immédiatement, sans attendre les 30 jours.",
+      "declineHint": "Un refus bloque le compte immédiatement. Ce n’est pas définitif : une nouvelle demande restera possible après un délai.",
       "declineTitle": "Refuser l’inscription ?",
-      "declineWarning": "Le compte de {{name}} sera bloqué immédiatement. Cette décision ne peut pas être annulée depuis cet écran.",
+      "declineWarning": "Le compte de {{name}} sera bloqué immédiatement, en mode restreint. Votre décision est enregistrée. {{name}} pourra vous solliciter à nouveau après un délai — une semaine pour un premier refus.",
       "declineConfirm": "Refuser",
       "confirmed": "Merci, votre accord est enregistré.",
-      "declined": "Votre refus est enregistré. Le compte a été bloqué.",
+      "declined": "Votre refus est enregistré. Le compte reste en mode restreint.",
       "notFound": "Cette demande n’existe pas ou n’est plus valide.",
       "loadError": "Impossible d’afficher cette demande pour le moment.",
       "genericError": "L’opération n’a pas pu aboutir.",
@@ -152,7 +152,7 @@
       "resent": "Un nouveau SMS vient d’être envoyé.",
       "resendError": "Le renvoi n’a pas abouti.",
       "loadError": "Impossible d’afficher l’état de votre demande.",
-      "declinedHelp": "Votre parent ou tuteur a refusé. Un nouveau SMS ne changerait rien : parlez-en avec lui, ou contactez-nous depuis la rubrique d’aide.",
+      "declinedHelp": "Votre parent ou tuteur a refusé. Ce n’est pas définitif : vous pourrez présenter une nouvelle demande après un délai. En attendant, parlez-en avec lui — la page ci-dessous est faite pour cela.",
       "status": {
         "PENDING": "En attente de sa réponse",
         "CODE_EXPIRED": "Le code a expiré",
@@ -160,7 +160,72 @@
         "DECLINED": "Accord refusé",
         "EXPIRED": "Délai dépassé",
         "REVOKED": "Demande remplacée"
+      },
+      "blockedUntil": "Une nouvelle demande sera possible à partir du {{date}}.",
+      "showGuide": "Voir la page à montrer à mon parent ou tuteur",
+      "guardianChange": "Mon représentant légal a changé",
+      "guardianChangeHelp": "Uniquement en cas de changement réel (décès, séparation, placement, déménagement). La demande est examinée par notre équipe."
+    },
+    "parentalGuide": {
+      "title": "Ce que vous devez savoir avant de décider",
+      "intro": "Cette page s’adresse au parent ou au tuteur. Elle explique ce qu’est LES STAGIAIRES, ce qu’un accord permet, et ce qu’il ne permet pas.",
+      "whatIsIt": {
+        "title": "Qu’est-ce que LES STAGIAIRES ?",
+        "body": "Une plateforme qui met en relation des jeunes avec des entreprises et des établissements proposant des stages, de l’apprentissage et des premières expériences professionnelles. L’inscription est gratuite pour le jeune."
+      },
+      "guarantees": {
+        "title": "Les garanties pour votre enfant",
+        "blocked": "Sans votre accord, il ne peut ni candidater, ni signer une convention, ni partager un document. Il peut seulement consulter et préparer son profil.",
+        "visibility": "Son profil est en visibilité réduite par défaut, sans action de sa part.",
+        "documents": "Ses documents (diplômes, pièces d’identité) sont chiffrés et ne sont transmis qu’aux personnes à qui il les partage explicitement.",
+        "revoke": "Vous pouvez revenir sur votre accord à tout moment ; le compte repasse alors en mode restreint.",
+        "noSale": "Ses données ne sont ni vendues, ni cédées à des tiers à des fins publicitaires.",
+        "report": "Un signalement (harcèlement, abus, danger) est accessible depuis l’application, à tout moment."
+      },
+      "whatConsentOpens": {
+        "title": "Ce qu’un accord ouvrirait",
+        "body": "Postuler à une offre, accepter une proposition, signer une convention de stage, se déplacer dans le cadre d’un stage, et partager ses documents avec une entreprise. Rien d’autre ne change."
+      },
+      "rightToRefuse": {
+        "title": "Vous avez le droit de refuser",
+        "body": "Refuser est une réponse légitime, et elle est enregistrée comme telle. Votre enfant garde son compte en mode restreint : il ne perd rien de ce qu’il a préparé. Il pourra vous solliciter à nouveau plus tard, après un délai — d’abord une semaine, puis un mois, puis six mois. Ce délai existe justement pour que votre décision soit respectée et que vous ne soyez pas relancé sans fin."
+      },
+      "howToAnswer": {
+        "title": "Comment répondre",
+        "body": "Vous avez reçu un SMS contenant un lien et un code à six chiffres. Ouvrez ce lien depuis votre propre téléphone : vous pourrez donner votre accord ou le refuser.",
+        "notHere": "La décision ne se prend pas sur cet écran, ni sur le téléphone de votre enfant. Elle se prend uniquement depuis le lien reçu sur le vôtre."
       }
+    },
+    "guardianChange": {
+      "title": "Changement de représentant légal",
+      "intro": "Cette démarche concerne un changement réel de situation : décès, séparation, placement, déménagement. Elle est examinée par une personne de notre équipe, et n’est pas un recours contre un refus.",
+      "phoneLabel": "Numéro du nouveau parent ou tuteur",
+      "reasonLabel": "Expliquez ce qui a changé",
+      "reasonPlaceholder": "Décrivez votre situation en quelques phrases : qui est désormais votre représentant légal, et depuis quand.",
+      "reasonHelp": "30 caractères minimum. C’est sur ce texte que la décision sera prise.",
+      "submit": "Envoyer la demande",
+      "pendingTitle": "Demande en cours d’examen",
+      "pendingBody": "Votre demande concernant le {{phone}} a bien été reçue. Vous serez informé de la décision.",
+      "loadError": "Impossible d’afficher vos demandes pour le moment.",
+      "submitError": "La demande n’a pas pu être envoyée.",
+      "status": {
+        "APPROVED": "Demande acceptée",
+        "REJECTED": "Demande refusée"
+      }
+    },
+    "guardianChangesAdmin": {
+      "title": "Changements de représentant légal",
+      "emptyBody": "Les demandes de changement de tuteur apparaîtront ici.",
+      "refusalCount_one": "{{count}} refus parental avant cette demande",
+      "refusalCount_other": "{{count}} refus parentaux avant cette demande",
+      "refusalCount_zero": "Aucun refus parental avant cette demande",
+      "requestedPhone": "Nouveau tuteur demandé : {{phone}}",
+      "decisionReasonPlaceholder": "Motif de votre décision",
+      "decisionReasonHelp": "10 caractères minimum. Ce motif sera communiqué au titulaire du compte.",
+      "approve": "Autoriser le changement",
+      "reject": "Refuser la demande",
+      "loadError": "Impossible de charger les demandes.",
+      "decideError": "La décision n’a pas pu être enregistrée."
     }
   },
   "home": {

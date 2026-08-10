@@ -125,12 +125,12 @@
       "codePlaceholder": "6 cifras",
       "confirm": "Doy mi consentimiento",
       "decline": "Lo rechazo",
-      "declineHint": "Un rechazo bloquea la cuenta de inmediato, sin esperar los 30 días.",
+      "declineHint": "Negarse bloquea la cuenta de inmediato. No es definitivo: una nueva solicitud seguirá siendo posible tras un plazo.",
       "declineTitle": "¿Rechazar la inscripción?",
-      "declineWarning": "La cuenta de {{name}} quedará bloqueada de inmediato. Esta decisión no puede anularse desde esta pantalla.",
+      "declineWarning": "La cuenta de {{name}} quedará bloqueada de inmediato, en modo restringido. Su decisión queda registrada. {{name}} podrá pedírselo de nuevo tras un plazo — una semana en el caso de una primera negativa.",
       "declineConfirm": "Rechazar",
       "confirmed": "Gracias, su consentimiento ha quedado registrado.",
-      "declined": "Su rechazo ha quedado registrado. La cuenta ha sido bloqueada.",
+      "declined": "Su negativa queda registrada. La cuenta permanece en modo restringido.",
       "notFound": "Esta solicitud no existe o ya no es válida.",
       "loadError": "No se puede mostrar esta solicitud por el momento.",
       "genericError": "La operación no ha podido completarse.",
@@ -152,7 +152,7 @@
       "resent": "Se acaba de enviar un nuevo SMS.",
       "resendError": "El reenvío no se ha completado.",
       "loadError": "No se puede mostrar el estado de su solicitud.",
-      "declinedHelp": "Su padre o tutor lo ha rechazado. Otro SMS no cambiaría nada: háblelo con él, o contáctenos desde la sección de ayuda.",
+      "declinedHelp": "Su padre, madre o tutor se ha negado. No es definitivo: podrá presentar una nueva solicitud tras un plazo. Mientras tanto, háblelo con él o ella — la página siguiente sirve para eso.",
       "status": {
         "PENDING": "Esperando su respuesta",
         "CODE_EXPIRED": "El código ha caducado",
@@ -160,7 +160,72 @@
         "DECLINED": "Consentimiento rechazado",
         "EXPIRED": "Plazo vencido",
         "REVOKED": "Solicitud sustituida"
+      },
+      "blockedUntil": "Una nueva solicitud será posible a partir del {{date}}.",
+      "showGuide": "Ver la página para mostrar a mi padre, madre o tutor",
+      "guardianChange": "Mi representante legal ha cambiado",
+      "guardianChangeHelp": "Solo en caso de cambio real (fallecimiento, separación, acogida, mudanza). La solicitud es examinada por nuestro equipo."
+    },
+    "parentalGuide": {
+      "title": "Lo que debe saber antes de decidir",
+      "intro": "Esta página está dirigida al padre, madre o tutor. Explica qué es LES STAGIAIRES, qué permite su consentimiento y qué no.",
+      "whatIsIt": {
+        "title": "¿Qué es LES STAGIAIRES?",
+        "body": "Una plataforma que conecta a jóvenes con empresas e instituciones que ofrecen prácticas, aprendizaje y primeras experiencias profesionales. El registro es gratuito para el joven."
+      },
+      "guarantees": {
+        "title": "Las garantías para su hijo o hija",
+        "blocked": "Sin su consentimiento, no puede postularse, firmar un convenio de prácticas ni compartir un documento. Solo puede consultar y preparar su perfil.",
+        "visibility": "Su perfil tiene visibilidad reducida por defecto, sin que deba hacer nada.",
+        "documents": "Sus documentos (diplomas, documentos de identidad) están cifrados y solo se comparten con quienes él o ella elija expresamente.",
+        "revoke": "Puede retirar su consentimiento en cualquier momento; la cuenta vuelve entonces al modo restringido.",
+        "noSale": "Sus datos no se venden ni se ceden a terceros con fines publicitarios.",
+        "report": "Un canal de denuncia (acoso, abuso, peligro) está disponible en la aplicación en todo momento."
+      },
+      "whatConsentOpens": {
+        "title": "Qué abriría su consentimiento",
+        "body": "Postularse a una oferta, aceptar una propuesta, firmar un convenio de prácticas, desplazarse en el marco de unas prácticas y compartir documentos con una empresa. Nada más cambia."
+      },
+      "rightToRefuse": {
+        "title": "Usted tiene derecho a negarse",
+        "body": "Negarse es una respuesta legítima y queda registrada como tal. Su hijo o hija conserva la cuenta en modo restringido y no pierde nada de lo que haya preparado. Podrá pedírselo de nuevo más adelante, tras un plazo: primero una semana, luego un mes, luego seis meses. Ese plazo existe precisamente para que se respete su decisión y no se le insista sin fin."
+      },
+      "howToAnswer": {
+        "title": "Cómo responder",
+        "body": "Ha recibido un SMS con un enlace y un código de seis cifras. Abra ese enlace desde su propio teléfono: allí podrá dar o negar su consentimiento.",
+        "notHere": "La decisión no se toma en esta pantalla, ni en el teléfono de su hijo o hija. Se toma únicamente desde el enlace recibido en el suyo."
       }
+    },
+    "guardianChange": {
+      "title": "Cambio de representante legal",
+      "intro": "Este trámite corresponde a un cambio real de situación: fallecimiento, separación, acogida, mudanza. Lo examina una persona de nuestro equipo y no es un recurso contra una negativa.",
+      "phoneLabel": "Número del nuevo padre, madre o tutor",
+      "reasonLabel": "Explique qué ha cambiado",
+      "reasonPlaceholder": "Describa su situación en unas frases: quién es ahora su representante legal y desde cuándo.",
+      "reasonHelp": "Mínimo 30 caracteres. La decisión se tomará a partir de este texto.",
+      "submit": "Enviar la solicitud",
+      "pendingTitle": "Solicitud en examen",
+      "pendingBody": "Se ha recibido su solicitud relativa al {{phone}}. Se le comunicará la decisión.",
+      "loadError": "No se pueden mostrar sus solicitudes en este momento.",
+      "submitError": "No se ha podido enviar la solicitud.",
+      "status": {
+        "APPROVED": "Solicitud aceptada",
+        "REJECTED": "Solicitud denegada"
+      }
+    },
+    "guardianChangesAdmin": {
+      "title": "Cambios de representante legal",
+      "emptyBody": "Las solicitudes de cambio de tutor aparecerán aquí.",
+      "refusalCount_one": "{{count}} negativa parental antes de esta solicitud",
+      "refusalCount_other": "{{count}} negativas parentales antes de esta solicitud",
+      "refusalCount_zero": "Ninguna negativa parental antes de esta solicitud",
+      "requestedPhone": "Nuevo tutor solicitado: {{phone}}",
+      "decisionReasonPlaceholder": "Motivo de su decisión",
+      "decisionReasonHelp": "Mínimo 10 caracteres. Este motivo se comunicará al titular de la cuenta.",
+      "approve": "Autorizar el cambio",
+      "reject": "Denegar la solicitud",
+      "loadError": "No se pueden cargar las solicitudes.",
+      "decideError": "No se ha podido registrar la decisión."
     }
   },
   "home": {

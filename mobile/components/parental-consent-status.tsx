@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -6,6 +7,7 @@ import {
   api,
   ApiError,
   type ParentalLink,
+  type ParentalLinksView,
   type ParentalLinkStatus,
 } from '../lib/api';
 import { colors, ErrorText, SecondaryButton } from './form';
@@ -54,13 +56,16 @@ export function ParentalConsentStatus({
   const { t } = useTranslation();
 
   const [liens, setLiens] = useState<ParentalLink[] | null>(null);
+  const [refus, setRefus] = useState<ParentalLinksView['refusal'] | null>(null);
   const [relanceEnCours, setRelanceEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const charger = useCallback(async () => {
     try {
-      setLiens(await api.listMyParentalLinks(accessToken));
+      const vue = await api.listMyParentalLinks(accessToken);
+      setLiens(vue.links);
+      setRefus(vue.refusal);
       setErreur(null);
     } catch (err) {
       setErreur(
@@ -143,11 +148,60 @@ export function ParentalConsentStatus({
       )}
 
       {/*
-        Le refus est définitif depuis l'application. Le dire évite au mineur de
-        relancer en boucle un parent qui a déjà tranché.
+        ========================================================================
+        APRÈS UN REFUS — règle révisée le 2026-08-08
+        ========================================================================
+        Cet écran disait au mineur qu'une relance « n'y changerait rien ». C'est
+        désormais faux, et c'était la partie du parcours que le promoteur a
+        explicitement voulu corriger : le refus n'est plus définitif.
+
+        TROIS CHOSES À DIRE, ET DANS CET ORDRE :
+
+          1. CE N'EST PAS FINI. Sans cela, un adolescent conclut que son compte
+             est mort et s'en va — avant même qu'on ait pu le protéger.
+          2. QUAND ce sera possible. Une attente sans terme connu se vit comme
+             un refus définitif, quoi qu'on écrive à côté.
+          3. QUOI FAIRE ENTRE-TEMPS. « Reparlez-en » est un conseil creux si on
+             ne donne rien à montrer : d'où la page destinée au tuteur.
+
+        La date vient du SERVEUR (`blockedUntil`), et le fait de savoir si le
+        délai est écoulé aussi (`canRequestNow`) — jamais d'une comparaison
+        faite ici avec l'horloge du téléphone.
       */}
       {courant.status === 'DECLINED' && (
-        <Text style={styles.detail}>{t('auth.parentalStatus.declinedHelp')}</Text>
+        <View style={styles.apresRefus}>
+          <Text style={styles.detail}>
+            {t('auth.parentalStatus.declinedHelp')}
+          </Text>
+
+          {refus && !refus.canRequestNow && refus.blockedUntil && (
+            <Text style={styles.detail}>
+              {t('auth.parentalStatus.blockedUntil', {
+                date: new Date(refus.blockedUntil).toLocaleDateString(),
+              })}
+            </Text>
+          )}
+
+          <SecondaryButton
+            title={t('auth.parentalStatus.showGuide')}
+            onPress={() => router.push('/parental-guide')}
+          />
+
+          {/*
+            LE CHANGEMENT DE TUTEUR N'EST PROPOSÉ QU'ICI, et sous le reste.
+            Placé plus haut, il deviendrait la première idée qui vient après un
+            refus — c'est-à-dire le contournement, présenté comme la solution.
+            L'aide qui l'accompagne dit d'emblée qu'il s'agit d'un changement
+            réel, examiné par une personne.
+          */}
+          <Text style={styles.aide}>
+            {t('auth.parentalStatus.guardianChangeHelp')}
+          </Text>
+          <SecondaryButton
+            title={t('auth.parentalStatus.guardianChange')}
+            onPress={() => router.push('/guardian-change')}
+          />
+        </View>
       )}
 
       {message && <Text style={styles.succes}>{message}</Text>}
@@ -185,5 +239,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   aide: { ...typography.caption },
+  apresRefus: { gap: spacing.sm, marginTop: spacing.xs },
   succes: { ...typography.bodyBold, color: colors.success },
 });

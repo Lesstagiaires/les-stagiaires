@@ -13,6 +13,11 @@ import {
   CountryPolicyController,
 } from './country-policy.controller';
 import { CountryPolicyService } from './country-policy.service';
+import {
+  AdminGuardianChangeController,
+  GuardianChangeController,
+} from './guardian-change.controller';
+import { GuardianChangeService } from './guardian-change.service';
 import { MinorPolicyService } from './minor-policy.service';
 import { OtpService } from './otp.service';
 import { ParentalConsentService } from './parental-consent.service';
@@ -38,11 +43,16 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     // seuils du pays au lieu d'en coder un en dur.
     AgeThresholdsController,
     CountryPolicyController,
+    // Changement réel de représentant légal — la porte de sortie du cycle de
+    // refus, gardée par une décision humaine.
+    GuardianChangeController,
+    AdminGuardianChangeController,
   ],
   providers: [
     AuthService,
     OtpService,
     ParentalConsentService,
+    GuardianChangeService,
     CountryPolicyService,
     MinorPolicyService,
     TokenService,

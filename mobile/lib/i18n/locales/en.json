@@ -125,12 +125,12 @@
       "codePlaceholder": "6 digits",
       "confirm": "I give my approval",
       "decline": "I refuse",
-      "declineHint": "A refusal blocks the account immediately, without waiting 30 days.",
+      "declineHint": "Refusing blocks the account immediately. It is not final: a new request will remain possible after a waiting period.",
       "declineTitle": "Refuse the registration?",
-      "declineWarning": "{{name}}’s account will be blocked immediately. This decision cannot be undone from this screen.",
+      "declineWarning": "{{name}}’s account will be blocked immediately, in restricted mode. Your decision is recorded. {{name}} may ask you again after a waiting period — one week for a first refusal.",
       "declineConfirm": "Refuse",
       "confirmed": "Thank you, your approval has been recorded.",
-      "declined": "Your refusal has been recorded. The account has been blocked.",
+      "declined": "Your refusal is recorded. The account stays in restricted mode.",
       "notFound": "This request does not exist or is no longer valid.",
       "loadError": "This request cannot be displayed at the moment.",
       "genericError": "The operation could not be completed.",
@@ -152,7 +152,7 @@
       "resent": "A new SMS has just been sent.",
       "resendError": "Resending did not go through.",
       "loadError": "Cannot display the state of your request.",
-      "declinedHelp": "Your parent or guardian refused. Another SMS would change nothing: talk to them, or contact us from the help section.",
+      "declinedHelp": "Your parent or guardian refused. This is not final: you will be able to submit a new request after a waiting period. In the meantime, talk with them — the page below is made for that.",
       "status": {
         "PENDING": "Waiting for their reply",
         "CODE_EXPIRED": "The code has expired",
@@ -160,7 +160,72 @@
         "DECLINED": "Refused",
         "EXPIRED": "Deadline passed",
         "REVOKED": "Request replaced"
+      },
+      "blockedUntil": "A new request will be possible from {{date}}.",
+      "showGuide": "Open the page to show my parent or guardian",
+      "guardianChange": "My legal guardian has changed",
+      "guardianChangeHelp": "Only for a genuine change (bereavement, separation, foster care, relocation). The request is reviewed by our team."
+    },
+    "parentalGuide": {
+      "title": "What you should know before deciding",
+      "intro": "This page is for the parent or guardian. It explains what LES STAGIAIRES is, what your consent allows, and what it does not.",
+      "whatIsIt": {
+        "title": "What is LES STAGIAIRES?",
+        "body": "A platform connecting young people with companies and institutions offering internships, apprenticeships and first work experiences. Registration is free for the young person."
+      },
+      "guarantees": {
+        "title": "Safeguards for your child",
+        "blocked": "Without your consent, they cannot apply, sign an internship agreement, or share a document. They can only browse and build their profile.",
+        "visibility": "Their profile is set to reduced visibility by default, without any action on their part.",
+        "documents": "Their documents (diplomas, identity papers) are encrypted and shared only with people they explicitly choose.",
+        "revoke": "You can withdraw your consent at any time; the account then returns to restricted mode.",
+        "noSale": "Their data is never sold or passed to third parties for advertising.",
+        "report": "A reporting channel (harassment, abuse, danger) is available in the app at any time."
+      },
+      "whatConsentOpens": {
+        "title": "What consent would open",
+        "body": "Applying to an offer, accepting a proposal, signing an internship agreement, travelling as part of an internship, and sharing documents with a company. Nothing else changes."
+      },
+      "rightToRefuse": {
+        "title": "You have the right to refuse",
+        "body": "Refusing is a legitimate answer and is recorded as such. Your child keeps their account in restricted mode and loses nothing they have prepared. They may ask you again later, after a waiting period — first one week, then one month, then six months. That delay exists precisely so your decision is respected and you are not asked again endlessly."
+      },
+      "howToAnswer": {
+        "title": "How to answer",
+        "body": "You received an SMS with a link and a six-digit code. Open that link on your own phone: you can then give or refuse your consent.",
+        "notHere": "The decision is not made on this screen, nor on your child’s phone. It is made only from the link sent to yours."
       }
+    },
+    "guardianChange": {
+      "title": "Change of legal guardian",
+      "intro": "This applies to a genuine change of situation: bereavement, separation, foster care, relocation. It is reviewed by a member of our team, and is not an appeal against a refusal.",
+      "phoneLabel": "New parent or guardian’s phone number",
+      "reasonLabel": "Explain what has changed",
+      "reasonPlaceholder": "Describe your situation in a few sentences: who is now your legal guardian, and since when.",
+      "reasonHelp": "At least 30 characters. The decision will be based on this text.",
+      "submit": "Send request",
+      "pendingTitle": "Request under review",
+      "pendingBody": "Your request concerning {{phone}} has been received. You will be told the decision.",
+      "loadError": "Unable to show your requests right now.",
+      "submitError": "The request could not be sent.",
+      "status": {
+        "APPROVED": "Request approved",
+        "REJECTED": "Request refused"
+      }
+    },
+    "guardianChangesAdmin": {
+      "title": "Changes of legal guardian",
+      "emptyBody": "Guardian change requests will appear here.",
+      "refusalCount_one": "{{count}} parental refusal before this request",
+      "refusalCount_other": "{{count}} parental refusals before this request",
+      "refusalCount_zero": "No parental refusal before this request",
+      "requestedPhone": "Requested new guardian: {{phone}}",
+      "decisionReasonPlaceholder": "Reason for your decision",
+      "decisionReasonHelp": "At least 10 characters. This reason will be shown to the account holder.",
+      "approve": "Allow the change",
+      "reject": "Refuse the request",
+      "loadError": "Unable to load the requests.",
+      "decideError": "The decision could not be recorded."
     }
   },
   "home": {

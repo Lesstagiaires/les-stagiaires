@@ -10,6 +10,11 @@ export interface ResolvedCountryPolicy {
   minParentRequiredAge: number;
   civilMajorityAge: number;
   parentalInfoMaxAge: number;
+  // Délais avant qu'une nouvelle demande de consentement soit recevable après
+  // un refus parental. Croissants (1er refus, 2e, puis 3e et suivants).
+  refusalDelay1Days: number;
+  refusalDelay2Days: number;
+  refusalDelayFinalDays: number;
   gatedActions: MinorGatedAction[];
   // true si aucune CountryPolicy n'est configurée pour ce pays et que la politique de
   // repli sûre s'applique (CLAUDE.md §5 : jamais d'absence de protection par défaut).
@@ -40,6 +45,17 @@ const FALLBACK_POLICY: Omit<
   // majorité. Un pays non configuré ne doit pas se voir prêter une politique
   // que personne n'a arbitrée pour lui.
   parentalInfoMaxAge: 18,
+  // Les valeurs arbitrées le 2026-08-08, reprises telles quelles.
+  //
+  // Ici le repli ne peut pas être « le plus protecteur possible » sans choisir
+  // QUI il protège. Allonger les délais protège la décision du parent ; les
+  // raccourcir protège la capacité du mineur à faire valoir son cas. Aucun des
+  // deux ne domine l'autre, alors on ne prétend pas trancher : on reprend les
+  // délais que le promoteur a effectivement arbitrés, plutôt qu'un extrême que
+  // personne n'a demandé.
+  refusalDelay1Days: 7,
+  refusalDelay2Days: 30,
+  refusalDelayFinalDays: 182,
   gatedActions: [
     MinorGatedAction.REGISTRATION,
     MinorGatedAction.APPLICATION_SUBMIT,
@@ -71,6 +87,9 @@ export class CountryPolicyService {
       minParentRequiredAge: policy.minParentRequiredAge,
       civilMajorityAge: policy.civilMajorityAge,
       parentalInfoMaxAge: policy.parentalInfoMaxAge,
+      refusalDelay1Days: policy.refusalDelay1Days,
+      refusalDelay2Days: policy.refusalDelay2Days,
+      refusalDelayFinalDays: policy.refusalDelayFinalDays,
       gatedActions: policy.gatedActions,
       isFallback: false,
     };
@@ -95,6 +114,9 @@ export class CountryPolicyService {
         minParentRequiredAge: dto.minParentRequiredAge,
         civilMajorityAge: dto.civilMajorityAge,
         parentalInfoMaxAge: dto.parentalInfoMaxAge,
+        refusalDelay1Days: dto.refusalDelay1Days,
+        refusalDelay2Days: dto.refusalDelay2Days,
+        refusalDelayFinalDays: dto.refusalDelayFinalDays,
         gatedActions: dto.gatedActions,
       },
       create: {
@@ -103,6 +125,9 @@ export class CountryPolicyService {
         minParentRequiredAge: dto.minParentRequiredAge,
         civilMajorityAge: dto.civilMajorityAge,
         parentalInfoMaxAge: dto.parentalInfoMaxAge,
+        refusalDelay1Days: dto.refusalDelay1Days,
+        refusalDelay2Days: dto.refusalDelay2Days,
+        refusalDelayFinalDays: dto.refusalDelayFinalDays,
         gatedActions: dto.gatedActions,
       },
     });
