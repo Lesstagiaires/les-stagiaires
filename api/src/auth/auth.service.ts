@@ -175,6 +175,76 @@ export class AuthService {
     };
   }
 
+  // ==========================================================================
+  // RENVOYER LE CODE D'INSCRIPTION
+  //
+  // DÉFAUT CORRIGÉ LE 2026-08-10, trouvé en recette réelle. Le code expire en
+  // cinq minutes, et AUCUNE route ne permettait d'en obtenir un autre. La suite
+  // se refermait sur elle-même :
+  //
+  //   code expiré → pas de renvoi → la connexion exige un compte vérifié
+  //               → relancer le tuteur exige d'être connecté
+  //               → COMPTE DÉFINITIVEMENT PERDU
+  //
+  // Et le numéro, unique en base, devenait inutilisable : le jeune aurait dû
+  // changer de téléphone pour accéder à la plateforme. Cinq minutes est un
+  // délai pensé pour un réseau européen ; sur les réseaux visés, un SMS met
+  // couramment plus longtemps.
+  //
+  // CETTE ROUTE NE DIT JAMAIS SI LE COMPTE EXISTE. Elle est publique et prend
+  // un numéro de téléphone : distinguer « compte inconnu » de « code renvoyé »
+  // en ferait un annuaire des inscrits de la plateforme — c'est-à-dire, ici,
+  // un annuaire de mineurs. La réponse est donc invariablement la même.
+  // ==========================================================================
+  async resendRegistrationOtp(phone: string) {
+    const reponseInvariable = {
+      message:
+        'Si un compte est en attente de vérification pour ce numéro, un nouveau code vient d’être envoyé.',
+    };
+
+    const user = await this.prisma.user.findUnique({ where: { phone } });
+
+    // Compte inconnu, déjà vérifié, ou supprimé : rien à faire, et surtout rien
+    // à dire. On sort par la même porte que le cas nominal.
+    if (
+      !user ||
+      user.phoneVerifiedAt ||
+      !user.phone ||
+      user.status === AccountStatus.DELETED ||
+      user.status === AccountStatus.PENDING_DELETION
+    ) {
+      return reponseInvariable;
+    }
+
+    // Le délai de garde. Contrôlé APRÈS avoir établi que le compte existe, mais
+    // sans que la réponse le trahisse : une attente trop courte rend la même
+    // phrase, simplement sans envoyer de SMS.
+    const cooldown = Number(
+      this.config.get<string>('OTP_RESEND_COOLDOWN_SECONDS', '60'),
+    );
+    const ecoule = await this.otp.secondesDepuisDernierEnvoi(
+      user.id,
+      OtpPurpose.REGISTRATION,
+    );
+    if (ecoule !== null && ecoule < cooldown) {
+      await this.audit.record('REGISTRATION_OTP_RESEND_THROTTLED', user.id, {
+        secondesEcoulees: Math.round(ecoule),
+        cooldown,
+      });
+      return reponseInvariable;
+    }
+
+    // `generateAndSend` consomme les codes précédents avant d'en créer un.
+    await this.otp.generateAndSend(
+      user.id,
+      user.phone,
+      OtpPurpose.REGISTRATION,
+    );
+    await this.audit.record('REGISTRATION_OTP_RESENT', user.id, {});
+
+    return reponseInvariable;
+  }
+
   async verifyRegistrationOtp(
     dto: VerifyOtpDto,
     userAgent: string | undefined,
@@ -184,7 +254,10 @@ export class AuthService {
       where: { phone: dto.phone },
     });
     if (!user) throw new NotFoundException('Compte introuvable.');
-    if (user.status !== AccountStatus.PENDING_VERIFICATION) {
+
+    // La preuve, pas le statut. Un compte dont le statut a bougé pour une autre
+    // raison — un refus parental, par exemple — n'est pas un compte vérifié.
+    if (user.phoneVerifiedAt) {
       throw new BadRequestException('Ce compte est déjà vérifié.');
     }
 
@@ -207,9 +280,17 @@ export class AuthService {
       ? AccountStatus.AWAITING_PARENTAL_CONSENT
       : AccountStatus.ACTIVE;
 
+    // ========================================================================
+    // LE SEUL ENDROIT DU CODE QUI ÉCRIT `phoneVerifiedAt`
+    //
+    // Un test de confinement l'impose. La preuve de possession du téléphone
+    // naît ici, à l'instant où un code reçu par SMS a été présenté — et nulle
+    // part ailleurs. Elle ne repasse jamais à NULL : une preuve effaçable n'est
+    // pas une preuve.
+    // ========================================================================
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { lsId, status: newStatus },
+      data: { lsId, status: newStatus, phoneVerifiedAt: new Date() },
     });
 
     await this.audit.record('ACCOUNT_PHONE_VERIFIED', user.id, {
@@ -280,7 +361,23 @@ export class AuthService {
       throw new UnauthorizedException('Identifiants invalides.');
     }
 
-    if (user.status === AccountStatus.PENDING_VERIFICATION) {
+    // ========================================================================
+    // LA CONNEXION LIT UN FAIT, PLUS UN STATUT
+    //
+    // Défaut corrigé le 2026-08-10, trouvé en recette réelle. Cette ligne
+    // testait `status === PENDING_VERIFICATION`. Or neuf endroits écrivent ce
+    // statut, dont six sans rapport avec la vérification — et `declineConsent`
+    // l'écrivait SANS CONDITION.
+    //
+    // Un compte jamais vérifié sortait donc de PENDING_VERIFICATION dès qu'un
+    // tuteur refusait, et devenait connectable. Observé en base : un
+    // LOGIN_SUCCESS sans le moindre ACCOUNT_PHONE_VERIFIED, sans LS-ID.
+    //
+    // Le contournement que cela ouvrait : s'inscrire avec le numéro d'autrui,
+    // se déclarer soi-même comme tuteur, refuser depuis son propre téléphone.
+    // Le numéro de la victime, unique en base, devenait inutilisable pour elle.
+    // ========================================================================
+    if (!user.phoneVerifiedAt) {
       throw new ForbiddenException(
         "Ce compte n'a pas encore été vérifié par OTP.",
       );

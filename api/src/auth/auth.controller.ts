@@ -25,6 +25,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { SwitchRoleDto } from './dto/switch-role.dto';
 import { UpdateEmergencyContactDto } from './dto/update-emergency-contact.dto';
 import { VerifyLoginTwoFactorDto } from './dto/verify-login-two-factor.dto';
+import { ResendOtpDto } from './dto/resend-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ParentalConsentService } from './parental-consent.service';
 import type { AccessTokenPayload } from './token.service';
@@ -41,6 +42,28 @@ export class AuthController {
   @Post('register')
   register(@Body() dto: RegisterDto) {
     return this.auth.register(dto);
+  }
+
+  // ==========================================================================
+  // RENVOYER LE CODE D'INSCRIPTION
+  //
+  // Sans cette route, un code expiré — cinq minutes — condamnait le compte :
+  // aucune régénération, connexion impossible sans vérification, et le numéro
+  // resté pris par la contrainte d'unicité. Constaté en recette réelle.
+  //
+  // DÉBIT TRÈS BAS, et pour deux raisons. Chaque appel coûte un SMS facturé, et
+  // la route prend un numéro de téléphone en entrée : à débit élevé, elle
+  // deviendrait un moyen d'énumérer les inscrits. La réponse est de toute façon
+  // invariable, mais le temps de réponse et le volume, eux, parlent.
+  //
+  // Un délai de garde par compte, côté service, complète cette limite par IP —
+  // les deux ne protègent pas la même chose.
+  @Public()
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('resend-otp')
+  resendOtp(@Body() dto: ResendOtpDto) {
+    return this.auth.resendRegistrationOtp(dto.phone);
   }
 
   @Public()

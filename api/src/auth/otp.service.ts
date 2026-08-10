@@ -1,6 +1,7 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomInt, timingSafeEqual } from 'crypto';
+import { Prisma } from '../../generated/prisma/client';
 import { OtpPurpose } from '../../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { SMS_PROVIDER } from '../sms/sms-provider.interface';
@@ -8,6 +9,8 @@ import type { SmsProvider } from '../sms/sms-provider.interface';
 
 @Injectable()
 export class OtpService {
+  private readonly logger = new Logger(OtpService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
@@ -29,21 +32,85 @@ export class OtpService {
       this.config.get<string>('OTP_MAX_ATTEMPTS', '5'),
     );
 
-    await this.prisma.otpCode.create({
-      data: {
-        userId,
-        codeHash: this.hashCode(code),
-        purpose,
-        destination,
-        maxAttempts,
-        expiresAt: new Date(Date.now() + ttlMinutes * 60 * 1000),
-      },
-    });
+    // ========================================================================
+    // UN NOUVEAU CODE TUE LES PRÉCÉDENTS — ET UN SEUL VIT À LA FOIS
+    //
+    // `verify` ne retenait déjà que le plus récent, les anciens étaient donc
+    // inertes en pratique. Mais « inerte parce que la requête les ignore » et
+    // « invalidé » ne sont pas la même garantie : la première tient à l'ordre
+    // d'un `orderBy`, que le prochain remaniement peut changer sans y penser.
+    //
+    // LA CONCURRENCE, mesurée le 2026-08-10 : consommer puis créer en deux
+    // temps laissait DEUX codes vivants après trois envois simultanés. D'où
+    // deux verrous complémentaires :
+    //
+    //   — la TRANSACTION, qui rend les deux écritures indivisibles ;
+    //   — l'INDEX UNIQUE PARTIEL `OtpCode_un_seul_vivant`, qui rend l'état à
+    //     deux codes impossible plutôt qu'improbable.
+    //
+    // Le perdant d'une course voit sa transaction refusée par l'index. Il
+    // n'envoie alors PAS de second SMS : le code du gagnant vient de partir sur
+    // le même téléphone, et deux messages pour une seule demande passeraient
+    // pour un dysfonctionnement.
+    // ========================================================================
+    try {
+      await this.prisma.$transaction([
+        this.prisma.otpCode.updateMany({
+          where: { userId, purpose, consumedAt: null },
+          data: { consumedAt: new Date() },
+        }),
+        this.prisma.otpCode.create({
+          data: {
+            userId,
+            codeHash: this.hashCode(code),
+            purpose,
+            destination,
+            maxAttempts,
+            expiresAt: new Date(Date.now() + ttlMinutes * 60 * 1000),
+          },
+        }),
+      ]);
+    } catch (erreur) {
+      // Violation de l'unicité : une demande concurrente a gagné la course et
+      // vient d'émettre un code. Rien à faire, et surtout rien à envoyer.
+      if (
+        erreur instanceof Prisma.PrismaClientKnownRequestError &&
+        erreur.code === 'P2002'
+      ) {
+        this.logger.warn(
+          'Deux demandes de code simultanées : la seconde est ignorée.',
+        );
+        return;
+      }
+      throw erreur;
+    }
 
+    // L'ENVOI VIENT APRÈS L'ÉCRITURE, et jamais l'inverse : un SMS parti pour
+    // un code que la base a refusé d'enregistrer serait invérifiable.
     await this.sms.send(
       destination,
       `LES STAGIAIRES — votre code de vérification est ${code}. Il expire dans ${ttlMinutes} minutes.`,
     );
+  }
+
+  // ==========================================================================
+  // DEPUIS COMBIEN DE TEMPS UN CODE A-T-IL ÉTÉ ENVOYÉ ?
+  //
+  // Sert au délai de garde du renvoi. Le raisonnement est le même que pour les
+  // relances parentales : sans garde-fou, un bouton « renvoyer » devient un
+  // outil de harcèlement du numéro visé, et chaque envoi est facturé.
+  // ==========================================================================
+  async secondesDepuisDernierEnvoi(
+    userId: string,
+    purpose: OtpPurpose,
+  ): Promise<number | null> {
+    const dernier = await this.prisma.otpCode.findFirst({
+      where: { userId, purpose },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true },
+    });
+    if (!dernier) return null;
+    return (Date.now() - dernier.createdAt.getTime()) / 1000;
   }
 
   async verify(

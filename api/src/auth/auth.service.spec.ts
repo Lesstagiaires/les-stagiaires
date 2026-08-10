@@ -29,6 +29,13 @@ function makeUser(overrides: Record<string, unknown> = {}) {
     email: null,
     password: 'hashed',
     status: AccountStatus.ACTIVE,
+    // LA PREUVE DE POSSESSION DU TÉLÉPHONE, désormais distincte du statut.
+    //
+    // Le compte de référence est un compte ordinaire : vérifié. Les scénarios
+    // qui portent sur un compte NON vérifié la remettent explicitement à
+    // `null` — ce qui se lit, alors qu'auparavant tout se jouait dans un
+    // statut dont ce n'était pas le rôle.
+    phoneVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
     twoFactorEnabled: false,
     lockedUntil: null,
     failedLoginAttempts: 0,
@@ -242,8 +249,14 @@ describe('AuthService', () => {
     });
 
     it('rejects a second verification attempt on an already-verified account', async () => {
+      // Ce qui fait qu'un compte est « déjà vérifié », c'est la PREUVE — pas
+      // son statut. Un compte dont le statut a bougé pour une autre raison,
+      // un refus parental par exemple, doit rester vérifiable.
       prisma.user.findUnique.mockResolvedValue(
-        makeUser({ status: AccountStatus.ACTIVE }),
+        makeUser({
+          status: AccountStatus.AWAITING_PARENTAL_CONSENT,
+          phoneVerifiedAt: new Date('2026-01-01T00:00:00.000Z'),
+        }),
       );
 
       await expect(
@@ -257,7 +270,10 @@ describe('AuthService', () => {
 
     it('rejects an invalid or expired OTP code', async () => {
       prisma.user.findUnique.mockResolvedValue(
-        makeUser({ status: AccountStatus.PENDING_VERIFICATION }),
+        makeUser({
+          status: AccountStatus.PENDING_VERIFICATION,
+          phoneVerifiedAt: null,
+        }),
       );
       otp.verify.mockResolvedValue(false);
 
@@ -273,7 +289,10 @@ describe('AuthService', () => {
     it('activates a non-gated account and issues session tokens', async () => {
       prisma.user.findUnique
         .mockResolvedValueOnce(
-          makeUser({ status: AccountStatus.PENDING_VERIFICATION }),
+          makeUser({
+            status: AccountStatus.PENDING_VERIFICATION,
+            phoneVerifiedAt: null,
+          }),
         )
         .mockResolvedValueOnce(makeUser()); // used inside createSessionAndIssueTokens for phone lookup
       otp.verify.mockResolvedValue(true);
@@ -293,7 +312,10 @@ describe('AuthService', () => {
     it('leaves a gated account AWAITING_PARENTAL_CONSENT rather than activating it', async () => {
       prisma.user.findUnique
         .mockResolvedValueOnce(
-          makeUser({ status: AccountStatus.PENDING_VERIFICATION }),
+          makeUser({
+            status: AccountStatus.PENDING_VERIFICATION,
+            phoneVerifiedAt: null,
+          }),
         )
         .mockResolvedValueOnce(makeUser());
       otp.verify.mockResolvedValue(true);
@@ -384,7 +406,10 @@ describe('AuthService', () => {
 
     it('rejects a login before the phone/OTP verification step has completed', async () => {
       prisma.user.findFirst.mockResolvedValue(
-        makeUser({ status: AccountStatus.PENDING_VERIFICATION }),
+        makeUser({
+          status: AccountStatus.PENDING_VERIFICATION,
+          phoneVerifiedAt: null,
+        }),
       );
       (argon2.verify as jest.Mock).mockResolvedValue(true);
 
