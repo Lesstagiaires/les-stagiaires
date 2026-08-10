@@ -16,7 +16,6 @@ qu'il est ouvert.
 | # | Sujet | Niveau | Correction immédiate ? |
 |---|---|---|---|
 | S-01 | `lsId` exposé à un visiteur anonyme | 🟠 | non — avant production |
-| S-02 | Rubrique `DOCUMENTS` publiable par un majeur | 🔴 | **avant production** |
 | S-03 | Révélateur d'existence de compte (200/404) | 🟡 | non |
 | S-04 | `OTP_TTL_MINUTES = 5` | 🟡 | non — arbitrage produit |
 | S-05 | `Alert.alert` sur deux écrans (dette connue) | 🟠 | non — hors périmètre |
@@ -30,6 +29,7 @@ qu'il est ouvert.
 | S-00c | Un refus parental « vérifiait » le téléphone | 2026-08-10 |
 | S-00d | Deux codes vivants sous concurrence | 2026-08-10 |
 | S-00e | `destinationLabel` en clair sur base neuve | 2026-08-10 |
+| **S-02** | **Documents confidentiels téléchargeables anonymement** | **2026-08-10** |
 
 ---
 
@@ -65,7 +65,34 @@ aujourd'hui le LS-ID sur un profil public cesserait de l'avoir. À arbitrer.
 
 ---
 
-# S-02 — La rubrique `DOCUMENTS` peut être rendue publique
+# S-02 — CLOS le 2026-08-10
+
+**Ce qui a été fait.** Trois verrous, à trois niveaux différents — parce qu'un
+seul se contourne.
+
+1. **La cause** : `setVisibility` refuse `PUBLIC` sur la rubrique `DOCUMENTS`,
+   pour tous, mineurs comme majeurs. Ce n'est pas l'âge du titulaire qui fixe la
+   règle, c'est la nature de la donnée.
+2. **Les données déjà écrites** : migration `20260810180000` — tout `PUBLIC`
+   subsistant est rétrogradé en `NETWORK`, et une contrainte `CHECK` interdit
+   désormais cet état en base. Un script d'administration ou un futur service
+   qui écrirait cette table sans passer par le service échoue au lieu de rouvrir
+   la brèche.
+3. **La défense en profondeur** : la route de téléchargement n'est plus publique,
+   et `download` exige un demandeur identifié **par sa signature**. Retirer le
+   décorateur ne suffirait pas — il faudrait aussi élargir le type, ce qu'un
+   sabotage surveille.
+
+**Ce qui n'a pas changé.** Le partage nominatif, l'accès réseau et le CV public
+fonctionnent comme avant. Seul l'anonymat disparaît, et lui seul.
+
+**Vérification** : 14 tests sur base réelle, 6 sabotages tous rouges.
+
+---
+
+## Le constat d'origine, conservé pour mémoire
+
+## S-02 — La rubrique `DOCUMENTS` pouvait être rendue publique
 
 **Cause.** `VisibilityService.setVisibility` interdit `PUBLIC` aux mineurs, mais
 l'autorise aux majeurs **pour toutes les rubriques, y compris `DOCUMENTS`**.

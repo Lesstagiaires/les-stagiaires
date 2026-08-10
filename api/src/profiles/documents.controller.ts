@@ -12,15 +12,12 @@ import {
   Post,
   Res,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { DocumentCategory } from '../../generated/prisma/enums';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { Public } from '../auth/decorators/public.decorator';
-import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import type { AccessTokenPayload } from '../auth/token.service';
 import { DocumentsService } from './documents.service';
 import { RenameDocumentDto } from './dto/rename-document.dto';
@@ -56,16 +53,30 @@ export class DocumentsController {
     return this.documents.list(user.sub);
   }
 
-  @Public()
-  @UseGuards(OptionalJwtAuthGuard)
+  // ==========================================================================
+  // PLUS AUCUN TÉLÉCHARGEMENT ANONYME — défaut S-02, corrigé le 2026-08-10
+  //
+  // Cette route portait `@Public()` et un garde facultatif. Un propriétaire
+  // ayant basculé sa rubrique DOCUMENTS en PUBLIC voyait alors ses fichiers
+  // servis DÉCHIFFRÉS à quiconque présentait un identifiant de document.
+  //
+  // CE QUI A ÉTÉ VÉRIFIÉ AVANT DE FERMER : aucun client n'appelle cette route.
+  // Ni l'application mobile, ni la page publique de profil. L'ouverture ne
+  // servait donc personne — elle exposait, sans rendre de service.
+  //
+  // Le contrôle vit dans le service, qui exige maintenant un demandeur
+  // identifié par sa SIGNATURE. Retirer ce décorateur ne suffirait pas à
+  // rouvrir la brèche : il faudrait aussi rendre le paramètre facultatif, ce
+  // qu'un test de sabotage surveille.
+  // ==========================================================================
   @Get('documents/:id')
   async download(
     @Param('id') id: string,
     @Res() res: Response,
-    @CurrentUser() viewer?: AccessTokenPayload,
+    @CurrentUser() viewer: AccessTokenPayload,
   ) {
     const { buffer, mimeType, fileName } = await this.documents.download(
-      viewer?.sub,
+      viewer.sub,
       id,
     );
     res.set({

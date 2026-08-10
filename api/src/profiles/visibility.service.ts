@@ -50,6 +50,39 @@ export class VisibilityService {
       );
     }
 
+    // ========================================================================
+    // LES DOCUMENTS NE PEUVENT JAMAIS ÊTRE PUBLICS — défaut S-02
+    //
+    // Corrigé le 2026-08-10. Cette restriction ne visait que les mineurs : un
+    // majeur pouvait basculer sa rubrique DOCUMENTS en PUBLIC, et ses fichiers
+    // devenaient alors téléchargeables DÉCHIFFRÉS par un anonyme connaissant
+    // un identifiant de document.
+    //
+    // UN INTERRUPTEUR NE DÉCLASSE PAS UNE DONNÉE. CLAUDE.md §1 range diplômes
+    // et attestations en CONFIDENTIEL — « titulaire et destinataires
+    // autorisés ». Aucune case à cocher ne devrait pouvoir en faire du Public,
+    // et surtout pas une case dont l'utilisateur ne mesure pas la portée : sur
+    // les autres rubriques, « public » expose un texte ; sur celle-ci, il
+    // expose des fichiers.
+    //
+    // LE BESOIN LÉGITIME RESTE COUVERT. `SHARED` partage nominativement,
+    // `NETWORK` ouvre aux comptes identifiés. Ce qui disparaît, c'est
+    // l'anonymat — et lui seul.
+    //
+    // La règle vaut pour TOUS, mineurs comme majeurs, et ne dépend d'aucun âge
+    // recalculé : c'est la nature de la donnée qui la fixe, pas celle de son
+    // titulaire.
+    // ========================================================================
+    if (
+      section === ProfileSection.DOCUMENTS &&
+      dto.visibility === SectionVisibility.PUBLIC
+    ) {
+      throw new ForbiddenException(
+        'Les documents ne peuvent pas être rendus publics — visibilité maximale : réseau. ' +
+          'Pour les transmettre à une personne précise, utilisez le partage.',
+      );
+    }
+
     const profile = await this.prisma.profile.upsert({
       where: { userId },
       update: {},

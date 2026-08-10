@@ -108,17 +108,51 @@ export class DocumentsService {
     });
   }
 
-  async download(requestingUserId: string | undefined, documentId: string) {
+  // ==========================================================================
+  // LE TÉLÉCHARGEMENT EXIGE UN DEMANDEUR IDENTIFIÉ
+  //
+  // DÉFAUT S-02, corrigé le 2026-08-10. La route était publique et le
+  // demandeur facultatif : un document dont le propriétaire avait basculé la
+  // rubrique DOCUMENTS en PUBLIC était servi DÉCHIFFRÉ à un anonyme.
+  //
+  // CLAUDE.md §1 classe ces fichiers — diplômes, attestations, pièces jointes —
+  // en CONFIDENTIEL : « titulaire et destinataires autorisés », avec
+  // « chiffrement ET JOURNALISATION ». Un accès anonyme ne se journalise pas :
+  // l'entrée d'audit portait un auteur NUL, donc un journal qui n'identifie
+  // personne.
+  //
+  // Le paramètre n'est plus optionnel. Ce n'est pas une précaution
+  // supplémentaire, c'est LA garantie : le type interdit désormais d'appeler
+  // cette méthode sans savoir qui demande. Un futur contrôleur qui rendrait la
+  // route publique ne compilerait pas.
+  // ==========================================================================
+  async download(requestingUserId: string, documentId: string) {
     const document = await this.prisma.profileDocument.findUnique({
       where: { id: documentId },
       include: { profile: true },
     });
     if (!document || document.deletedAt) {
+      // Supprimé ou inexistant : même réponse. Distinguer les deux dirait à qui
+      // tâtonne des identifiants lesquels ont existé.
       throw new NotFoundException('Document introuvable.');
     }
 
+    // ========================================================================
+    // AUCUNE VISIBILITÉ NE VAUT AUTORISATION ANONYME
+    //
+    // La rubrique DOCUMENTS ne peut plus être rendue publique
+    // (`VisibilityService.setVisibility`), mais on ne s'appuie pas là-dessus
+    // ici : le contrôle vaut quelle que soit la valeur trouvée en base, y
+    // compris une valeur PUBLIC héritée d'avant la correction ou écrite par un
+    // chemin qu'on n'a pas prévu.
+    //
+    // Deux portes, et deux seulement : être le titulaire, ou avoir reçu un
+    // partage que `canView` reconnaît. Un administrateur n'en franchit aucune —
+    // CLAUDE.md §3 interdit le rôle fourre-tout qui voit tout.
+    // ========================================================================
+    const estTitulaire = document.profile.userId === requestingUserId;
     const canView =
-      document.profile.userId === requestingUserId ||
+      estTitulaire ||
       (await this.visibility.canView(
         document.profile.userId,
         ProfileSection.DOCUMENTS,
@@ -139,9 +173,12 @@ export class DocumentsService {
       );
     }
 
-    await this.audit.record('DOCUMENT_ACCESSED', requestingUserId ?? null, {
+    // Le journal porte toujours un auteur, désormais : c'est ce qui distingue
+    // un journal d'accès d'un compteur.
+    await this.audit.record('DOCUMENT_ACCESSED', requestingUserId, {
       documentId,
       ownerId: document.profile.userId,
+      parLeTitulaire: estTitulaire,
     });
 
     return {
