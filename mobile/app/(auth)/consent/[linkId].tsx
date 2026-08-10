@@ -2,7 +2,6 @@ import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -84,25 +83,34 @@ export default function ParentalConsentScreen() {
     }
   }
 
-  // LE REFUS PASSE PAR UNE CONFIRMATION. Il bloque le compte de l'enfant
-  // immédiatement, sans attendre les trente jours — c'est irréversible depuis
-  // cet écran, et un doigt qui glisse ne doit pas suffire.
-  function demanderRefus() {
-    Alert.alert(
-      t('auth.parentalConsent.declineTitle'),
-      t('auth.parentalConsent.declineWarning', {
-        name: demande?.childFirstName ?? '',
-      }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('auth.parentalConsent.declineConfirm'),
-          style: 'destructive',
-          onPress: () => void refuser(),
-        },
-      ],
-    );
-  }
+  // ==========================================================================
+  // LA CONFIRMATION EST RENDUE PAR L'ÉCRAN, PAS PAR LE SYSTÈME
+  //
+  // DÉFAUT CORRIGÉ LE 2026-08-09, trouvé en recette réelle. Ce garde-fou passait
+  // par `Alert.alert` de react-native. Or, sur `react-native-web`, ce module est
+  // littéralement vide :
+  //
+  //     class Alert { static alert() {} }
+  //
+  // Le rappel `onPress` portant l'appel à `refuser()` n'était donc JAMAIS
+  // atteint. Cliquer « Je refuse » ne produisait rien : ni dialogue, ni appel
+  // réseau, ni message. Le tuteur, ne voyant aucune réaction, finissait par
+  // cliquer sur le seul bouton qui répondait — « Je donne mon accord ».
+  //
+  // Autrement dit : LE DROIT DE REFUSER N'EXISTAIT PAS sur le web, qui est
+  // précisément le seul canal dont dispose un tuteur — il reçoit un lien par
+  // SMS et n'a pas l'application. Tout le cycle de refus construit côté serveur
+  // était inatteignable par la personne pour qui il avait été conçu.
+  //
+  // La confirmation vit maintenant dans l'état du composant. Elle se comporte
+  // identiquement sur le web et en natif, et ne dépend de l'implémentation de
+  // personne.
+  //
+  // LE GARDE-FOU RESTE ENTIER : un refus bloque le compte de l'enfant
+  // immédiatement, sans attendre les trente jours. Un doigt qui glisse ne doit
+  // pas suffire — il faut toujours deux gestes délibérés.
+  // ==========================================================================
+  const [refusAConfirmer, setRefusAConfirmer] = useState(false);
 
   async function refuser() {
     if (!linkId) return;
@@ -110,6 +118,7 @@ export default function ParentalConsentScreen() {
     setEnCours('decline');
     try {
       await api.declineParentalConsent(linkId, code.trim());
+      setRefusAConfirmer(false);
       setResultat(t('auth.parentalConsent.declined'));
       await charger();
     } catch (err) {
@@ -184,23 +193,57 @@ export default function ParentalConsentScreen() {
               autoCorrect={false}
             />
 
-            <PrimaryButton
-              title={t('auth.parentalConsent.confirm')}
-              onPress={() => void confirmer()}
-              loading={enCours === 'confirm'}
-              disabled={code.trim().length === 0 || enCours !== null}
-            />
-            <SecondaryButton
-              title={t('auth.parentalConsent.decline')}
-              onPress={demanderRefus}
-              loading={enCours === 'decline'}
-              disabled={code.trim().length === 0 || enCours !== null}
-            />
+            {/*
+              DEUX GESTES POUR REFUSER, UN SEUL POUR ACCEPTER, et c'est voulu :
+              seul le refus bloque immédiatement le compte de l'enfant.
 
-            {/* Le refus n'est pas un bouton comme un autre : on le dit. */}
-            <Text style={styles.avertissement}>
-              {t('auth.parentalConsent.declineHint')}
-            </Text>
+              Tant que la confirmation est demandée, les DEUX décisions
+              disparaissent. Le tuteur ne peut pas accepter par erreur alors
+              qu'il venait de dire non — c'est exactement ce qui s'est produit
+              en recette, quand le dialogue système restait invisible.
+            */}
+            {!refusAConfirmer ? (
+              <>
+                <PrimaryButton
+                  title={t('auth.parentalConsent.confirm')}
+                  onPress={() => void confirmer()}
+                  loading={enCours === 'confirm'}
+                  disabled={code.trim().length === 0 || enCours !== null}
+                />
+                <SecondaryButton
+                  title={t('auth.parentalConsent.decline')}
+                  onPress={() => setRefusAConfirmer(true)}
+                  disabled={code.trim().length === 0 || enCours !== null}
+                />
+
+                {/* Le refus n'est pas un bouton comme un autre : on le dit. */}
+                <Text style={styles.avertissement}>
+                  {t('auth.parentalConsent.declineHint')}
+                </Text>
+              </>
+            ) : (
+              <View style={styles.confirmationRefus}>
+                <Text style={styles.titreConfirmation}>
+                  {t('auth.parentalConsent.declineTitle')}
+                </Text>
+                <Text style={styles.avertissementFort}>
+                  {t('auth.parentalConsent.declineWarning', {
+                    name: demande.childFirstName,
+                  })}
+                </Text>
+                <SecondaryButton
+                  title={t('auth.parentalConsent.declineConfirm')}
+                  onPress={() => void refuser()}
+                  loading={enCours === 'decline'}
+                  disabled={enCours !== null}
+                />
+                <SecondaryButton
+                  title={t('common.cancel')}
+                  onPress={() => setRefusAConfirmer(false)}
+                  disabled={enCours !== null}
+                />
+              </View>
+            )}
           </View>
         )}
 
@@ -224,6 +267,11 @@ const styles = StyleSheet.create({
   actions: { gap: spacing.sm, marginTop: spacing.md },
   libelleCode: { ...typography.bodyBold },
   avertissement: { ...typography.caption, color: colors.muted },
+  confirmationRefus: { gap: spacing.sm },
+  titreConfirmation: { ...typography.bodyBold },
+  // L'avertissement du refus n'est pas une mention discrète : il annonce le
+  // blocage immédiat du compte de l'enfant.
+  avertissementFort: { ...typography.body, lineHeight: 21 },
   resultat: { ...typography.bodyBold, color: colors.success },
   statut: { ...typography.body, color: colors.muted },
 });
