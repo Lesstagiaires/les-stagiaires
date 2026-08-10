@@ -299,6 +299,69 @@ Par ordre de priorité.
 
 ---
 
+## 6 bis. Constats de la pré-recette du 2026-08-09 — à traiter AVANT PRODUCTION
+
+Relevés en préparant l'ouverture d'un tunnel, sur décision du promoteur de ne
+**pas** les corriger dans ce chantier. Ils ne bloquaient pas la recette, dont la
+base ne contient que des comptes fictifs et **aucun document**.
+
+### P1 — `lsId`, `activeRole` et `documentsInDigitalSafe` échappent au moteur de visibilité
+
+`CvService.getCvVivant`, `getCarteProfessionnelle` et `PassportService` rendent
+ces trois champs **sans aucun appel à `canView`**.
+
+Démontré en exécution : sur un compte **mineur** dont toutes les rubriques sont
+privées, un visiteur anonyme obtient
+
+```
+{"lsId":"LS-CM-RECETTE-0001","activeRole":null,"headline":null,"summary":null, …}
+```
+
+Le LS-ID est l'identifiant qui suit la personne sur toute la plateforme. Le
+rendre à un anonyme, pour un mineur, contredit « paramètres de confidentialité
+renforcés par défaut » (`CLAUDE.md` §5).
+
+**Correctif proposé** : soumettre `lsId` et `activeRole` à la rubrique `SUMMARY`,
+et `documentsInDigitalSafe` à la rubrique `DOCUMENTS`.
+
+### P2 — la rubrique `DOCUMENTS` peut être rendue `PUBLIC`
+
+`GET /profiles/documents/:id` rend le **contenu déchiffré** d'un fichier dès que
+`canView(propriétaire, DOCUMENTS, visiteur)` répond vrai. Or `setVisibility`
+n'interdit `PUBLIC` qu'aux **mineurs** : un majeur peut donc basculer la rubrique
+et rendre ses diplômes et CV téléchargeables par quiconque connaît l'identifiant
+du document, sans compte.
+
+C'est une contradiction directe avec la classification du §1 de `CLAUDE.md`, qui
+range CV et diplômes en **Confidentiel — titulaire et destinataires autorisés**.
+Un seul interrupteur de visibilité fait passer du Confidentiel au Public.
+
+Atténuations existantes : identifiant `cuid` non devinable, empreinte vérifiée,
+accès journalisé (`DOCUMENT_ACCESSED`).
+
+**Correctif proposé** : interdire `PUBLIC` pour la rubrique `DOCUMENTS` quel que
+soit l'âge — plafond « réseau » ou « partagé ». Décidé par le promoteur le
+2026-08-09 : à traiter dans le chantier sécurité dédié.
+
+### P3 — révélateur d'existence de compte
+
+`GET /profiles/:userId/cv` rend `200` sur un compte existant et `404` sinon. Les
+identifiants ne s'énumèrent pas (`cuid`), mais qui détient un identifiant obtient
+la confirmation qu'il correspond à un compte, et son LS-ID (voir P1).
+
+### P4 — commentaire périmé dans `.env.example`
+
+Depuis le correctif du 2026-08-09, `.env.example` (ligne ~114) décrit encore
+l'ancien comportement :
+
+> `SMS_PROVIDER="africastalking"` active cet adaptateur ; toute autre valeur
+> retombe sur la console (aucun envoi réel).
+
+C'est faux : toute autre valeur fait désormais **échouer le démarrage**. Non
+corrigé ici, la consigne étant de ne pas toucher aux fichiers d'environnement.
+
+---
+
 ## 7. Ce que ce rapport ne couvre pas
 
 - Les connexions sociales (Google, Facebook, Apple), écartées par le promoteur
