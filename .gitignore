@@ -13,3 +13,63 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# ---------------------------------------------------------------------------
+# SAUVEGARDES ET ARTEFACTS D'EXPORT — JAMAIS DANS LE DÉPÔT
+#
+# Une sauvegarde de dépôt contient, par construction, tout ce qu'on vient d'en
+# retirer : historique complet, données personnelles purgées, secrets d'un jour.
+# La réécriture du 2026-08-11 en a produit une ; elle a été placée HORS du
+# dépôt, mais rien ne garantit que la prochaine le sera. Ces motifs font que
+# l'oubli ne coûte rien : le fichier n'apparaît simplement pas dans
+# `git status`, donc il ne part pas dans un `git add -A`.
+#
+# LA CASSE N'EST PAS UN DÉTAIL. Windows et macOS ignorent la casse des noms de
+# fichiers ; Linux non — et la CI tourne sous Linux. `Backups/` était donc
+# ignoré sur le poste du promoteur et VISIBLE en intégration, c'est-à-dire
+# exactement là où personne ne regarde `git status` avant de committer.
+#
+# `core.ignorecase` ne répond pas à ce besoin : c'est une déclaration sur le
+# système de fichiers, pas un mode de correspondance, et elle vit dans
+# `.git/config`, qui n'est jamais versionné. Les classes de caractères sont le
+# seul moyen d'écrire une règle insensible à la casse QUI VOYAGE AVEC LE DÉPÔT.
+#
+# Elles servent aussi à réduire le nombre de règles : un seul motif couvre
+# désormais `backup/`, `backups/`, `Backup/`, `BACKUPS/`, `backups-2026/`…
+# ---------------------------------------------------------------------------
+[Bb][Aa][Cc][Kk][Uu][Pp]*/
+[Ss][Aa][Uu][Vv][Ee][Gg][Aa][Rr][Dd][Ee]*/
+
+# Artefacts de sauvegarde et de réécriture Git
+*.[Bb][Uu][Nn][Dd][Ll][Ee]
+
+# Ceux-ci restent en minuscules À DESSEIN : ils ne sont jamais écrits à la main.
+# Git crée `.git-rewrite/` pendant un `filter-branch`, `patch` et les outils de
+# fusion écrivent `.orig` et `.rej` — toujours en minuscules. Y ajouter des
+# classes couvrirait une casse qu'aucun programme ne produit.
+.git-rewrite/
+*.orig
+*.rej
+
+# ---------------------------------------------------------------------------
+# DUMPS DE BASE — SANS JAMAIS MASQUER LES MIGRATIONS PRISMA
+#
+# `*.sql` est VOLONTAIREMENT ABSENT. Les 66 migrations Prisma sont des
+# `migration.sql` : les ignorer globalement casserait `migrate deploy` sur une
+# base neuve, et le défaut ne se verrait qu'au déploiement suivant.
+#
+# On vise donc la FORME D'UNE SAUVEGARDE, pas l'extension : un dump est
+# compressé, ou porte « dump », « backup » ou « sauvegarde » dans son nom.
+# Un `.sql` légitime reste visible — c'est le bon défaut : mieux vaut voir
+# apparaître un fichier et décider, que le perdre en silence.
+#
+# `*.sql.*` REMPLACE l'énumération des formats compressés. Un `.sql` suivi de
+# QUOI QUE CE SOIT est un dump empaqueté — `.gz`, `.zip`, `.7z`, `.enc`, ou le
+# format qui n'existe pas encore. Une migration Prisma, elle, s'arrête à
+# `.sql` : rien ne la suit, donc rien ne l'attrape.
+# ---------------------------------------------------------------------------
+*.[Dd][Uu][Mm][Pp]
+*.[Ss][Qq][Ll].*
+*[Dd][Uu][Mm][Pp]*.[Ss][Qq][Ll]
+*[Bb][Aa][Cc][Kk][Uu][Pp]*.[Ss][Qq][Ll]
+*[Ss][Aa][Uu][Vv][Ee][Gg][Aa][Rr][Dd][Ee]*.[Ss][Qq][Ll]
