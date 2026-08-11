@@ -41,6 +41,16 @@ import { VisibilityService } from './visibility.service';
   // existe avant de préremplir un dossier (FR-M5-001), même pour un candidat qui n'a
   // encore jamais ouvert son profil. RecommendationsService est réutilisé par le module
   // Entreprises pour la recommandation à la clôture d'un stage (FR-ORG-006).
-  exports: [CvService, ProfilesService, RecommendationsService],
+  //
+  // VisibilityService est exporté depuis la correction de S-01 : le Passeport
+  // du Coffre-fort doit soumettre son compte de documents à la rubrique
+  // DOCUMENTS. Le moteur de visibilité reste UNIQUE — on le partage plutôt que
+  // de laisser un second module réinventer la règle, et diverger.
+  exports: [
+    CvService,
+    ProfilesService,
+    RecommendationsService,
+    VisibilityService,
+  ],
 })
 export class ProfilesModule {}
