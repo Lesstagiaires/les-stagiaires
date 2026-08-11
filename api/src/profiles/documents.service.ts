@@ -115,9 +115,12 @@ export class DocumentsService {
   // demandeur facultatif : un document dont le propriétaire avait basculé la
   // rubrique DOCUMENTS en PUBLIC était servi DÉCHIFFRÉ à un anonyme.
   //
-  // CLAUDE.md §1 classe ces fichiers — diplômes, attestations, pièces jointes —
-  // en CONFIDENTIEL : « titulaire et destinataires autorisés », avec
-  // « chiffrement ET JOURNALISATION ». Un accès anonyme ne se journalise pas :
+  // `ProfileDocument` ne connaît que trois catégories — PHOTO, PORTFOLIO,
+  // OTHER — et elles sont DÉCLARATIVES : rien ne contraint ce qu'un titulaire
+  // dépose sous OTHER, justificatif, diplôme numérisé ou pièce d'identité.
+  // CLAUDE.md §1 classe donc ces fichiers en CONFIDENTIEL : « titulaire et
+  // destinataires autorisés », avec « chiffrement ET JOURNALISATION ». Un
+  // accès anonyme ne se journalise pas :
   // l'entrée d'audit portait un auteur NUL, donc un journal qui n'identifie
   // personne.
   //

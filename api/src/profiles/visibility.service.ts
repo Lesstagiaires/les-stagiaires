@@ -58,9 +58,11 @@ export class VisibilityService {
     // devenaient alors téléchargeables DÉCHIFFRÉS par un anonyme connaissant
     // un identifiant de document.
     //
-    // UN INTERRUPTEUR NE DÉCLASSE PAS UNE DONNÉE. CLAUDE.md §1 range diplômes
-    // et attestations en CONFIDENTIEL — « titulaire et destinataires
-    // autorisés ». Aucune case à cocher ne devrait pouvoir en faire du Public,
+    // UN INTERRUPTEUR NE DÉCLASSE PAS UNE DONNÉE. La rubrique porte trois
+    // catégories déclaratives — PHOTO, PORTFOLIO, OTHER — dont le contenu n'est
+    // contraint par rien : CLAUDE.md §1 range ces fichiers en CONFIDENTIEL —
+    // « titulaire et destinataires autorisés ». Aucune case à cocher ne devrait
+    // pouvoir en faire du Public,
     // et surtout pas une case dont l'utilisateur ne mesure pas la portée : sur
     // les autres rubriques, « public » expose un texte ; sur celle-ci, il
     // expose des fichiers.

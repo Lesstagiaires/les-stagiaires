@@ -11,6 +11,13 @@ import { SmsNotificationChannel } from './sms-notification.channel';
 // qu'à la vigilance de la prochaine personne qui ajoutera un type de notification
 // — et la facture le dirait avant le code.
 // ============================================================================
+
+// NUMÉRO FICTIF, jamais un numéro réel — le préfixe `60` n'est attribué à aucun
+// opérateur camerounais (les mobiles y commencent par 62, 65, 66, 67, 68, 69),
+// donc cette valeur ne peut désigner personne. Le canal ne valide pas le format :
+// c'est une valeur de bouchon, rien d'autre.
+const NUMERO_FICTIF = '+237600000002';
+
 describe('SmsNotificationChannel', () => {
   let prisma: { user: { findUnique: jest.Mock } };
   let sms: { send: jest.Mock };
@@ -21,7 +28,7 @@ describe('SmsNotificationChannel', () => {
       user: {
         findUnique: jest
           .fn()
-          .mockResolvedValue({ phone: '+237600000002', language: Language.FR }),
+          .mockResolvedValue({ phone: NUMERO_FICTIF, language: Language.FR }),
       },
     };
     sms = { send: jest.fn() };
@@ -79,14 +86,14 @@ describe('SmsNotificationChannel', () => {
     });
 
     expect(sms.send).toHaveBeenCalledWith(
-      '+237600000002',
+      NUMERO_FICTIF,
       expect.stringContaining('Test Corp SARL'),
     );
   });
 
   it("compose le message dans la langue de l'utilisateur", async () => {
     prisma.user.findUnique.mockResolvedValue({
-      phone: '+237600000002',
+      phone: NUMERO_FICTIF,
       language: Language.EN,
     });
 

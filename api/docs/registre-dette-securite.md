@@ -104,9 +104,18 @@ curiosité, ou sans mesurer la portée du mot « public ». Tout identifiant de
 document en circulation devient alors un lien de téléchargement ouvert. Aucune
 autre condition n'est requise.
 
-**Données exposées.** Le **contenu** des documents de profil : diplômes,
-attestations, pièces d'identité — que CLAUDE.md §1 classe en **Confidentiel**,
-voire **Très sensible** pour les pièces d'identité.
+**Données exposées.** Le **contenu** des documents de profil. `ProfileDocument`
+ne connaît que trois catégories — `PHOTO`, `PORTFOLIO`, `OTHER` — et elles sont
+**déclaratives** : rien ne contraint ce qu'un titulaire dépose sous `OTHER`,
+qu'il s'agisse d'un justificatif, d'un diplôme numérisé ou d'une pièce
+d'identité. CLAUDE.md §1 classe ces fichiers en **Confidentiel**, voire **Très
+sensible** dès qu'une pièce d'identité s'y trouve.
+
+> *Rectification du 2026-08-11.* La formulation initiale — « diplômes,
+> attestations, pièces d'identité » — laissait croire à des catégories dédiées
+> dans `ProfileDocument`. Ces pièces-là relèvent du Coffre-fort numérique. La
+> portée juridique et sécuritaire du constat est inchangée : la classification
+> Confidentiel s'applique au contenu déposé, pas au nom de sa catégorie.
 
 **Criticité — 🔴 haute.** Un seul interrupteur fait passer une donnée
 Confidentielle en Publique. C'est une contradiction directe avec la

@@ -105,8 +105,13 @@ reproduire.
 ## Ce qui n'a pas été fait
 
 Ni le délai de cinq minutes, ni la base, ni le parcours d'inscription n'ont été
-modifiés. Le compte de recette `+237600000001` reste bloqué en
-`PENDING_VERIFICATION` — il sert de preuve reproductible.
+modifiés. Le compte de recette — désigné ici `+237600000001`, **numéro fictif**
+substitué au numéro réellement utilisé — reste bloqué en `PENDING_VERIFICATION`
+et sert de preuve reproductible.
+
+> Aucun numéro réel n'est reproduit dans ce dépôt. Les numéros en `+23760…`
+> n'existent pas : le préfixe `60` n'est attribué à aucun opérateur camerounais
+> (les mobiles y commencent par `62`, `65`, `66`, `67`, `68` ou `69`).
 
 Le cycle de refus parental, lui, ne dépend pas de la vérification du compte : la
 recette s'est poursuivie sans contourner quoi que ce soit.
