@@ -15,7 +15,6 @@ qu'il est ouvert.
 
 | # | Sujet | Niveau | Correction immédiate ? |
 |---|---|---|---|
-| S-01 | `lsId` exposé à un visiteur anonyme | 🟠 | non — avant production |
 | S-03 | Révélateur d'existence de compte (200/404) | 🟡 | non |
 | S-04 | `OTP_TTL_MINUTES = 5` | 🟡 | non — arbitrage produit |
 | S-05 | `Alert.alert` sur deux écrans (dette connue) | 🟠 | non — hors périmètre |
@@ -30,10 +29,64 @@ qu'il est ouvert.
 | S-00d | Deux codes vivants sous concurrence | 2026-08-10 |
 | S-00e | `destinationLabel` en clair sur base neuve | 2026-08-10 |
 | **S-02** | **Documents confidentiels téléchargeables anonymement** | **2026-08-10** |
+| **S-01** | **`lsId` exposé à un visiteur anonyme** | **2026-08-12** |
+
+> **S-01** — corrigé par le commit `92d37a85dd1e99b6877a983ab17cd48e44d04f56`,
+> **21 tests passés** sur base PostgreSQL réelle, **poussé sur `main`** le
+> 12 août 2026.
 
 ---
 
-# S-01 — `lsId` exposé à un visiteur anonyme
+# S-01 — CLOS le 2026-08-12
+
+**Statut : CORRIGÉ.** Commit `92d37a85dd1e99b6877a983ab17cd48e44d04f56`, poussé
+sur `main` le 12 août 2026.
+
+**Ce qui a été fait.** Les trois champs qui sortaient hors du moteur de
+visibilité y sont rentrés, et rien d'autre n'a changé.
+
+1. `lsId` et `activeRole` sont soumis à la rubrique `SUMMARY`, dans
+   `getCvVivant` comme dans `getCarteProfessionnelle`. Quatre lignes.
+2. `documentsInDigitalSafe` est soumis à la rubrique `DOCUMENTS` — celle-là même
+   qui régit les fichiers qu'il dénombre. Depuis S-02 cette rubrique ne peut plus
+   être `PUBLIC` : le compte ne sortira donc jamais à un anonyme, quelle que soit
+   la configuration du titulaire. Les deux corrections se tiennent. `null` et non
+   `0` : zéro serait une réponse, et une réponse fausse.
+3. `VisibilityService` est exporté par `ProfilesModule` pour que le Passeport
+   partage le moteur au lieu d'en réinventer un, et de diverger.
+
+**Ce qui n'a pas changé.** Le défaut de `canView` reste `PRIVATE`. Les routes
+restent publiques avec garde optionnel : c'est le contenu qu'on filtre, pas la
+porte. Aucun schéma modifié, aucune migration, aucune donnée touchée — la fuite
+était dans une projection en mémoire.
+
+**La défense en profondeur, et pourquoi elle compte plus que le correctif.** Les
+trois champs d'aujourd'hui étaient le petit problème ; le grand est le quatrième,
+celui qu'on ajoutera dans six mois sans y penser. Le test structurel de
+`identite-publique.integration.spec.ts` ne connaît aucun nom de champ : il
+parcourt toutes les clés de la réponse et exige qu'un anonyme n'en reçoive aucune
+renseignée.
+
+**Vérification.** 21 tests sur PostgreSQL réel, tous passés — anonyme sur profil
+privé, titulaire, `NETWORK`, `PRIVATE`, `SHARED` accordé puis révoqué, compte
+mineur, IDOR, et les trois tests structurels. Suite complète : 76 suites,
+1140 tests, verts.
+
+**Quatre sabotages, tous rouges.** Retirer la barrière `SUMMARY` : 13 échecs.
+Retirer le filtre `DOCUMENTS` : 3 échecs. Basculer le défaut de `canView` sur
+`PUBLIC` : 9 échecs. Ajouter un champ non filtré (`countryOfResidence`) :
+2 échecs — les deux tests structurels, et eux seuls, qui l'ont nommé dans leur
+message alors qu'aucun test ne le surveillait.
+
+**Reste ouvert, hors périmètre de cette correction.** La question produit du
+Passeport : FR-M3-002 le décrivait comme mettant en avant le LS-ID ; un visiteur
+anonyme reçoit désormais un passeport vide. À arbitrer.
+
+---
+
+## Le constat d'origine, conservé pour mémoire
+
+## S-01 — `lsId` exposé à un visiteur anonyme
 
 **Cause.** `CvService.getCvVivant` et `getCarteProfessionnelle` renvoient `lsId` et
 `activeRole` **hors du moteur de visibilité** ; `PassportService` y ajoute
@@ -147,16 +200,18 @@ correspond bien à un compte actif. Sans énumération possible, la portée rest
 
 **Données exposées.** L'existence d'un compte, rien d'autre.
 
-**Criticité — 🟡 faible.** Les `cuid` ne s'énumèrent pas. Combiné à S-01, cela
-donne une correspondance identifiant → LS-ID pour qui possède déjà un
-identifiant.
+**Criticité — 🟡 faible.** Les `cuid` ne s'énumèrent pas. Le cumul avec S-01, qui
+donnait une correspondance identifiant → LS-ID à qui possédait déjà un
+identifiant, n'existe plus : S-01 est clos depuis le 2026-08-12. Reste la portée
+propre de S-03, énoncée ci-dessus.
 
 **Correction recommandée.** Rendre une réponse vide plutôt qu'une erreur, comme
 le fait déjà `/auth/resend-otp`. Attention : cela empêcherait un client de
 distinguer « profil inexistant » de « profil entièrement privé », ce qui peut
 dégrader des messages d'interface.
 
-**Immédiate ?** Non. À traiter avec S-01, dont il partage la surface.
+**Immédiate ?** Non. S-01 étant clos, S-03 ne se traite plus par ricochet : il
+s'apprécie selon sa surface propre, celle décrite ci-dessus.
 
 ---
 
