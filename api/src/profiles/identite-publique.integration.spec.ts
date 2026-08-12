@@ -3,6 +3,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { execSync } from 'child_process';
 import { Client } from 'pg';
 import {
+  AccountStatus,
   ProfileSection,
   SectionVisibility,
 } from '../../generated/prisma/enums';
@@ -308,16 +309,19 @@ describe("S-01 — l'identité publique reste sous le moteur de visibilité", ()
 
   // --- 5. IDOR ---------------------------------------------------------------
   describe('un identifiant deviné ou modifié ne mène à rien', () => {
-    it('un identifiant inventé ne renvoie pas de profil', async () => {
-      await expect(
-        cv.getCvVivant('cmxxxxxxxxxxxxxxxxxxxxxxx', undefined),
-      ).rejects.toThrow();
+    it('un identifiant inventé ne renvoie aucune donnée', async () => {
+      // Depuis S-03, l'appel ne lève plus : il répond comme un profil fermé.
+      // Ce que ce test surveille reste le même — rien ne sort.
+      const r = await cv.getCvVivant('cmxxxxxxxxxxxxxxxxxxxxxxx', undefined);
+      expect(r.lsId).toBeNull();
+      expect(r.activeRole).toBeNull();
     });
 
     it("un identifiant réel modifié d'un caractère ne renvoie rien", async () => {
       const altere =
         titulaire.slice(0, -1) + (titulaire.endsWith('a') ? 'b' : 'a');
-      await expect(cv.getCvVivant(altere, undefined)).rejects.toThrow();
+      const r = await cv.getCvVivant(altere, undefined);
+      expect(r.lsId).toBeNull();
     });
 
     it("connaître le LS-ID n'ouvre aucune porte", async () => {
@@ -333,6 +337,119 @@ describe("S-01 — l'identité publique reste sous le moteur de visibilité", ()
       // …et pourtant l'anonyme qui le détiendrait n'obtient toujours rien.
       const r = await cv.getCvVivant(titulaire, undefined);
       expect(r.lsId).toBeNull();
+    });
+  });
+
+  // ==========================================================================
+  // S-03 — UN PROFIL INEXISTANT RÉPOND COMME UN PROFIL FERMÉ
+  //
+  // Défaut relevé le 2026-08-11, corrigé le 2026-08-12. `getCvVivant` et
+  // `getCarteProfessionnelle` levaient `NotFoundException` quand le profil
+  // n'existait pas, et `200` sinon — un anonyme distinguait donc un identifiant
+  // réel d'un identifiant inventé, sur trois routes publiques.
+  //
+  // LA GARANTIE VISÉE N'EST PAS « ça ne lève plus ». C'est l'ÉGALITÉ STRICTE :
+  // la réponse à un identifiant inconnu doit être indiscernable, champ pour
+  // champ, de celle d'un profil réel entièrement fermé. Un test qui vérifierait
+  // seulement l'absence d'exception laisserait passer n'importe quelle
+  // différence de contenu — et une différence de contenu est un oracle, tout
+  // autant qu'un code de statut.
+  //
+  // Cette correction n'a été possible qu'après S-01 : tant que `lsId` sortait
+  // d'un profil réel, il n'y avait pas de réponse commune à donner aux deux cas.
+  // ==========================================================================
+  describe('S-03 — inexistant et fermé sont indiscernables', () => {
+    const INEXISTANT = 'cmzzzzzzzzzzzzzzzzzzzzzzz';
+    let vierge = '';
+    let suspendu = '';
+
+    beforeAll(async () => {
+      // Un profil réel n'ayant JAMAIS reçu de règle de visibilité — le cas le
+      // plus courant en base : 0 ligne `ProfileSectionVisibility` au 2026-08-12.
+      vierge = await creerCompte('+237600000020', 'LS-CM-2026-CCCCCC');
+
+      // Un compte désactivé. `CvService` ne lit pas `user.status` : ce test
+      // fige le fait qu'il ne doit jamais commencer à le lire.
+      suspendu = await creerCompte('+237600000021', 'LS-CM-2026-DDDDDD');
+      await prisma.user.update({
+        where: { id: suspendu },
+        data: { status: AccountStatus.DEACTIVATED },
+      });
+    }, 60_000);
+
+    it('un identifiant inexistant ne lève plus — il répond', async () => {
+      await expect(
+        cv.getCvVivant(INEXISTANT, undefined),
+      ).resolves.toBeDefined();
+      await expect(
+        cv.getCarteProfessionnelle(INEXISTANT, undefined),
+      ).resolves.toBeDefined();
+      await expect(
+        passport.getPassport(INEXISTANT, undefined),
+      ).resolves.toBeDefined();
+    });
+
+    it('CV — inexistant est STRICTEMENT égal à un profil réel fermé', async () => {
+      const inconnu = await cv.getCvVivant(INEXISTANT, undefined);
+      const ferme = await cv.getCvVivant(vierge, undefined);
+      expect(inconnu).toEqual(ferme);
+    });
+
+    it('Carte — même égalité stricte', async () => {
+      const inconnu = await cv.getCarteProfessionnelle(INEXISTANT, undefined);
+      const ferme = await cv.getCarteProfessionnelle(vierge, undefined);
+      expect(inconnu).toEqual(ferme);
+    });
+
+    it('Passeport — même égalité stricte', async () => {
+      const inconnu = await passport.getPassport(INEXISTANT, undefined);
+      const ferme = await passport.getPassport(vierge, undefined);
+      expect(inconnu).toEqual(ferme);
+    });
+
+    it('un compte SUSPENDU répond comme un inexistant', async () => {
+      const desactive = await cv.getCvVivant(suspendu, undefined);
+      const inconnu = await cv.getCvVivant(INEXISTANT, undefined);
+      expect(desactive).toEqual(inconnu);
+    });
+
+    it('un compte MINEUR répond comme un inexistant', async () => {
+      const jeune = await cv.getCvVivant(mineur, undefined);
+      const inconnu = await cv.getCvVivant(INEXISTANT, undefined);
+      expect(jeune).toEqual(inconnu);
+
+      const jeunePasseport = await passport.getPassport(mineur, undefined);
+      const inconnuPasseport = await passport.getPassport(
+        INEXISTANT,
+        undefined,
+      );
+      expect(jeunePasseport).toEqual(inconnuPasseport);
+    });
+
+    it('un profil SANS règle de visibilité répond comme un inexistant', async () => {
+      const aucuneRegle = await prisma.profileSectionVisibility.count({
+        where: { profile: { userId: vierge } },
+      });
+      expect(aucuneRegle).toBe(0);
+
+      const ferme = await cv.getCvVivant(vierge, undefined);
+      const inconnu = await cv.getCvVivant(INEXISTANT, undefined);
+      expect(ferme).toEqual(inconnu);
+    });
+
+    it("un identifiant altéré d'un caractère est indiscernable", async () => {
+      const altere = vierge.slice(0, -1) + (vierge.endsWith('a') ? 'b' : 'a');
+      const modifie = await cv.getCvVivant(altere, undefined);
+      const inconnu = await cv.getCvVivant(INEXISTANT, undefined);
+      expect(modifie).toEqual(inconnu);
+    });
+
+    it('la réponse vide est un objet NEUF, jamais une constante partagée', async () => {
+      // Sans cela, un appelant qui mute sa réponse la muterait pour tous.
+      const a = await cv.getCvVivant(INEXISTANT, undefined);
+      const b = await cv.getCvVivant(INEXISTANT, undefined);
+      expect(a).not.toBe(b);
+      expect(a.education).not.toBe(b.education);
     });
   });
 });

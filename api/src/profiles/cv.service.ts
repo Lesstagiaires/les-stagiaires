@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ProfileSection } from '../../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { VisibilityService } from './visibility.service';
@@ -13,6 +13,46 @@ export class CvService {
     private readonly visibility: VisibilityService,
   ) {}
 
+  // ==========================================================================
+  // UN PROFIL INEXISTANT RÉPOND COMME UN PROFIL FERMÉ — défaut S-03
+  //
+  // Corrigé le 2026-08-12. Ces deux méthodes levaient `NotFoundException` quand
+  // le profil n'existait pas, et `200` sinon. Un anonyme distinguait donc un
+  // identifiant réel d'un identifiant inventé : un révélateur d'existence de
+  // compte, sur trois routes publiques.
+  //
+  // POURQUOI LA CORRECTION EST DEVENUE GRATUITE. Avant S-01, un profil réel
+  // renvoyait `lsId` et `activeRole` à tout venant : uniformiser aurait exigé
+  // de choisir entre mentir et fuir. Depuis que ces champs sont passés sous le
+  // moteur de visibilité, la réponse anonyme d'un profil réel entièrement privé
+  // est DÉJÀ vide. Il ne restait plus qu'à donner la même à un identifiant
+  // inconnu — et les deux cas deviennent littéralement indistinguables, corps
+  // et statut compris.
+  //
+  // UN OBJET NEUF À CHAQUE APPEL, pas une constante partagée : une réponse
+  // exposée à des appelants ne doit pas pouvoir être mutée pour tous.
+  //
+  // La forme est tenue par un test d'égalité STRICTE entre les deux cas, dans
+  // `identite-publique.integration.spec.ts`. Toute divergence future — un
+  // champ, un statut, un ordre — le fait échouer.
+  // ==========================================================================
+  private cvVide() {
+    return {
+      lsId: null,
+      activeRole: null,
+      headline: null,
+      summary: null,
+      education: [],
+      experience: [],
+      languages: [],
+      recommendations: [],
+    };
+  }
+
+  private carteVide() {
+    return { lsId: null, activeRole: null, headline: null };
+  }
+
   async getCvVivant(ownerUserId: string, viewerUserId: string | undefined) {
     const profile = await this.prisma.profile.findUnique({
       where: { userId: ownerUserId },
@@ -23,7 +63,7 @@ export class CvService {
         activeRole: true,
       },
     });
-    if (!profile) throw new NotFoundException('Profil introuvable.');
+    if (!profile) return this.cvVide();
 
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: ownerUserId },
@@ -118,7 +158,7 @@ export class CvService {
       where: { userId: ownerUserId },
       include: { activeRole: true },
     });
-    if (!profile) throw new NotFoundException('Profil introuvable.');
+    if (!profile) return this.carteVide();
 
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: ownerUserId },
