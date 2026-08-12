@@ -15,9 +15,38 @@ qu'il est ouvert.
 
 | # | Sujet | Niveau | Correction immédiate ? |
 |---|---|---|---|
-| S-03 | Révélateur d'existence de compte (200/404) | 🟡 | non |
 | S-04 | `OTP_TTL_MINUTES = 5` | 🟡 | non — arbitrage produit |
 | S-05 | `Alert.alert` sur deux écrans (dette connue) | 🟠 | non — hors périmètre |
+| S-06 | Oracle d'existence de compte via `/auth/login` | 🟠 | audit à traiter |
+| S-07 | Oracle d'existence via `POST /auth/register` | 🟡 | arbitrage produit |
+
+> **S-06 et S-07 ont été découverts pendant l'audit de S-03**, le 2026-08-12.
+> Contrairement à S-03, dont l'oracle portait sur un `cuid` inénumérable, ces
+> deux-là portent sur le **numéro de téléphone** — un espace parfaitement
+> énumérable : environ 6 × 10⁷ numéros au Cameroun, préfixes `62` et `65`–`69`.
+> C'est ce qui les sépare, et c'est tout.
+>
+> **S-06 — `/auth/login`.** L'ordre des contrôles permet de distinguer un compte
+> réel d'un numéro inexistant. Le verrouillage et le statut du compte sont
+> examinés **avant** la vérification du mot de passe : après cinq tentatives, un
+> numéro réel bascule en `403` *Compte temporairement bloqué*, tandis qu'un
+> numéro inexistant reste en `401` *Identifiants invalides* — les compteurs
+> d'échec ne s'incrémentant que sur des comptes existants. Un compte désactivé,
+> lui, produit un `403` **immédiat**, dès la première tentative. Le rapport
+> d'audit du 2026-08-12 l'a classé **🟠 IMPORTANT** : oracle fiable, espace
+> énumérable, et destructif — chaque compte découvert est verrouillé quinze
+> minutes. Aucune correction technique n'a été apportée dans la passe S-03.
+>
+> **S-07 — `POST /auth/register`.** Un numéro déjà inscrit reçoit `409` avec le
+> message « Ce numéro de téléphone est déjà associé à un compte ». Ce
+> comportement est **intentionnel et documenté** : l'écran d'inscription affiche
+> ce message, et un commentaire du même écran revendique « afficher un message
+> explicite plutôt qu'un blocage silencieux ». Ce n'est donc pas un défaut
+> accidentel, mais un arbitrage ergonomique assumé, dont la contrepartie est un
+> risque d'énumération — atténué par une limite de 5 requêtes par minute.
+> Classé **🟡**, à arbitrer, pas à corriger d'office.
+>
+> L'analyse détaillée de chacun viendra dans son propre chantier.
 
 ## Entrées closes
 
@@ -30,10 +59,19 @@ qu'il est ouvert.
 | S-00e | `destinationLabel` en clair sur base neuve | 2026-08-10 |
 | **S-02** | **Documents confidentiels téléchargeables anonymement** | **2026-08-10** |
 | **S-01** | **`lsId` exposé à un visiteur anonyme** | **2026-08-12** |
+| **S-03** | **Révélateur d'existence de compte (200/404)** | **2026-08-12** |
 
 > **S-01** — corrigé par le commit `92d37a85dd1e99b6877a983ab17cd48e44d04f56`,
 > **21 tests passés** sur base PostgreSQL réelle, **poussé sur `main`** le
 > 12 août 2026.
+>
+> **S-03** — corrigé par le commit
+> `bf5568f710dc5fc60bf1945b3521788424214d43`. L'oracle sur le `userId` est
+> fermé : un identifiant inexistant et un profil réel entièrement privé
+> renvoient désormais une réponse **strictement égale**, champ pour champ.
+> **30 tests passés** (21 de S-01 + 9 de S-03), **suite API 1149/1149**,
+> typecheck et lint propres, **tests de sabotage passés**. **Aucune migration**,
+> **aucune modification de la base de développement**.
 
 ---
 
@@ -188,7 +226,65 @@ aujourd'hui — c'est le bon moment.
 
 ---
 
-# S-03 — Révélateur d'existence de compte
+# S-03 — CLOS le 2026-08-12
+
+**Statut : CORRIGÉ.** Commit `bf5568f710dc5fc60bf1945b3521788424214d43`.
+
+**Ce qui a été fait.** Deux `throw` deviennent deux retours vides, dans
+`CvService.getCvVivant` et `getCarteProfessionnelle`. Un identifiant inconnu
+reçoit désormais exactement la réponse d'un profil réel entièrement fermé.
+
+**La garantie n'est pas « ça ne lève plus », c'est l'ÉGALITÉ STRICTE.** Un test
+qui vérifierait seulement l'absence d'exception laisserait passer n'importe
+quelle différence de contenu — et une différence de contenu est un oracle, tout
+autant qu'un code de statut. Les tests comparent donc les deux réponses champ
+pour champ, sur le CV Vivant, la Carte et le Passeport.
+
+**Ce que S-01 a rendu possible.** Tant que `lsId` sortait d'un profil réel, il
+n'existait aucune réponse commune à donner aux deux cas : uniformiser aurait
+obligé à choisir entre mentir et fuir. Depuis que ces champs sont passés sous le
+moteur de visibilité, la réponse anonyme d'un profil réel est déjà vide — il ne
+restait qu'à donner la même à un identifiant inconnu. Les deux corrections se
+tiennent, dans cet ordre.
+
+**Ce qui n'a pas changé.** Aucune route, aucun contrôleur, aucune règle de
+visibilité. `PassportService` n'a pas été touché : il devient uniforme par
+ricochet, `canView` renvoyant `false` faute de profil. Le login et l'inscription
+sont hors périmètre — ils font l'objet de S-06 et S-07.
+
+**Portée couverte.** Identifiant inexistant, identifiant altéré d'un caractère,
+compte **suspendu**, compte **mineur**, profil sans aucune règle de visibilité :
+toutes ces réponses sont strictement égales entre elles. `CvService` ne lit pas
+`user.status`, et un test fige le fait qu'il ne doit jamais commencer à le lire.
+
+**Vérification.** **30 tests passés** dans
+`identite-publique.integration.spec.ts` — 21 de S-01, 9 de S-03 — sur PostgreSQL
+réel. **Suite API complète : 76 suites, 1149 tests, verts.** Typecheck propre,
+lint propre. **Aucune migration** : ni schéma ni dossier `migrations` touchés,
+`prisma migrate status` inchangé. **Aucune écriture dans la base de
+développement** : le spec crée et détruit sa propre base éphémère.
+
+**Deux sabotages, tous deux rouges.** Rétablir le `throw` / 404 : **10 échecs
+sur 30**. Introduire une différence de contenu — `summary: null` devenant une
+chaîne vide, un écart invisible à l'œil que personne ne surveillait
+nommément : **5 échecs**, les cinq tests d'égalité stricte. À noter, le test
+structurel de S-01 n'a pas bronché sur ce second sabotage : il porte sur un
+profil réel, pas sur le cas inexistant. Les deux gardes sont complémentaires,
+pas redondants.
+
+**Effet de bord assumé.** Deux tests IDOR de S-01 affirmaient `rejects.toThrow()`.
+Devenus faux par construction, ils vérifient désormais que rien ne sort — la
+propriété qu'ils surveillaient réellement. C'est la seule intersection entre les
+deux correctifs, et elle était inévitable.
+
+---
+
+## Le constat d'origine, conservé pour mémoire
+
+*Tel qu'il était au moment de la clôture — les renvois à S-01 y portent déjà les
+deux rectifications documentaires du 2026-08-12.*
+
+## S-03 — Révélateur d'existence de compte
 
 **Cause.** `CvService` lève `NotFoundException` quand le profil n'existe pas, et
 répond `200` sinon. Un anonyme distingue donc un identifiant réel d'un
