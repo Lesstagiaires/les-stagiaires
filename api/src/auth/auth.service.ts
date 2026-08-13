@@ -6,6 +6,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -19,6 +20,10 @@ import {
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { generateLsIdCandidate } from '../common/ls-id/ls-id.util';
+import {
+  condensatFactice,
+  prechaufferCondensatFactice,
+} from './condensat-factice';
 import { PrismaService } from '../prisma/prisma.service';
 import { SMS_PROVIDER } from '../sms/sms-provider.interface';
 import type { SmsProvider } from '../sms/sms-provider.interface';
@@ -40,7 +45,14 @@ import { TokenService } from './token.service';
 const RETENTION_DAYS_BEFORE_HARD_DELETE = 30;
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
+  // Le condensat factice est calculé au démarrage, pas à la première connexion :
+  // sinon c'est le premier utilisateur de la journée qui paierait le coût
+  // d'Argon2, et sa lenteur serait à son tour un signal.
+  async onModuleInit(): Promise<void> {
+    await prechaufferCondensatFactice();
+  }
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
@@ -337,8 +349,51 @@ export class AuthService {
       where: { OR: [{ phone: dto.identifier }, { email: dto.identifier }] },
     });
 
-    // Réponse volontairement identique que le compte existe ou non (pas d'énumération de comptes)
-    if (!user) throw new UnauthorizedException('Identifiants invalides.');
+    // ========================================================================
+    // LE MOT DE PASSE D'ABORD, LES DÉCISIONS SUR LE COMPTE ENSUITE — S-06
+    //
+    // L'INTENTION ÉTAIT LÀ DEPUIS LE DÉBUT : « réponse volontairement identique
+    // que le compte existe ou non ». Le message l'était. L'ORDRE ne l'était pas.
+    //
+    // S-06-A. Le verrouillage et le statut étaient examinés AVANT le mot de
+    // passe. Un compte désactivé répondait donc 403 dès la première tentative,
+    // à qui ne connaissait rien de lui ; et cinq tentatives sur un numéro réel
+    // finissaient par produire un 403 de verrouillage là où un numéro inventé
+    // restait indéfiniment en 401. Deux façons de demander « ce compte
+    // existe-t-il ? » et d'obtenir une réponse.
+    //
+    // S-06-B. Plus grave, parce que muet : Argon2 n'était atteint que si le
+    // compte existait. Mesuré le 2026-08-12, 30 essais par scénario — 2,26 ms
+    // de médiane pour un inconnu, 71,46 ms pour un compte réel, sans le moindre
+    // recouvrement des plages. UNE requête, aucune trace, aucune modification
+    // d'état : l'oracle le plus commode qui soit.
+    //
+    // CE QUI CHANGE. On vérifie toujours un mot de passe — contre le condensat
+    // réel si le compte existe, contre un condensat factice sinon. Le travail
+    // cryptographique est le même des deux côtés, donc le temps aussi. Puis,
+    // et seulement pour qui a PROUVÉ qu'il connaît le mot de passe, on parle de
+    // l'état du compte.
+    //
+    // CE QUI NE CHANGE PAS. Le titulaire légitime reste informé : verrouillage,
+    // désactivation, vérification OTP manquante — tout lui est dit, après la
+    // preuve. Ce n'est pas une information retirée, c'est une information
+    // conditionnée.
+    //
+    // CE QUI RESTE OUVERT. Le compteur de tentatives vit encore sur le compte
+    // de la victime : un tiers peut donc toujours le verrouiller (S-06-C), et
+    // cette écriture laisse un écart de temps résiduel de quelques pour cent
+    // entre les deux chemins. Les deux se referment ensemble le jour où le
+    // compteur quittera `User` — chantier distinct, volontairement.
+    // ========================================================================
+    const condensat = user ? user.password : await condensatFactice();
+    const motDePasseValide = await argon2.verify(condensat, dto.password);
+
+    if (!user || !motDePasseValide) {
+      if (user) await this.registerFailedAttempt(user.id);
+      throw new UnauthorizedException('Identifiants invalides.');
+    }
+
+    // --- À partir d'ici, l'appelant a prouvé qu'il connaît le mot de passe ---
 
     if (user.lockedUntil && user.lockedUntil > new Date()) {
       throw new ForbiddenException(
@@ -353,12 +408,6 @@ export class AuthService {
     ];
     if (blockedStatuses.includes(user.status)) {
       throw new ForbiddenException('Ce compte est désactivé.');
-    }
-
-    const passwordOk = await argon2.verify(user.password, dto.password);
-    if (!passwordOk) {
-      await this.registerFailedAttempt(user.id);
-      throw new UnauthorizedException('Identifiants invalides.');
     }
 
     // ========================================================================

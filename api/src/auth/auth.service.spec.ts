@@ -343,24 +343,64 @@ describe('AuthService', () => {
       );
     });
 
-    it('rejects while the account is locked out', async () => {
+    // S-06-A. Ces deux cas testaient un rejet ; ils testent désormais QUAND il
+    // survient. Un compte verrouillé ou désactivé ne se signale plus à qui
+    // ignore le mot de passe — il répondait auparavant 403 dès la première
+    // tentative, ce qui suffisait à savoir qu'il existait.
+    it('a locked-out account is indistinguishable until the password is proven', async () => {
       prisma.user.findFirst.mockResolvedValue(
         makeUser({ lockedUntil: new Date(Date.now() + 60_000) }),
       );
+      // Le mauvais mot de passe atteint désormais le compteur de tentatives :
+      // c'est la contrepartie de l'ordre nouveau, et le résidu que S-06-C
+      // fermera en sortant ce compteur du compte de la victime.
+      prisma.user.update.mockResolvedValue(
+        makeUser({ failedLoginAttempts: 1 }),
+      );
 
+      (argon2.verify as jest.Mock).mockResolvedValue(false);
+      await expect(
+        service.login(dto, undefined, undefined),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      (argon2.verify as jest.Mock).mockResolvedValue(true);
       await expect(
         service.login(dto, undefined, undefined),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
-    it('rejects a deactivated account', async () => {
+    it('a deactivated account is indistinguishable until the password is proven', async () => {
       prisma.user.findFirst.mockResolvedValue(
         makeUser({ status: AccountStatus.DEACTIVATED }),
       );
+      prisma.user.update.mockResolvedValue(
+        makeUser({ failedLoginAttempts: 1 }),
+      );
 
+      (argon2.verify as jest.Mock).mockResolvedValue(false);
+      await expect(
+        service.login(dto, undefined, undefined),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      (argon2.verify as jest.Mock).mockResolvedValue(true);
       await expect(
         service.login(dto, undefined, undefined),
       ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    // S-06-B. Le chemin « compte inexistant » doit faire le MÊME travail
+    // cryptographique que le chemin « mauvais mot de passe » : sans quoi le
+    // temps de réponse dit ce que le message tait.
+    it('verifies a password even when the account does not exist', async () => {
+      prisma.user.findFirst.mockResolvedValue(null);
+      (argon2.verify as jest.Mock).mockClear();
+
+      await expect(
+        service.login(dto, undefined, undefined),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(argon2.verify).toHaveBeenCalledTimes(1);
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
     it('registers a failed attempt and rejects on a wrong password, without locking below the threshold', async () => {
