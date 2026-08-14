@@ -13,6 +13,7 @@ import {
   condensatFactice,
   reinitialiserCondensatFacticePourTests,
 } from './condensat-factice';
+import { MemoryLoginThrottle } from './login-throttle/memory-login-throttle';
 import { TokenService } from './token.service';
 
 // ============================================================================
@@ -78,12 +79,19 @@ describe('S-06 passe 1 — uniformité des réponses de /auth/login', () => {
   // zéro du compteur entre deux mesures). Les autres ne sont désignés que par
   // leur numéro, comme le ferait un attaquant.
   let actif = '';
+  // Le limiteur de connexion (S-06-C). En mémoire ici : ce spec porte sur
+  // l'uniformité des réponses, pas sur le partage d'état entre instances.
+  const limiteur = new MemoryLoginThrottle();
 
   const INEXISTANT = '+237600000098';
 
   const otp = {
     generateAndSend: jest.fn().mockResolvedValue(undefined),
     verify: jest.fn(),
+    // Aucun code encore émis : le délai de garde du SMS 2FA ne se déclenche
+    // pas, et ces tests observent donc le comportement nominal — celui qu'ils
+    // vérifiaient avant que ce garde-fou n'existe.
+    secondesDepuisDernierEnvoi: jest.fn().mockResolvedValue(null),
   };
 
   const creer = async (
@@ -172,6 +180,7 @@ describe('S-06 passe 1 — uniformité des réponses de /auth/login', () => {
       absent,
       absent,
       absent,
+      limiteur,
     );
     await auth.onModuleInit();
 
@@ -186,6 +195,14 @@ describe('S-06 passe 1 — uniformité des réponses de /auth/login', () => {
     process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
     await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
   }, 60_000);
+
+  // Depuis S-06-C, chaque tentative consomme un budget. Sans cette remise à
+  // zéro, les tests se gêneraient l'un l'autre : le sixième appel d'un fichier
+  // qui en fait des dizaines partirait en 429, et l'on croirait à une
+  // régression de l'uniformité là où il n'y aurait qu'un compteur plein.
+  beforeEach(() => {
+    limiteur.vider();
+  });
 
   // --- S-06-A : l'égalité stricte ------------------------------------------
   describe("aucune réponse ne distingue un compte qui existe d'un compte qui n'existe pas", () => {
@@ -321,8 +338,16 @@ describe('S-06 passe 1 — uniformité des réponses de /auth/login', () => {
   describe('le temps de réponse ne trahit plus l’existence du compte', () => {
     // POURQUOI CE SEUIL, ET PAS UN AUTRE. Mesuré le 2026-08-12 : avant
     // correction, un compte inconnu répondait 31,65 fois plus vite qu'un compte
-    // réel, plages disjointes. Après correction, le rapport tombe à 1,08 — le
-    // résidu étant l'écriture du compteur de tentatives, que S-06-C retirera.
+    // réel, plages disjointes. La passe 1 a ramené le rapport à ×1,38–1,40 — le
+    // résidu venant de l'écriture du compteur de tentatives sur la ligne de la
+    // victime, le seul travail que le chemin « compte inconnu » n'avait pas à
+    // faire.
+    //
+    // La passe 2 (S-06-C) a retiré cette écriture : le compteur a quitté `User`.
+    // Remesuré le 2026-08-14, trois séries de 20 essais : 0,993 / 1,010 / 0,993,
+    // pour des médianes de ~74 ms des deux côtés. Il ne reste que la
+    // vérification Argon2, la même pour un compte réel et pour le condensat
+    // factice — c'était le but.
     //
     // Le seuil est fixé à 3. C'est presque trois fois la valeur réelle, et dix
     // fois moins que le défaut : assez large pour survivre à une machine
@@ -341,7 +366,11 @@ describe('S-06 passe 1 — uniformité des réponses de /auth/login', () => {
         : (t[t.length / 2 - 1] + t[t.length / 2]) / 2;
     };
 
+    // Le budget est rendu AVANT le chronomètre, jamais pendant : sans cela, la
+    // sixième mesure partirait en 429 — instantané — et écraserait la médiane.
+    // C'est Argon2 qu'on mesure ici, pas le limiteur.
     const chronometrer = async (identifiant: string) => {
+      limiteur.vider();
       const t0 = process.hrtime.bigint();
       await observer(identifiant, MAUVAIS);
       return Number(process.hrtime.bigint() - t0) / 1e6;
@@ -400,27 +429,52 @@ describe('S-06 passe 1 — uniformité des réponses de /auth/login', () => {
       expect(await prisma.user.count({ where: { phone: INEXISTANT } })).toBe(0);
     });
 
-    it('un mauvais mot de passe sur un compte réel incrémente encore le compteur — résidu S-06-C', async () => {
-      // CE TEST FIGE UN DÉFAUT CONNU, il ne le valide pas. Le compteur vit
-      // toujours sur le compte de la victime : un tiers peut donc encore le
-      // faire monter. C'est ce que la passe 2 retirera — et ce test devra
-      // alors être réécrit, délibérément.
+    it("un mauvais mot de passe sur un compte réel n'écrit plus RIEN — S-06-C fermé", async () => {
+      // CE TEST FIGEAIT UN DÉFAUT, IL FIGE MAINTENANT SA CORRECTION.
+      //
+      // Jusqu'à la passe 2, cette même assertion vérifiait que le compteur
+      // montait à 1 — parce qu'il vivait sur le compte de la victime, et que
+      // c'était précisément le vecteur du verrouillage par un tiers. La
+      // réécriture est donc délibérée, pas une adaptation de confort.
       await prisma.user.update({
         where: { id: actif },
         data: { failedLoginAttempts: 0, lockedUntil: null },
+      });
+
+      const avant = await prisma.user.findUniqueOrThrow({
+        where: { id: actif },
+        select: { failedLoginAttempts: true, lockedUntil: true },
       });
 
       await observer('+237600000040', MAUVAIS);
 
       const apres = await prisma.user.findUniqueOrThrow({
         where: { id: actif },
-        select: { failedLoginAttempts: true },
+        select: { failedLoginAttempts: true, lockedUntil: true },
       });
-      expect(apres.failedLoginAttempts).toBe(1);
+      expect(apres).toEqual(avant);
+      expect(apres.failedLoginAttempts).toBe(0);
+      expect(apres.lockedUntil).toBeNull();
+    });
+
+    it("un ancien verrou EXPIRÉ n'empêche plus la connexion", async () => {
+      // Les colonnes restent en base sans migration : un verrou posé AVANT ce
+      // déploiement continue d'être lu, et doit s'éteindre de lui-même.
+      await prisma.user.update({
+        where: { id: actif },
+        data: { lockedUntil: new Date(Date.now() - 1_000) },
+      });
+
+      const r = await auth.login(
+        { identifier: '+237600000040', password: MOT_DE_PASSE },
+        undefined,
+        undefined,
+      );
+      expect(r.requiresTwoFactor).toBe(false);
 
       await prisma.user.update({
         where: { id: actif },
-        data: { failedLoginAttempts: 0, lockedUntil: null },
+        data: { lockedUntil: null },
       });
     });
   });

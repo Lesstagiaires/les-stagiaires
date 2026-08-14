@@ -77,8 +77,33 @@ export class AuthController {
     );
   }
 
+  // ==========================================================================
+  // CE PLAFOND EST VOLUMÉTRIQUE, PAS SÉCURITAIRE — S-06-C
+  //
+  // Il valait 10/min et comptait TOUTES les requêtes, succès compris. Derrière
+  // un NAT d'opérateur — la règle en Afrique centrale — le onzième abonné à se
+  // connecter dans la minute était rejeté. Le déni de service que S-06-C
+  // corrige au niveau applicatif existait donc aussi ici, un étage au-dessus,
+  // et plus serré encore.
+  //
+  // 300, ET NON UN NOMBRE CHOISI AU HASARD. Une vérification Argon2 coûte
+  // ~74 ms (mesuré, trois séries) ; le pool libuv en traite quatre de front,
+  // soit ~54/s par instance. Concéder au plus 10 % de cette capacité à une
+  // seule adresse donne 5,4/s, soit ~324/min — arrondi prudemment à 300.
+  // Contre-épreuve : un NAT de mille abonnés à une connexion par heure produit
+  // ~17 requêtes/min ; la marge est de l'ordre de dix-huit fois.
+  //
+  // CE QU'IL NE FAUT SURTOUT PAS LUI DEMANDER. Ce garde-fou ne doit jamais
+  // devenir le mécanisme anti-bourrage : il compte en mémoire par processus
+  // (donc divisé par le nombre d'instances), il clé sur `req.ip` BRUT — sans
+  // préfixe /64, donc contournable en IPv6 — et le stockage mémoire de
+  // @nestjs/throttler 6.5.0 gèle la décroissance des compteurs de toutes les
+  // clés dès qu'une seule sort de blocage (mesuré). Le travail de sécurité
+  // appartient à `LoginThrottle` : adossé à Redis, partagé entre instances, et
+  // ne comptant que les échecs.
+  // ==========================================================================
   @Public()
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Throttle({ default: { limit: 300, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Post('login')
   login(@Body() dto: LoginDto, @Req() req: Request) {

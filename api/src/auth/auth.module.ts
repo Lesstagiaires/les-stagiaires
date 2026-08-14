@@ -18,6 +18,7 @@ import {
   GuardianChangeController,
 } from './guardian-change.controller';
 import { GuardianChangeService } from './guardian-change.service';
+import { LoginThrottleModule } from './login-throttle/login-throttle.module';
 import { MinorPolicyService } from './minor-policy.service';
 import { OtpService } from './otp.service';
 import { ParentalConsentService } from './parental-consent.service';
@@ -32,6 +33,9 @@ import { JwtStrategy } from './strategies/jwt.strategy';
     PassportModule,
     JwtModule.register({}),
     SmsModule,
+    // Le limiteur de connexion (S-06-C) : le comptage des tentatives vit ici,
+    // rattaché à l'origine de la requête, et non plus sur le compte visé.
+    LoginThrottleModule,
     BullModule.registerQueue(
       { name: 'account-cleanup' },
       { name: 'parental-consent-sweep' },

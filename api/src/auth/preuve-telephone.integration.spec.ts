@@ -12,6 +12,7 @@ import { CountryPolicyService } from './country-policy.service';
 import { MinorPolicyService } from './minor-policy.service';
 import { OtpService } from './otp.service';
 import { ParentalConsentService } from './parental-consent.service';
+import { MemoryLoginThrottle } from './login-throttle/memory-login-throttle';
 import { TokenService } from './token.service';
 
 // ============================================================================
@@ -140,6 +141,7 @@ describe('Preuve du téléphone et renvoi du code (base réelle)', () => {
       { attributeUser: () => Promise.resolve(null) } as never,
       minor,
       faux,
+      new MemoryLoginThrottle(),
     );
   }
 

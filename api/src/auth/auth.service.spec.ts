@@ -15,6 +15,7 @@ import { AuthService } from './auth.service';
 import type { MinorPolicyService } from './minor-policy.service';
 import type { OtpService } from './otp.service';
 import type { ParentalConsentService } from './parental-consent.service';
+import { MemoryLoginThrottle } from './login-throttle/memory-login-throttle';
 import type { TokenService } from './token.service';
 
 jest.mock('argon2', () => ({
@@ -59,7 +60,11 @@ describe('AuthService', () => {
     session: { findFirst: jest.Mock };
   };
   let config: { get: jest.Mock };
-  let otp: { generateAndSend: jest.Mock; verify: jest.Mock };
+  let otp: {
+    generateAndSend: jest.Mock;
+    verify: jest.Mock;
+    secondesDepuisDernierEnvoi: jest.Mock;
+  };
   let tokens: {
     signTwoFactorChallenge: jest.Mock;
     verifyTwoFactorChallenge: jest.Mock;
@@ -104,7 +109,13 @@ describe('AuthService', () => {
         return values[key] ?? fallback;
       }),
     };
-    otp = { generateAndSend: jest.fn(), verify: jest.fn() };
+    otp = {
+      generateAndSend: jest.fn(),
+      verify: jest.fn(),
+      // Aucun code emis par defaut : le delai de garde ne se declenche pas,
+      // ce qui preserve le comportement attendu par les tests anterieurs.
+      secondesDepuisDernierEnvoi: jest.fn().mockResolvedValue(null),
+    };
     tokens = {
       signTwoFactorChallenge: jest.fn().mockResolvedValue('challenge-token'),
       verifyTwoFactorChallenge: jest.fn(),
@@ -133,6 +144,7 @@ describe('AuthService', () => {
       ambassadors as unknown as AmbassadorsService,
       minorPolicy as unknown as MinorPolicyService,
       sms,
+      new MemoryLoginThrottle(),
     );
   });
 
@@ -335,6 +347,255 @@ describe('AuthService', () => {
   describe('login', () => {
     const dto = { identifier: '+237670000000', password: 'StrongPass1!' };
 
+    // ========================================================================
+    // L'ORDRE EST LA GARANTIE — S-06-C
+    //
+    // Le contrat n'est pas « le limiteur s'applique aussi aux comptes
+    // inexistants », c'est « le limiteur DÉCIDE AVANT que quiconque ait
+    // regardé si le compte existe ». La nuance n'est pas théorique :
+    //
+    //   `consommer()` appelé APRÈS `findFirst()` — même inconditionnellement —
+    //   ferait payer au chemin « compte réel » une lecture de base que le
+    //   chemin « compte inconnu » ne paie pas, sur la réponse 429. L'oracle
+    //   temporel refermé par la passe 1 se rouvrirait sur un autre code de
+    //   retour, et aucun test de comportement ne le verrait.
+    //
+    // D'où ces deux tests, qui observent la MÉCANIQUE et non le résultat.
+    // ========================================================================
+    describe('le limiteur décide avant toute lecture de la base', () => {
+      it('un budget épuisé ne déclenche AUCUNE recherche de compte', async () => {
+        const bloquant = {
+          consommer: jest.fn().mockResolvedValue({
+            autorise: false,
+            secondFacteurRequis: false,
+            degrade: false,
+          }),
+          preuveDuMotDePasse: jest.fn(),
+        };
+        const s = new AuthService(
+          prisma as unknown as PrismaService,
+          config as unknown as ConfigService,
+          otp as unknown as OtpService,
+          tokens as unknown as TokenService,
+          audit as unknown as AuditService,
+          parentalConsent as unknown as ParentalConsentService,
+          ambassadors as unknown as AmbassadorsService,
+          minorPolicy as unknown as MinorPolicyService,
+          sms,
+          bloquant,
+        );
+
+        await expect(s.login(dto, undefined, undefined)).rejects.toMatchObject({
+          status: 429,
+        });
+
+        expect(bloquant.consommer).toHaveBeenCalledTimes(1);
+        // LE POINT : la base n'a pas été touchée. Rien, dans la réponse 429, ne
+        // peut donc dépendre de l'existence du compte — ni son contenu, ni son
+        // temps de réponse.
+        expect(prisma.user.findFirst).not.toHaveBeenCalled();
+        // Et aucun SMS, évidemment.
+        expect(otp.generateAndSend).not.toHaveBeenCalled();
+      });
+
+      it('le budget est consommé AVANT la recherche, pas après', async () => {
+        const ordre: string[] = [];
+        const observateur = {
+          consommer: jest.fn().mockImplementation(() => {
+            ordre.push('consommer');
+            return Promise.resolve({
+              autorise: true,
+              secondFacteurRequis: false,
+              degrade: false,
+            });
+          }),
+          preuveDuMotDePasse: jest.fn(),
+        };
+        prisma.user.findFirst.mockImplementation(() => {
+          ordre.push('findFirst');
+          return Promise.resolve(null);
+        });
+
+        const s = new AuthService(
+          prisma as unknown as PrismaService,
+          config as unknown as ConfigService,
+          otp as unknown as OtpService,
+          tokens as unknown as TokenService,
+          audit as unknown as AuditService,
+          parentalConsent as unknown as ParentalConsentService,
+          ambassadors as unknown as AmbassadorsService,
+          minorPolicy as unknown as MinorPolicyService,
+          sms,
+          observateur,
+        );
+
+        (argon2.verify as jest.Mock).mockResolvedValue(false);
+        await expect(s.login(dto, undefined, undefined)).rejects.toBeInstanceOf(
+          UnauthorizedException,
+        );
+
+        expect(ordre).toEqual(['consommer', 'findFirst']);
+      });
+    });
+
+    // ========================================================================
+    // LE REMBOURSEMENT EST RENDU DÈS LA PREUVE DU MOT DE PASSE
+    //
+    // Il serait tentant de ne rembourser qu'une connexion pleinement réussie.
+    // Ce serait une erreur d'équité : le titulaire d'un compte désactivé ou
+    // portant un vieux verrou a PROUVÉ son mot de passe — il n'est pas un
+    // attaquant, et le compteur par origine qu'il continuerait d'occuper est
+    // partagé avec tous ses voisins de NAT.
+    //
+    // Ces tests observent le MOMENT de l'appel, ce qu'aucun test de
+    // comportement ne peut voir : le code de retour est 403 dans les deux cas.
+    // ========================================================================
+    describe('le remboursement précède les contrôles d’état du compte', () => {
+      const limiteurEspion = () => ({
+        consommer: jest.fn().mockResolvedValue({
+          autorise: true,
+          secondFacteurRequis: false,
+          degrade: false,
+        }),
+        preuveDuMotDePasse: jest.fn().mockResolvedValue(undefined),
+      });
+
+      const monterAvec = (limiteur: {
+        consommer: jest.Mock;
+        preuveDuMotDePasse: jest.Mock;
+      }) =>
+        new AuthService(
+          prisma as unknown as PrismaService,
+          config as unknown as ConfigService,
+          otp as unknown as OtpService,
+          tokens as unknown as TokenService,
+          audit as unknown as AuditService,
+          parentalConsent as unknown as ParentalConsentService,
+          ambassadors as unknown as AmbassadorsService,
+          minorPolicy as unknown as MinorPolicyService,
+          sms,
+          limiteur,
+        );
+
+      it.each([
+        [
+          'un compte portant un ancien verrou',
+          { lockedUntil: new Date(Date.now() + 60_000) },
+        ],
+        ['un compte désactivé', { status: AccountStatus.DEACTIVATED }],
+        ['un compte non vérifié par OTP', { phoneVerifiedAt: null }],
+      ])(
+        'rembourse pour %s, bien que la connexion soit refusée',
+        async (_nom, surcharges) => {
+          const limiteur = limiteurEspion();
+          const s = monterAvec(limiteur);
+          prisma.user.findFirst.mockResolvedValue(makeUser(surcharges));
+          (argon2.verify as jest.Mock).mockResolvedValue(true);
+
+          await expect(
+            s.login(dto, undefined, undefined),
+          ).rejects.toBeInstanceOf(ForbiddenException);
+
+          expect(limiteur.preuveDuMotDePasse).toHaveBeenCalledTimes(1);
+        },
+      );
+
+      it('ne rembourse JAMAIS sur un mot de passe faux', async () => {
+        const limiteur = limiteurEspion();
+        const s = monterAvec(limiteur);
+        prisma.user.findFirst.mockResolvedValue(makeUser());
+        (argon2.verify as jest.Mock).mockResolvedValue(false);
+
+        await expect(s.login(dto, undefined, undefined)).rejects.toBeInstanceOf(
+          UnauthorizedException,
+        );
+
+        // C'est toute la différence entre « compter les tentatives » et
+        // « compter les échecs » : l'échec garde sa réservation.
+        expect(limiteur.preuveDuMotDePasse).not.toHaveBeenCalled();
+      });
+
+      // ======================================================================
+      // LE DÉLAI DE GARDE DU SMS 2FA — A1
+      //
+      // Ces tests observent l'ENVOI, pas la réponse : le corps rendu est
+      // rigoureusement le même que le message parte ou non, et c'est justement
+      // ce qu'il faut vérifier. Un test de comportement ne verrait rien.
+      // ======================================================================
+      it('n’envoie PAS de second SMS pendant le délai de garde', async () => {
+        otp.secondesDepuisDernierEnvoi.mockResolvedValue(5); // < 60 s
+        prisma.user.findFirst.mockResolvedValue(
+          makeUser({ twoFactorEnabled: true }),
+        );
+        (argon2.verify as jest.Mock).mockResolvedValue(true);
+
+        const r = (await service.login(dto, undefined, undefined)) as {
+          requiresTwoFactor: boolean;
+          challengeToken: string;
+        };
+
+        expect(otp.generateAndSend).not.toHaveBeenCalled();
+        // MAIS la connexion suit son cours : le défi est émis, et le code
+        // précédent — encore vivant — reste saisissable. Refuser ici aurait
+        // offert un déni de service en échange du SMS économisé.
+        expect(r.requiresTwoFactor).toBe(true);
+        expect(r.challengeToken).toBe('challenge-token');
+      });
+
+      it('envoie le SMS une fois le délai écoulé', async () => {
+        otp.secondesDepuisDernierEnvoi.mockResolvedValue(120); // > 60 s
+        prisma.user.findFirst.mockResolvedValue(
+          makeUser({ twoFactorEnabled: true }),
+        );
+        (argon2.verify as jest.Mock).mockResolvedValue(true);
+
+        await service.login(dto, undefined, undefined);
+        expect(otp.generateAndSend).toHaveBeenCalledTimes(1);
+      });
+
+      it('envoie le SMS quand aucun code n’a jamais été émis', async () => {
+        otp.secondesDepuisDernierEnvoi.mockResolvedValue(null);
+        prisma.user.findFirst.mockResolvedValue(
+          makeUser({ twoFactorEnabled: true }),
+        );
+        (argon2.verify as jest.Mock).mockResolvedValue(true);
+
+        await service.login(dto, undefined, undefined);
+        expect(otp.generateAndSend).toHaveBeenCalledTimes(1);
+      });
+
+      it('la réponse est IDENTIQUE que le SMS parte ou non', async () => {
+        // C'est la garantie qui empêche le délai de garde de devenir un canal
+        // d'information : rien, dans ce que voit l'appelant, ne dit si un
+        // message a été émis.
+        prisma.user.findFirst.mockResolvedValue(
+          makeUser({ twoFactorEnabled: true }),
+        );
+        (argon2.verify as jest.Mock).mockResolvedValue(true);
+
+        otp.secondesDepuisDernierEnvoi.mockResolvedValue(5);
+        const avecGarde = await service.login(dto, undefined, undefined);
+
+        otp.secondesDepuisDernierEnvoi.mockResolvedValue(120);
+        const sansGarde = await service.login(dto, undefined, undefined);
+
+        expect(avecGarde).toEqual(sansGarde);
+      });
+
+      it('ne rembourse pas davantage pour un identifiant inexistant', async () => {
+        const limiteur = limiteurEspion();
+        const s = monterAvec(limiteur);
+        prisma.user.findFirst.mockResolvedValue(null);
+        (argon2.verify as jest.Mock).mockResolvedValue(false);
+
+        await expect(s.login(dto, undefined, undefined)).rejects.toBeInstanceOf(
+          UnauthorizedException,
+        );
+        expect(limiteur.consommer).toHaveBeenCalledTimes(1);
+        expect(limiteur.preuveDuMotDePasse).not.toHaveBeenCalled();
+      });
+    });
+
     it('gives the same error for a nonexistent account as for a wrong password (no account enumeration)', async () => {
       prisma.user.findFirst.mockResolvedValue(null);
 
@@ -351,13 +612,8 @@ describe('AuthService', () => {
       prisma.user.findFirst.mockResolvedValue(
         makeUser({ lockedUntil: new Date(Date.now() + 60_000) }),
       );
-      // Le mauvais mot de passe atteint désormais le compteur de tentatives :
-      // c'est la contrepartie de l'ordre nouveau, et le résidu que S-06-C
-      // fermera en sortant ce compteur du compte de la victime.
-      prisma.user.update.mockResolvedValue(
-        makeUser({ failedLoginAttempts: 1 }),
-      );
-
+      // Depuis S-06-C, un mauvais mot de passe n'écrit plus rien sur le compte :
+      // le compteur a quitté `User` pour le limiteur, clé sur l'origine.
       (argon2.verify as jest.Mock).mockResolvedValue(false);
       await expect(
         service.login(dto, undefined, undefined),
@@ -403,45 +659,73 @@ describe('AuthService', () => {
       expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
-    it('registers a failed attempt and rejects on a wrong password, without locking below the threshold', async () => {
+    // S-06-C. Ces deux cas vérifiaient que le compteur montait sur la ligne
+    // `User` de la cible, puis qu'un verrou s'y posait au cinquième échec.
+    // C'était le vecteur : un tiers ne connaissant qu'un numéro excluait son
+    // titulaire. Ils vérifient désormais l'inverse — que RIEN n'est écrit.
+    it('a wrong password writes nothing on the target account', async () => {
       prisma.user.findFirst.mockResolvedValue(makeUser());
       (argon2.verify as jest.Mock).mockResolvedValue(false);
-      prisma.user.update.mockResolvedValue(
-        makeUser({ failedLoginAttempts: 2 }),
-      );
 
       await expect(
         service.login(dto, undefined, undefined),
       ).rejects.toBeInstanceOf(UnauthorizedException);
-      expect(prisma.user.update).toHaveBeenCalledWith({
-        where: { id: 'u1' },
-        data: { failedLoginAttempts: { increment: 1 } },
-      });
-      // Under the lockout threshold: only the increment call, no lockedUntil write.
-      expect(prisma.user.update).toHaveBeenCalledTimes(1);
+
+      expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
-    it('locks the account once the failed-attempt threshold is reached', async () => {
+    it('no number of failed attempts can lock the victim out', async () => {
       prisma.user.findFirst.mockResolvedValue(makeUser());
       (argon2.verify as jest.Mock).mockResolvedValue(false);
-      prisma.user.update.mockResolvedValue(
-        makeUser({ failedLoginAttempts: 5 }),
-      );
 
-      await expect(
-        service.login(dto, undefined, undefined),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
-      expect(prisma.user.update).toHaveBeenCalledTimes(2);
-      expect(prisma.user.update).toHaveBeenLastCalledWith({
-        where: { id: 'u1' },
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- expect.any(Date) is untyped by design
-        data: { lockedUntil: expect.any(Date), failedLoginAttempts: 0 },
-      });
-      expect(audit.record).toHaveBeenCalledWith(
+      for (let i = 0; i < 10; i++) {
+        await expect(
+          service.login(dto, undefined, undefined),
+        ).rejects.toBeDefined();
+      }
+
+      expect(prisma.user.update).not.toHaveBeenCalled();
+      expect(audit.record).not.toHaveBeenCalledWith(
         'ACCOUNT_LOCKED',
-        'u1',
-        expect.objectContaining({ reason: 'too_many_failed_attempts' }),
+        expect.anything(),
+        expect.anything(),
       );
+    });
+
+    it('records the failed attempt with its origin, existing account or not', async () => {
+      // Une écriture DES DEUX CÔTÉS : sinon le chemin « compte existant »
+      // serait mesurablement plus lent, et l'on rouvrirait S-06-B.
+      (argon2.verify as jest.Mock).mockResolvedValue(false);
+
+      prisma.user.findFirst.mockResolvedValue(makeUser());
+      await expect(
+        service.login(dto, 'Mozilla/5.0', '203.0.113.9'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      prisma.user.findFirst.mockResolvedValue(null);
+      await expect(
+        service.login(dto, 'Mozilla/5.0', '203.0.113.9'),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      // Les appels du mock sont `any[]` : on les retype sur la signature réelle
+      // pour que les index ci-dessous soient vérifiés par le compilateur. Un
+      // paramètre inséré dans `record()` casserait ici, pas silencieusement.
+      type AppelAudit = Parameters<AuditService['record']>;
+      const echecs = (audit.record.mock.calls as AppelAudit[]).filter(
+        (c) => c[0] === 'LOGIN_FAILED',
+      );
+      expect(echecs).toHaveLength(2);
+      expect(echecs[0][1]).toBe('u1');
+      expect(echecs[1][1]).toBeNull();
+      for (const appel of echecs) {
+        expect(appel[3]).toEqual({
+          ipAddress: '203.0.113.9',
+          userAgent: 'Mozilla/5.0',
+        });
+        // L'identifiant tenté n'est JAMAIS consigné : le journal deviendrait
+        // sinon une liste de numéros de téléphone.
+        expect(JSON.stringify(appel[2] ?? {})).not.toContain(dto.identifier);
+      }
     });
 
     it('rejects a login before the phone/OTP verification step has completed', async () => {

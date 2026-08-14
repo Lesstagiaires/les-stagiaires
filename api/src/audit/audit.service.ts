@@ -30,13 +30,31 @@ export interface AuditContext {
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
+  // D'OÙ VENAIT L'ACTION — ajouté le 2026-08-12 avec S-06-C.
+  //
+  // `AuditLog` porte `ipAddress` et `userAgent` depuis l'origine, mais cette
+  // méthode ne les renseignait pas : seule la variante enrichie ci-dessous le
+  // faisait. Conséquence observée pendant l'audit du verrouillage — le journal
+  // disait « ce compte a été verrouillé » sans jamais dire par qui, et il était
+  // donc impossible de distinguer un titulaire distrait d'une victime.
+  //
+  // Le paramètre est facultatif : les dizaines d'appels existants continuent de
+  // fonctionner sans modification, et ceux qui connaissent l'origine la
+  // transmettent.
   async record(
     action: string,
     userId: string | null,
     metadata?: Prisma.InputJsonValue,
+    origine?: { ipAddress?: string; userAgent?: string },
   ) {
     await this.prisma.auditLog.create({
-      data: { action, userId, metadata },
+      data: {
+        action,
+        userId,
+        metadata,
+        ipAddress: origine?.ipAddress ?? null,
+        userAgent: origine?.userAgent ?? null,
+      },
     });
   }
 
