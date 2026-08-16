@@ -84,3 +84,92 @@ Cette liste d'instructions guide le code, elle ne constitue pas un audit de séc
 2. Développer module par module en suivant l'ordre du cahier des charges technique du MVP.
 3. Après chaque module sensible (Authentification, LS-ID/Digital Safe, Profils), demander explicitement une relecture de sécurité ciblée avant de passer au module suivant.
 4. Avant le lancement public, faire réaliser l'audit de sécurité indépendant mentionné en section 7.
+
+---
+
+# 9. Charte de qualité — LES STAGIAIRES
+
+Standard applicable à **tout développement futur sur ce projet, sans exception**,
+en complément des sections 1 à 8 ci-dessus et des documents de `docs/`.
+
+Cette charte n'invente pas une méthode : elle fixe celle qui a déjà fait ses
+preuves sur ce projet, pour qu'elle ne se perde pas d'une session à l'autre.
+L'état réel du code au moment où elle est posée est décrit dans
+`api/docs/cahier-des-charges-technique-etat-reel.md`.
+
+## 9.1 Méthode
+
+- **Mesurer, ne jamais supposer.** Un chiffre de performance ou de sécurité
+  s'obtient en le mesurant, pas en l'estimant. Un rapport qui avance un chiffre
+  doit pouvoir dire comment il a été obtenu.
+- **Préférer une garantie structurelle à une discipline de code.** Contrainte
+  de base de données, index unique, type qui rend un appel incompilable — un
+  état interdit doit être *impossible*, pas seulement *improbable*.
+- **Éprouver chaque propriété de sécurité par sabotage.** Casser volontairement
+  le code et vérifier que le test le détecte. Un test qui reste vert face au
+  sabotage qu'il prétend couvrir ne prouve rien et doit être renforcé, jamais
+  accepté.
+- **Ne jamais déduire un fait d'un état qui sert à plusieurs choses.** Un
+  statut, un champ, une variable ne portent qu'un seul sens. C'est la leçon de
+  `PENDING_VERIFICATION`, qui servait à neuf choses et a produit une
+  vulnérabilité réelle.
+
+## 9.2 Design et expérience utilisateur
+
+- Respecter strictement le **design system KORA** déjà en place — aucune
+  incohérence visuelle d'un écran à l'autre.
+- Optimiser en priorité pour une **connexion mobile moyenne et un terminal
+  d'entrée de gamme** : c'est le terrain réel du Cameroun, pas un environnement
+  de développeur.
+- Chaque écran doit être compréhensible par un utilisateur **peu familier du
+  numérique**, sans jargon technique visible.
+- Respecter l'internationalisation existante **FR / EN / ES / AR (RTL) / PT**
+  pour tout nouvel écran ou texte, sans exception.
+
+## 9.3 Sécurité et données sensibles
+
+- Toute fonctionnalité touchant un **mineur**, un **paiement** ou un **document
+  du Digital Safe** suit sans dérogation les sections 1 à 6 ci-dessus.
+- **Aucune vulnérabilité connue et documentée n'est acceptée comme dette
+  permanente.** Chaque entrée du registre de dette
+  (`api/docs/registre-dette-securite.md`) et de la section « Ce qui reste
+  ouvert » du cahier des charges de l'état réel porte une échéance de
+  traitement, même lointaine.
+- Toute nouvelle action sensible pour un mineur est ajoutée à
+  **`MinorGatedAction`**, jamais gérée par une vérification isolée dans un seul
+  écran ou un seul service.
+
+## 9.4 Discipline de développement
+
+**Séquence obligatoire, aucune étape sautée :**
+
+```
+lecture de l'existant → rapport d'impact → VALIDATION EXPLICITE DU PÉRIMÈTRE
+        → implémentation → tests → audit de non-régression → commit
+```
+
+- **Aucun développement ne commence avant validation explicite du promoteur sur
+  une décision métier ou tarifaire.**
+- **Aucun nouveau modèle de données** si un modèle existant peut porter la
+  fonctionnalité.
+- **Aucune rupture pour les comptes ou abonnements déjà existants.** Toute
+  migration de données ou de tarif est présentée **avec ses options** avant
+  exécution.
+- Chaque décision métier non explicitement tranchée par le promoteur est
+  **signalée, jamais devinée**.
+
+## 9.5 Tests et documentation
+
+- Toute nouvelle fonctionnalité arrive **avec ses tests**, y compris les cas
+  limites déjà identifiés : mineur qui devient majeur en cours d'utilisation,
+  refus actif d'un parent, changement de tuteur, expiration d'un consentement
+  de déplacement, bascule d'un parcours à l'autre.
+- **Le code documente le raisonnement, pas seulement le comportement.** Un
+  commentaire explique *pourquoi*, et cite la mesure ou l'incident qui l'a
+  motivé — c'est déjà l'usage sur ce projet.
+
+## 9.6 Objectif
+
+Que n'importe quel développeur externe — ou le promoteur lui-même dans six mois
+— puisse relire ce projet et comprendre immédiatement **pourquoi** chaque
+décision a été prise, pas seulement ce qui a été codé.
