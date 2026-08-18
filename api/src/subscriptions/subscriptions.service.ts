@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
@@ -25,7 +26,49 @@ import { ListSubscriptionsQueryDto } from './dto/list-subscriptions-query.dto';
 import { SponsorSubscriptionDto } from './dto/sponsor-subscription.dto';
 import { SubscribeOrganizationDto } from './dto/subscribe-organization.dto';
 import { SubscribeSelfDto } from './dto/subscribe-self.dto';
+import { INDIVIDUAL_PLANS } from './individual-plans';
 import { SubscriptionPricingService } from './subscription-pricing.service';
+
+// --- P1-1 : UN SEUL ABONNEMENT INDIVIDUEL À LA FOIS -------------------------
+// Les statuts qui OCCUPENT LA PLACE pour un même bénéficiaire.
+//
+// ACTIVE va de soi. PENDING_PAYMENT beaucoup moins — et c'est pourtant lui qui
+// ferme réellement la porte. Sans lui, n appels successifs à POST
+// /subscriptions/me créeraient n abonnements en attente et n Payment, dont
+// chacun pourrait être confirmé plus tard par le webhook : la règle « un seul
+// abonnement individuel actif » serait contournée SANS QUE DEUX ACTIVE
+// COEXISTENT JAMAIS au moment du contrôle (arbitrage du promoteur, 2026-08-18).
+//
+// PAYMENT_FAILED, EXPIRED et CANCELLED n'occupent rien, à dessein : un paiement
+// échoué doit pouvoir être retenté, et un abonnement expiré doit pouvoir être
+// renouvelé — les bloquer rendrait le renouvellement (P1-2) impossible à
+// construire.
+export const STATUTS_OCCUPANT_LA_PLACE = [
+  SubscriptionStatus.ACTIVE,
+  SubscriptionStatus.PENDING_PAYMENT,
+] as const;
+
+// Message unique : la garde applicative et la course perdue contre l'index
+// doivent être indiscernables pour l'appelant. Deux formulations différentes
+// révéleraient laquelle des deux a mordu, sans lui être d'aucune utilité.
+const DEJA_UN_ABONNEMENT_INDIVIDUEL =
+  'Un abonnement individuel est déjà en cours sur ce compte.';
+
+function estFormuleIndividuelle(plan: SubscriptionPlan): boolean {
+  return (INDIVIDUAL_PLANS as readonly SubscriptionPlan[]).includes(plan);
+}
+
+// Même forme que dans `ambassadors.service.ts`, où un index unique ferme déjà la
+// course à l'attribution d'un filleul. Volontairement recopiée plutôt
+// qu'exportée : P1-1 ne doit toucher aucun fichier du module Ambassadeurs.
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'P2002'
+  );
+}
 
 interface CreateSubscriptionParams {
   plan: SubscriptionPlan;
@@ -167,7 +210,75 @@ export class SubscriptionsService {
     return updated;
   }
 
+  // P1-1 — la garde vit ICI, dans le point de passage unique, et non dans
+  // `subscribeSelf()`. `subscribeOrgSponsored()` crée lui aussi un abonnement
+  // INDIVIDUEL rattaché à un bénéficiaire : ne garder que l'auto-souscription
+  // laisserait un parrainage organisationnel contourner la règle.
+  private async assertPlaceLibrePourFormuleIndividuelle(
+    params: CreateSubscriptionParams,
+  ): Promise<void> {
+    if (!params.beneficiaryUserId) return;
+    if (!estFormuleIndividuelle(params.plan)) return;
+
+    const occupant = await this.prisma.subscription.findFirst({
+      where: {
+        beneficiaryUserId: params.beneficiaryUserId,
+        plan: { in: [...INDIVIDUAL_PLANS] },
+        status: { in: [...STATUTS_OCCUPANT_LA_PLACE] },
+      },
+      select: { id: true },
+    });
+
+    if (occupant) throw new ConflictException(DEJA_UN_ABONNEMENT_INDIVIDUEL);
+  }
+
+  // LA GARANTIE, ET POURQUOI ELLE EST SÉPARÉE DE LA GARDE
+  //
+  // La garde ci-dessus lit puis écrit : deux requêtes simultanées la franchissent
+  // ensemble, chacune ne voyant rien. Seule la base tranche, par l'index unique
+  // partiel `Subscription_beneficiaire_individuel_actif_key` (migration
+  // 20260818090000). Le perdant de la course reçoit EXACTEMENT la même erreur
+  // métier que s'il avait été refusé par la garde — jamais une 500, et rien qui
+  // lui révèle qu'il a perdu une course.
+  //
+  // Mesuré : `subscriptions-unicite.integration.spec.ts` montre que deux appels
+  // concurrents se sérialisent en pratique et que c'est la garde qui refuse le
+  // second. L'index n'en est pas moins nécessaire — il couvre les écritures qui
+  // ne passent pas par ce service, et c'est ce que le test structurel éprouve.
+  private async ecrireAbonnement(
+    params: CreateSubscriptionParams,
+    amountMinor: number,
+    currency: string,
+  ) {
+    try {
+      return await this.prisma.subscription.create({
+        data: {
+          plan: params.plan,
+          billingCycle: params.billingCycle,
+          countryCode: params.countryCode,
+          amountMinor,
+          currency,
+          beneficiaryUserId: params.beneficiaryUserId,
+          beneficiaryOrganizationId: params.beneficiaryOrganizationId,
+          originType: params.originType,
+          initiatingOrganizationId: params.initiatingOrganizationId,
+          parentRedirectRequested: params.parentRedirectRequested ?? false,
+        },
+      });
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictException(DEJA_UN_ABONNEMENT_INDIVIDUEL);
+      }
+      throw error;
+    }
+  }
+
   private async createSubscription(params: CreateSubscriptionParams) {
+    // Refus AVANT toute écriture : ni Subscription, ni Payment, ni appel à la
+    // passerelle. C'est ce qui garantit qu'un doublon ne peut pas produire de
+    // paiement, donc pas de confirmation, donc pas de commission.
+    await this.assertPlaceLibrePourFormuleIndividuelle(params);
+
     const { amountMinor, currency } = this.pricing.resolve(
       params.plan,
       params.billingCycle,
@@ -178,20 +289,11 @@ export class SubscriptionsService {
       'simulated',
     );
 
-    const subscription = await this.prisma.subscription.create({
-      data: {
-        plan: params.plan,
-        billingCycle: params.billingCycle,
-        countryCode: params.countryCode,
-        amountMinor,
-        currency,
-        beneficiaryUserId: params.beneficiaryUserId,
-        beneficiaryOrganizationId: params.beneficiaryOrganizationId,
-        originType: params.originType,
-        initiatingOrganizationId: params.initiatingOrganizationId,
-        parentRedirectRequested: params.parentRedirectRequested ?? false,
-      },
-    });
+    const subscription = await this.ecrireAbonnement(
+      params,
+      amountMinor,
+      currency,
+    );
 
     const payment = await this.prisma.payment.create({
       data: {

@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { AuditService } from '../audit/audit.service';
 import type { MinorPolicyService } from '../auth/minor-policy.service';
@@ -13,6 +17,7 @@ describe('SubscriptionsService', () => {
     organization: { findUniqueOrThrow: jest.Mock };
     subscription: {
       create: jest.Mock;
+      findFirst: jest.Mock;
       findMany: jest.Mock;
       findUnique: jest.Mock;
       update: jest.Mock;
@@ -36,6 +41,7 @@ describe('SubscriptionsService', () => {
       organization: { findUniqueOrThrow: jest.fn() },
       subscription: {
         create: jest.fn(),
+        findFirst: jest.fn(),
         findMany: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
@@ -62,6 +68,10 @@ describe('SubscriptionsService', () => {
         instructions: 'Pay now.',
       }),
     };
+    // P1-1 : par défaut la place est libre. Tout test qui veut la voir occupée
+    // le dit explicitement — aucun test existant ne doit changer de sens du
+    // seul fait qu'une garde soit apparue.
+    prisma.subscription.findFirst.mockResolvedValue(null);
     prisma.subscription.create.mockResolvedValue({
       id: 'sub-1',
       plan: 'CARRIERE_SECURISEE',
@@ -383,6 +393,148 @@ describe('SubscriptionsService', () => {
           where: { status: 'ACTIVE', plan: undefined },
         }),
       );
+    });
+  });
+
+  // ==========================================================================
+  // P1-1 — UN SEUL ABONNEMENT INDIVIDUEL ACTIF
+  //
+  // Ces tests couvrent la GARDE APPLICATIVE, celle qui produit l'erreur métier.
+  // Ils ne peuvent rien dire de la course entre deux requêtes simultanées :
+  // `prisma` est ici un double, il n'y a pas de base. C'est
+  // `subscriptions-unicite.integration.spec.ts` qui éprouve l'index partiel sur
+  // un PostgreSQL réel — la séparation est volontaire, pas une commodité.
+  // ==========================================================================
+  describe('P1-1 : un seul abonnement individuel actif', () => {
+    beforeEach(() => {
+      prisma.user.findUniqueOrThrow.mockResolvedValue({
+        id: 'user-1',
+        countryOfResidence: 'CM',
+      });
+    });
+
+    it('laisse passer la première souscription quand la place est libre', async () => {
+      prisma.subscription.findFirst.mockResolvedValue(null);
+
+      await service.subscribeSelf('user-1', {
+        plan: 'CARRIERE_SECURISEE',
+        billingCycle: 'ANNUAL',
+      });
+
+      expect(prisma.subscription.create).toHaveBeenCalledTimes(1);
+      expect(prisma.payment.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('refuse un second abonnement quand un ACTIVE occupe la place, sans créer ni Subscription ni Payment', async () => {
+      prisma.subscription.findFirst.mockResolvedValue({ id: 'sub-active' });
+
+      await expect(
+        service.subscribeSelf('user-1', {
+          plan: 'CARRIERE_PLUS',
+          billingCycle: 'ANNUAL',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+
+      // Le cœur de P1-1 : aucune écriture, donc aucun paiement, donc aucune
+      // confirmation possible, donc aucune commission (contradiction C-3).
+      expect(prisma.subscription.create).not.toHaveBeenCalled();
+      expect(prisma.payment.create).not.toHaveBeenCalled();
+      expect(gateway.initiate).not.toHaveBeenCalled();
+    });
+
+    it('refuse aussi quand un PENDING_PAYMENT occupe la place', async () => {
+      prisma.subscription.findFirst.mockResolvedValue({ id: 'sub-pending' });
+
+      await expect(
+        service.subscribeSelf('user-1', {
+          plan: 'CARRIERE_SECURISEE',
+          billingCycle: 'ANNUAL',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+
+      expect(prisma.subscription.create).not.toHaveBeenCalled();
+      expect(prisma.payment.create).not.toHaveBeenCalled();
+    });
+
+    // PAYMENT_FAILED, EXPIRED et CANCELLED : ce test épingle le PRÉDICAT plutôt
+    // que de simuler chaque cas. Simuler « findFirst rend null » pour un statut
+    // non bloquant serait tautologique — c'est le double qui déciderait, pas le
+    // code. Ici on vérifie ce que le service DEMANDE réellement à la base.
+    it('ne consulte que les statuts qui occupent la place, et que les formules individuelles', async () => {
+      prisma.subscription.findFirst.mockResolvedValue(null);
+
+      await service.subscribeSelf('user-1', {
+        plan: 'CARRIERE_SECURISEE',
+        billingCycle: 'ANNUAL',
+      });
+
+      expect(prisma.subscription.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- nested expect.objectContaining is untyped by design
+          where: expect.objectContaining({
+            beneficiaryUserId: 'user-1',
+            status: { in: ['ACTIVE', 'PENDING_PAYMENT'] },
+            plan: { in: ['CARRIERE_SECURISEE', 'CARRIERE_PLUS'] },
+          }),
+        }),
+      );
+
+      const [[appel]] = prisma.subscription.findFirst.mock.calls as [
+        [{ where: { status: { in: string[] } } }],
+      ];
+      for (const libre of ['PAYMENT_FAILED', 'EXPIRED', 'CANCELLED']) {
+        expect(appel.where.status.in).not.toContain(libre);
+      }
+    });
+
+    it('empêche un parrainage organisationnel de contourner la garde', async () => {
+      prisma.subscription.findFirst.mockResolvedValue({ id: 'sub-active' });
+
+      await expect(
+        service.subscribeOrgSponsored('admin-1', 'org-1', 'user-1', {
+          plan: 'CARRIERE_PLUS',
+          billingCycle: 'ANNUAL',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+
+      expect(prisma.subscription.create).not.toHaveBeenCalled();
+      expect(prisma.payment.create).not.toHaveBeenCalled();
+    });
+
+    it("ne s'applique jamais à un abonnement d'organisation", async () => {
+      prisma.organization.findUniqueOrThrow.mockResolvedValue({
+        id: 'org-1',
+        type: 'ENTREPRISE',
+        country: 'CM',
+      });
+
+      await service.subscribeOrganization('admin-1', 'org-1', {
+        billingCycle: 'ANNUAL',
+      });
+
+      // La garde sort avant toute lecture : un abonnement BUSINESS ne porte pas
+      // de beneficiaryUserId, il n'occupe donc aucune place individuelle.
+      expect(prisma.subscription.findFirst).not.toHaveBeenCalled();
+      expect(prisma.subscription.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('traduit une violation de l’index en conflit métier, jamais en erreur serveur', async () => {
+      prisma.subscription.findFirst.mockResolvedValue(null);
+      // Ce que Prisma remonte quand l'index partiel tranche une course que la
+      // garde applicative a laissé passer : deux requêtes ont lu « place libre »
+      // en même temps.
+      prisma.subscription.create.mockRejectedValue(
+        Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
+      );
+
+      await expect(
+        service.subscribeSelf('user-1', {
+          plan: 'CARRIERE_SECURISEE',
+          billingCycle: 'ANNUAL',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+
+      expect(prisma.payment.create).not.toHaveBeenCalled();
     });
   });
 });
