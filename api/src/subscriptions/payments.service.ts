@@ -55,6 +55,17 @@ export class PaymentsService {
       return { id: payment.id, status: payment.status };
     }
 
+    // L'abonnement est-il encore couvert au moment où le prestataire répond ?
+    // Lu AVANT toute écriture : c'est ce qui distingue une première souscription
+    // qui échoue — rien à protéger — d'un renouvellement qui échoue alors que la
+    // période en cours court toujours.
+    // `== null` et non `=== null` : il attrape aussi `undefined`. La nuance n'est
+    // pas cosmétique — une période absente doit être traitée comme « aucune
+    // couverture », jamais provoquer une lecture de `.getTime()` sur un vide.
+    const finDePeriode = payment.subscription.currentPeriodEnd;
+    const couvertureEncoreValide =
+      finDePeriode != null && finDePeriode.getTime() > Date.now();
+
     if (dto.status === 'CONFIRMED') {
       await this.prisma.$transaction([
         this.prisma.payment.update({
@@ -68,9 +79,14 @@ export class PaymentsService {
           where: { id: payment.subscriptionId },
           data: {
             status: SubscriptionStatus.ACTIVE,
-            startedAt: new Date(),
+            // `startedAt` marque le début de la RELATION, pas de la période en
+            // cours. Un renouvellement ne le réécrit donc pas : sans ce garde-fou
+            // l'ancienneté d'un abonné se serait remise à zéro à chaque
+            // reconduction, et avec elle toute lecture d'historique.
+            startedAt: payment.subscription.startedAt ?? new Date(),
             currentPeriodEnd: this.computePeriodEnd(
               payment.subscription.billingCycle,
+              payment.subscription.currentPeriodEnd,
             ),
           },
         }),
@@ -95,7 +111,16 @@ export class PaymentsService {
         }),
         this.prisma.subscription.update({
           where: { id: payment.subscriptionId },
-          data: { status: SubscriptionStatus.PAYMENT_FAILED },
+          data: {
+            // UN RENOUVELLEMENT QUI ÉCHOUE NE RETIRE RIEN (P1-2).
+            // Rétrograder en PAYMENT_FAILED un abonnement encore couvert
+            // reviendrait à confisquer des jours DÉJÀ PAYÉS parce qu'une
+            // reconduction n'a pas abouti. Tant que la période court, le statut
+            // reste celui qu'il était ; l'échéance fera le reste le moment venu.
+            status: couvertureEncoreValide
+              ? payment.subscription.status
+              : SubscriptionStatus.PAYMENT_FAILED,
+          },
         }),
       ]);
       await this.audit.record(
@@ -108,13 +133,34 @@ export class PaymentsService {
     return { id: payment.id, status: dto.status };
   }
 
-  private computePeriodEnd(cycle: SubscriptionBillingCycle): Date | null {
-    const now = new Date();
+  // ANCRAGE DE LA NOUVELLE PÉRIODE — arbitrage D-3 du promoteur, 2026-08-18.
+  //
+  // L'ancre est le PLUS TARDIF entre la fin de période en cours et maintenant.
+  // Une seule formule couvre les quatre cas, et c'est ce qui la rend sûre :
+  //
+  //   première souscription   → `periodeEnCours` est nul, l'ancre est maintenant
+  //                             (comportement identique à celui d'avant P1-2) ;
+  //   reconduction anticipée  → l'ancre est currentPeriodEnd : les jours restants
+  //                             sont INTÉGRALEMENT conservés et la nouvelle
+  //                             période s'ajoute à l'ancienne ;
+  //   reconduction à échéance → continuité exacte, sans trou ;
+  //   reconduction tardive    → l'ancre est maintenant : on ne crédite pas
+  //                             rétroactivement une période déjà écoulée.
+  //
+  // Aucun jour payé n'est perdu, aucun trou de couverture n'est créé.
+  private computePeriodEnd(
+    cycle: SubscriptionBillingCycle,
+    periodeEnCours: Date | null = null,
+  ): Date | null {
+    const maintenant = Date.now();
+    const ancre = new Date(
+      Math.max(periodeEnCours?.getTime() ?? maintenant, maintenant),
+    );
     if (cycle === SubscriptionBillingCycle.QUARTERLY) {
-      return new Date(now.setMonth(now.getMonth() + 3));
+      return new Date(ancre.setMonth(ancre.getMonth() + 3));
     }
     if (cycle === SubscriptionBillingCycle.ANNUAL) {
-      return new Date(now.setFullYear(now.getFullYear() + 1));
+      return new Date(ancre.setFullYear(ancre.getFullYear() + 1));
     }
     // ONE_TIME : prestation à l'acte, pas de période récurrente à faire expirer.
     return null;

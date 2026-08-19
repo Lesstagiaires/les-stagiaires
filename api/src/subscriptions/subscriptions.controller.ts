@@ -89,4 +89,18 @@ export class SubscriptionsController {
   cancel(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
     return this.subscriptions.cancel(user.sub, id);
   }
+
+  // Route DISTINCTE de `POST /me`, à dessein : celle-ci signifie « première
+  // souscription » et passe par la garde d'unicité P1-1 ; celle-là prolonge un
+  // abonnement existant sans jamais en créer un second. Les confondre aurait
+  // rendu impossible de dire, en lisant un journal, laquelle des deux
+  // opérations l'utilisateur a réellement demandée.
+  //
+  // Aucun corps de requête : la formule, le cycle et le pays sont ceux de
+  // l'abonnement, et le montant reste résolu côté serveur.
+  @HttpCode(HttpStatus.OK)
+  @Post(':id/renew')
+  renew(@CurrentUser() user: AccessTokenPayload, @Param('id') id: string) {
+    return this.subscriptions.renew(user.sub, id);
+  }
 }

@@ -1,0 +1,43 @@
+-- P1-2 — UN SEUL ENCAISSEMENT EN VOL PAR ABONNEMENT
+--
+-- POURQUOI CET INDEX EXISTE
+-- Le renouvellement (arbitrage D-1 du 2026-08-18) ne crée aucune Subscription :
+-- il rattache un nouveau Payment à la ligne existante. La garantie posée par
+-- P1-1 — un seul abonnement individuel occupant — ne protège donc PAS le
+-- renouvellement : elle porte sur Subscription, et aucune Subscription n'est
+-- créée ici.
+--
+-- Sans cette contrainte, deux demandes de renouvellement simultanées sur le même
+-- abonnement créeraient deux Payment INITIATED. Les deux pourraient être
+-- confirmés par le prestataire, et l'abonné serait débité DEUX FOIS pour une
+-- seule période — avec, en prime, deux commissions d'ambassadeur au lieu d'une,
+-- puisque `Commission.paymentId` est unique PAR PAIEMENT et non par période.
+--
+-- POURQUOI EN SQL ÉCRIT À LA MAIN
+-- Même raison qu'en P1-1 : Prisma ne sait pas exprimer un index PARTIEL,
+-- `@@unique` n'acceptant pas de clause WHERE. Or c'est la clause WHERE qui rend
+-- cet index juste — sans elle, un abonnement ne pourrait porter qu'un seul
+-- paiement dans toute son histoire, ce qui interdirait précisément le
+-- renouvellement que cette migration sert à rendre possible.
+--
+-- CONSÉQUENCE ASSUMÉE : l'index n'apparaît pas dans schema.prisma. Sa présence
+-- et sa définition sont donc vérifiées sur une base réelle par
+-- `subscriptions-renouvellement.integration.spec.ts`, comme celui de P1-1 l'est
+-- par `subscriptions-unicite.integration.spec.ts`. Une disparition ou une
+-- modification involontaire fait échouer la chaîne de tests, jamais silence.
+--
+-- PÉRIMÈTRE DU PRÉDICAT
+--   status = 'INITIATED' : le seul état « en vol ». Un paiement CONFIRMED,
+--     FAILED ou CANCELLED est terminé et libère immédiatement la place — c'est
+--     ce qui permet à un abonnement d'enchaîner autant de périodes que voulu, et
+--     à un paiement échoué d'être retenté sans blocage.
+--
+-- EFFET SUR LES DONNÉES EXISTANTES : aucune écriture. Le code actuel ne crée
+-- qu'un seul paiement par abonnement à la souscription, la contrainte est donc
+-- déjà satisfaite par construction. Sa création échouerait si un abonnement
+-- portait déjà deux paiements en vol — ce serait alors un double encaissement
+-- réel à instruire, pas un défaut de cette migration.
+
+CREATE UNIQUE INDEX "Payment_un_seul_en_vol_par_abonnement_key"
+  ON "Payment" ("subscriptionId")
+  WHERE "status" = 'INITIATED';

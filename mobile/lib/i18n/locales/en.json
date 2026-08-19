@@ -1377,7 +1377,7 @@
     "empty": "No subscriptions yet.",
     "newLink": "+ Subscribe to a plan",
     "startedLabel": "Active since {{date}}",
-    "periodEndLabel": "Renews on {{date}}",
+    "periodEndLabel": "Period ends on {{date}} — renewal is never automatic",
     "cancelledLabel": "Cancelled on {{date}}",
     "new": {
       "title": "Subscribe to a plan",

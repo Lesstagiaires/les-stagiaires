@@ -1,9 +1,11 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuditService } from '../audit/audit.service';
@@ -11,6 +13,7 @@ import { MinorPolicyService } from '../auth/minor-policy.service';
 import {
   MinorGatedAction,
   OrganizationType,
+  PaymentStatus,
   SubscriptionBillingCycle,
   SubscriptionOriginType,
   SubscriptionPlan,
@@ -19,7 +22,9 @@ import {
 import { OrganizationAccessService } from '../opportunities/organization-access.service';
 import {
   PAYMENT_GATEWAY_PROVIDER,
+  PaymentNotSentError,
   type PaymentGatewayProvider,
+  type PaymentInitiationResult,
 } from '../payments/payment-gateway-provider.interface';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListSubscriptionsQueryDto } from './dto/list-subscriptions-query.dto';
@@ -53,6 +58,17 @@ export const STATUTS_OCCUPANT_LA_PLACE = [
 // révéleraient laquelle des deux a mordu, sans lui être d'aucune utilité.
 const DEJA_UN_ABONNEMENT_INDIVIDUEL =
   'Un abonnement individuel est déjà en cours sur ce compte.';
+
+// --- P1-2 : RENOUVELLEMENT -------------------------------------------------
+// Fenêtre de reconduction anticipée, arbitrage du promoteur du 2026-08-18.
+// Avant ce seuil, la demande est prématurée : l'abonnement court encore et rien
+// ne presse. Après, elle est toujours possible — un abonnement expiré se
+// renouvelle sans limite de temps, c'est la réactivation (P3) qui traitera le
+// cas du filleul devenu dormant, pas ce chantier.
+export const FENETRE_RENOUVELLEMENT_JOURS = 30;
+
+const UN_PAIEMENT_EST_DEJA_EN_COURS =
+  'Un paiement est déjà en cours sur cet abonnement.';
 
 function estFormuleIndividuelle(plan: SubscriptionPlan): boolean {
   return (INDIVIDUAL_PLANS as readonly SubscriptionPlan[]).includes(plan);
@@ -210,6 +226,227 @@ export class SubscriptionsService {
     return updated;
   }
 
+  // --- P1-2 : RENOUVELLEMENT ------------------------------------------------
+  //
+  // LE RENOUVELLEMENT NE CRÉE AUCUN ABONNEMENT (arbitrage D-1 du 2026-08-18).
+  // Il prolonge la ligne existante en y rattachant un nouvel encaissement. Ce
+  // choix a une conséquence heureuse : la garantie P1-1 — un seul abonnement
+  // individuel ACTIVE ou PENDING_PAYMENT — n'est jamais sollicitée, donc jamais
+  // affaiblie. Créer une seconde ligne aurait obligé à percer la garde que nous
+  // venons de sceller.
+  //
+  // Il reste STRICTEMENT VOLONTAIRE : aucun appelant automatique, aucun
+  // prélèvement programmé. Et il ne prolonge rien par lui-même — seule la
+  // confirmation du prestataire par webhook étend la période (PaymentsService).
+  async renew(actorUserId: string, subscriptionId: string) {
+    const subscription = await this.mustFind(subscriptionId);
+    await this.assertCanAccess(actorUserId, subscription);
+    this.assertRenouvelable(subscription);
+
+    // Le tarif est résolu MAINTENANT, jamais recopié de la période précédente :
+    // une reconduction s'achète au prix du jour, et le montant reste calculé
+    // côté serveur.
+    const { amountMinor, currency } = this.pricing.resolve(
+      subscription.plan,
+      subscription.billingCycle,
+      subscription.countryCode,
+    );
+
+    const { payment, instructions } = await this.initierPaiement({
+      subscriptionId: subscription.id,
+      amountMinor,
+      currency,
+      countryCode: subscription.countryCode,
+    });
+
+    await this.audit.record(
+      'SUBSCRIPTION_RENEWAL_INITIATED',
+      subscription.beneficiaryUserId,
+      {
+        subscriptionId,
+        plan: subscription.plan,
+        // La borne d'avant renouvellement : c'est elle qui rend vérifiable, des
+        // mois plus tard, que la nouvelle période s'est bien ajoutée à
+        // l'ancienne sans en perdre un jour.
+        currentPeriodEnd: subscription.currentPeriodEnd,
+      },
+    );
+
+    return {
+      subscription: {
+        id: subscription.id,
+        plan: subscription.plan,
+        status: subscription.status,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+        amountMinor,
+        currency,
+      },
+      payment: {
+        id: payment.id,
+        providerReference: payment.providerReference,
+        instructions,
+      },
+    };
+  }
+
+  private assertRenouvelable(subscription: {
+    status: SubscriptionStatus;
+    billingCycle: SubscriptionBillingCycle;
+    currentPeriodEnd: Date | null;
+  }): void {
+    // ONE_TIME est une prestation à l'acte : elle n'a pas de période récurrente,
+    // donc rien à reconduire. `computePeriodEnd` lui rend déjà `null`.
+    if (subscription.billingCycle === SubscriptionBillingCycle.ONE_TIME) {
+      throw new BadRequestException(
+        "Cette prestation est réglée à l'acte et ne se renouvelle pas.",
+      );
+    }
+
+    // Un encaissement est déjà en vol. Le laisser passer créerait un second
+    // paiement pour la même période — l'utilisateur paierait deux fois. La base
+    // le refuse aussi (index partiel), ce contrôle donne l'erreur lisible.
+    if (subscription.status === SubscriptionStatus.PENDING_PAYMENT) {
+      throw new ConflictException(UN_PAIEMENT_EST_DEJA_EN_COURS);
+    }
+
+    // ABONNEMENT RÉSILIÉ — REFUS ASSUMÉ, ET VOICI POURQUOI.
+    // La résiliation est un acte explicite qui met fin au contrat. Autoriser un
+    // « renouvellement » le ressusciterait, et pire : l'ancrage de période
+    // (max(currentPeriodEnd, now)) recréditerait des jours que le titulaire
+    // avait lui-même abandonnés. Le chemin correct après résiliation est une
+    // nouvelle souscription — P1-1 la permet, CANCELLED ne bloquant pas la
+    // place.
+    if (subscription.status === SubscriptionStatus.CANCELLED) {
+      throw new ConflictException(
+        'Cet abonnement a été résilié : souscrivez à nouveau pour en ouvrir un.',
+      );
+    }
+
+    // EXPIRED et PAYMENT_FAILED se renouvellent sans condition de date : il n'y
+    // a plus de période à protéger, et refuser PAYMENT_FAILED enfermerait le
+    // titulaire d'un paiement échoué sans aucune porte de sortie.
+    if (subscription.status !== SubscriptionStatus.ACTIVE) return;
+
+    // ACTIF : la reconduction anticipée n'est ouverte que dans la fenêtre.
+    // Sans cette borne, on pourrait empiler des années à l'avance.
+    if (!subscription.currentPeriodEnd) return;
+    const restantMs = subscription.currentPeriodEnd.getTime() - Date.now();
+    const fenetreMs = FENETRE_RENOUVELLEMENT_JOURS * 24 * 60 * 60 * 1000;
+    if (restantMs > fenetreMs) {
+      throw new BadRequestException(
+        `Le renouvellement s'ouvre ${FENETRE_RENOUVELLEMENT_JOURS} jours avant la fin de la période en cours.`,
+      );
+    }
+  }
+
+  // L'écriture est isolée pour la même raison que `ecrireAbonnement` en P1-1 :
+  // le `try` doit envelopper la seule instruction dont on sait interpréter
+  // l'échec, et le type de retour reste celui de Prisma plutôt qu'un `any`
+  // introduit par un `let` déclaré hors du bloc.
+  private async ecrirePaiement(data: {
+    subscriptionId: string;
+    amountMinor: number;
+    currency: string;
+    countryCode: string;
+    providerName: string;
+  }) {
+    try {
+      return await this.prisma.payment.create({ data });
+    } catch (error) {
+      // L'index partiel `Payment_un_seul_en_vol_par_abonnement_key` a tranché :
+      // un encaissement était déjà en vol sur cet abonnement. Deux requêtes de
+      // renouvellement simultanées ont franchi la garde applicative ensemble.
+      if (isUniqueViolation(error)) {
+        throw new ConflictException(UN_PAIEMENT_EST_DEJA_EN_COURS);
+      }
+      throw error;
+    }
+  }
+
+  // Initiation d'un encaissement sur un abonnement existant. Extraite de
+  // `createSubscription()` pour être partagée avec le renouvellement : la
+  // première souscription et la reconduction encaissent EXACTEMENT de la même
+  // façon, et rien ne justifierait deux chemins de paiement divergents.
+  private async initierPaiement(params: {
+    subscriptionId: string;
+    amountMinor: number;
+    currency: string;
+    countryCode: string;
+  }) {
+    const providerName = this.config.get<string>(
+      'PAYMENT_GATEWAY_PROVIDER',
+      'simulated',
+    );
+
+    const payment = await this.ecrirePaiement({
+      subscriptionId: params.subscriptionId,
+      amountMinor: params.amountMinor,
+      currency: params.currency,
+      countryCode: params.countryCode,
+      providerName,
+    });
+
+    // Le montant n'est jamais confirmé à ce stade — seule l'initiation est faite ici,
+    // l'activation attend le webhook du prestataire (voir PaymentsService).
+    //
+    // CE QUE FAIT CE BLOC, ET POURQUOI IL NE MARQUE PAS TOUT EN ÉCHEC.
+    // Un `Payment` reste INITIATED tant que rien ne le clôt, et l'index partiel
+    // interdit alors toute nouvelle tentative sur cet abonnement. Laisser une
+    // erreur de passerelle abandonner la ligne dans cet état enfermerait
+    // définitivement un abonné pourtant à jour — c'est le défaut relevé en
+    // clôture de P1-2.
+    //
+    // Mais libérer systématiquement serait pire : si la demande était partie et
+    // que seule la réponse s'est perdue, autoriser une seconde tentative
+    // exposerait le payeur à un DOUBLE DÉBIT. On ne libère donc que sur un échec
+    // que le prestataire CERTIFIE — voir `PaymentNotSentError`.
+    let initiation: PaymentInitiationResult;
+    try {
+      initiation = await this.gateway.initiate({
+        paymentId: payment.id,
+        amountMinor: params.amountMinor,
+        currency: params.currency,
+        countryCode: params.countryCode,
+      });
+    } catch (error) {
+      if (error instanceof PaymentNotSentError) {
+        // ÉCHEC CERTAIN : rien n'est parti, aucun débit ne peut exister. On clôt
+        // le paiement, ce qui libère l'index — une nouvelle tentative est
+        // possible immédiatement. L'abonnement n'est PAS touché : ses droits et
+        // sa période restent exactement ce qu'ils étaient.
+        await this.prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: PaymentStatus.FAILED, failedAt: new Date() },
+        });
+        await this.audit.record('SUBSCRIPTION_PAYMENT_NOT_SENT', null, {
+          subscriptionId: params.subscriptionId,
+          paymentId: payment.id,
+        });
+        throw new ServiceUnavailableException(
+          "Le paiement n'a pas pu être initié. Vous pouvez réessayer.",
+        );
+      }
+
+      // RÉSULTAT INCONNU : on ne touche à RIEN. Le paiement reste INITIATED, le
+      // verrou tient, et c'est délibéré — il protège le payeur contre une
+      // seconde tentative tant qu'un rapprochement n'a pas établi ce qui s'est
+      // réellement passé chez le prestataire.
+      await this.audit.record('SUBSCRIPTION_PAYMENT_OUTCOME_UNKNOWN', null, {
+        subscriptionId: params.subscriptionId,
+        paymentId: payment.id,
+      });
+      throw new ConflictException(
+        'Le résultat de ce paiement est en cours de vérification. ' +
+          'Ne relancez pas le paiement : contactez le support si la situation persiste.',
+      );
+    }
+    const updatedPayment = await this.prisma.payment.update({
+      where: { id: payment.id },
+      data: { providerReference: initiation.providerReference },
+    });
+    return { payment: updatedPayment, instructions: initiation.instructions };
+  }
+
   // P1-1 — la garde vit ICI, dans le point de passage unique, et non dans
   // `subscribeSelf()`. `subscribeOrgSponsored()` crée lui aussi un abonnement
   // INDIVIDUEL rattaché à un bénéficiaire : ne garder que l'auto-souscription
@@ -284,39 +521,19 @@ export class SubscriptionsService {
       params.billingCycle,
       params.countryCode,
     );
-    const providerName = this.config.get<string>(
-      'PAYMENT_GATEWAY_PROVIDER',
-      'simulated',
-    );
-
     const subscription = await this.ecrireAbonnement(
       params,
       amountMinor,
       currency,
     );
 
-    const payment = await this.prisma.payment.create({
-      data: {
+    const { payment: updatedPayment, instructions } =
+      await this.initierPaiement({
         subscriptionId: subscription.id,
         amountMinor,
         currency,
         countryCode: params.countryCode,
-        providerName,
-      },
-    });
-
-    // Le montant n'est jamais confirmé à ce stade — seule l'initiation est faite ici,
-    // l'activation attend le webhook du prestataire (voir PaymentsService).
-    const initiation = await this.gateway.initiate({
-      paymentId: payment.id,
-      amountMinor,
-      currency,
-      countryCode: params.countryCode,
-    });
-    const updatedPayment = await this.prisma.payment.update({
-      where: { id: payment.id },
-      data: { providerReference: initiation.providerReference },
-    });
+      });
 
     await this.audit.record(
       'SUBSCRIPTION_CREATED',
@@ -339,7 +556,7 @@ export class SubscriptionsService {
       payment: {
         id: updatedPayment.id,
         providerReference: updatedPayment.providerReference,
-        instructions: initiation.instructions,
+        instructions,
       },
     };
   }

@@ -1377,7 +1377,7 @@
     "empty": "لا توجد اشتراكات بعد.",
     "newLink": "+ الاشتراك في صيغة",
     "startedLabel": "نشط منذ {{date}}",
-    "periodEndLabel": "يتجدد في {{date}}",
+    "periodEndLabel": "تنتهي الفترة في {{date}} — التجديد ليس تلقائيًا أبدًا",
     "cancelledLabel": "أُلغي في {{date}}",
     "new": {
       "title": "الاشتراك في صيغة",

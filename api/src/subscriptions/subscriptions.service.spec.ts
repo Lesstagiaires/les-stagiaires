@@ -1,8 +1,11 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
+import { PaymentNotSentError } from '../payments/payment-gateway-provider.interface';
 import type { ConfigService } from '@nestjs/config';
 import type { AuditService } from '../audit/audit.service';
 import type { MinorPolicyService } from '../auth/minor-policy.service';
@@ -516,6 +519,199 @@ describe('SubscriptionsService', () => {
       // de beneficiaryUserId, il n'occupe donc aucune place individuelle.
       expect(prisma.subscription.findFirst).not.toHaveBeenCalled();
       expect(prisma.subscription.create).toHaveBeenCalledTimes(1);
+    });
+
+    // ========================================================================
+    // P1-2 — RENOUVELLEMENT
+    //
+    // Ces tests portent sur les RÈGLES D'ÉLIGIBILITÉ, logique pure et bien
+    // servie par des doubles. La conservation des jours, la concurrence et
+    // l'index partiel sont démontrés en base réelle dans
+    // `subscriptions-renouvellement.integration.spec.ts`.
+    // ========================================================================
+    describe('renew', () => {
+      const JOUR = 24 * 60 * 60 * 1000;
+
+      function abonnement(overrides: Record<string, unknown> = {}) {
+        return {
+          id: 'sub-1',
+          plan: 'CARRIERE_SECURISEE',
+          status: 'ACTIVE',
+          billingCycle: 'ANNUAL',
+          countryCode: 'CM',
+          beneficiaryUserId: 'user-1',
+          beneficiaryOrganizationId: null,
+          currentPeriodEnd: new Date(Date.now() + 10 * JOUR),
+          ...overrides,
+        };
+      }
+
+      it('accepte la reconduction dans la fenêtre des 30 jours', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(abonnement());
+
+        await service.renew('user-1', 'sub-1');
+
+        expect(prisma.payment.create).toHaveBeenCalledTimes(1);
+      });
+
+      // LA PROPRIÉTÉ QUI PROTÈGE P1-1 : renouveler ne crée jamais d'abonnement,
+      // donc la garde d'unicité n'est ni sollicitée ni affaiblie.
+      it('ne crée jamais de Subscription, et ne consulte donc pas la garde P1-1', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(abonnement());
+
+        await service.renew('user-1', 'sub-1');
+
+        expect(prisma.subscription.create).not.toHaveBeenCalled();
+        expect(prisma.subscription.findFirst).not.toHaveBeenCalled();
+      });
+
+      it('refuse une reconduction trop précoce', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(
+          abonnement({ currentPeriodEnd: new Date(Date.now() + 90 * JOUR) }),
+        );
+
+        await expect(service.renew('user-1', 'sub-1')).rejects.toBeInstanceOf(
+          BadRequestException,
+        );
+        expect(prisma.payment.create).not.toHaveBeenCalled();
+      });
+
+      it('accepte un abonnement expiré sans condition de date', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(
+          abonnement({
+            status: 'EXPIRED',
+            currentPeriodEnd: new Date(Date.now() - 200 * JOUR),
+          }),
+        );
+
+        await service.renew('user-1', 'sub-1');
+
+        expect(prisma.payment.create).toHaveBeenCalledTimes(1);
+      });
+
+      // Refuser ce cas enfermerait le titulaire d'un paiement échoué sans
+      // aucune porte de sortie.
+      it('accepte une reprise après un paiement échoué', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(
+          abonnement({ status: 'PAYMENT_FAILED', currentPeriodEnd: null }),
+        );
+
+        await service.renew('user-1', 'sub-1');
+
+        expect(prisma.payment.create).toHaveBeenCalledTimes(1);
+      });
+
+      it('refuse tant qu’un encaissement est déjà en vol', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(
+          abonnement({ status: 'PENDING_PAYMENT', currentPeriodEnd: null }),
+        );
+
+        await expect(service.renew('user-1', 'sub-1')).rejects.toBeInstanceOf(
+          ConflictException,
+        );
+        expect(prisma.payment.create).not.toHaveBeenCalled();
+      });
+
+      it('refuse de ressusciter un abonnement résilié', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(
+          abonnement({ status: 'CANCELLED' }),
+        );
+
+        await expect(service.renew('user-1', 'sub-1')).rejects.toBeInstanceOf(
+          ConflictException,
+        );
+        expect(prisma.payment.create).not.toHaveBeenCalled();
+      });
+
+      it('refuse une prestation réglée à l’acte, qui n’a pas de période', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(
+          abonnement({ billingCycle: 'ONE_TIME', currentPeriodEnd: null }),
+        );
+
+        await expect(service.renew('user-1', 'sub-1')).rejects.toBeInstanceOf(
+          BadRequestException,
+        );
+      });
+
+      it('résout le tarif du jour côté serveur, jamais celui de la période précédente', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(abonnement());
+
+        await service.renew('user-1', 'sub-1');
+
+        expect(pricing.resolve).toHaveBeenCalledWith(
+          'CARRIERE_SECURISEE',
+          'ANNUAL',
+          'CM',
+        );
+      });
+
+      it('traduit une course perdue sur l’encaissement en conflit métier', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(abonnement());
+        prisma.payment.create.mockRejectedValue(
+          Object.assign(new Error('Unique constraint failed'), {
+            code: 'P2002',
+          }),
+        );
+
+        await expect(service.renew('user-1', 'sub-1')).rejects.toBeInstanceOf(
+          ConflictException,
+        );
+      });
+
+      // ======================================================================
+      // ÉCHEC DE LA PASSERELLE — LES DEUX BRANCHES
+      //
+      // La distinction n'est pas cosmétique : elle décide si un second débit est
+      // possible. Un échec CERTIFIÉ libère le verrou ; un résultat INCONNU le
+      // maintient, précisément pour empêcher une seconde tentative.
+      // ======================================================================
+      it('libère le paiement quand la passerelle certifie que rien n’est parti', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(abonnement());
+        prisma.payment.create.mockResolvedValue({ id: 'pay-9' });
+        gateway.initiate.mockRejectedValue(new PaymentNotSentError());
+
+        await expect(service.renew('user-1', 'sub-1')).rejects.toBeInstanceOf(
+          ServiceUnavailableException,
+        );
+
+        // Le paiement est clos : l'index partiel est libéré, une nouvelle
+        // tentative redevient possible immédiatement.
+        expect(prisma.payment.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { id: 'pay-9' },
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- nested expect.objectContaining is untyped by design
+            data: expect.objectContaining({ status: 'FAILED' }),
+          }),
+        );
+        // L'abonnement n'est jamais touché : ses droits restent intacts.
+        expect(prisma.subscription.update).not.toHaveBeenCalled();
+      });
+
+      it('ne marque jamais en échec un paiement au résultat inconnu', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(abonnement());
+        prisma.payment.create.mockResolvedValue({ id: 'pay-9' });
+        // Une panne réseau ordinaire : la demande est peut-être partie, la
+        // réponse s'est perdue. Le payeur peut avoir été débité.
+        gateway.initiate.mockRejectedValue(new Error('ETIMEDOUT'));
+
+        await expect(service.renew('user-1', 'sub-1')).rejects.toBeInstanceOf(
+          ConflictException,
+        );
+
+        // RIEN n'est écrit : ni le paiement, ni l'abonnement. Le verrou tient et
+        // protège contre un second débit.
+        expect(prisma.payment.update).not.toHaveBeenCalled();
+        expect(prisma.subscription.update).not.toHaveBeenCalled();
+      });
+
+      it('refuse un appelant qui n’est pas le bénéficiaire', async () => {
+        prisma.subscription.findUnique.mockResolvedValue(abonnement());
+
+        await expect(service.renew('intrus-1', 'sub-1')).rejects.toBeInstanceOf(
+          ForbiddenException,
+        );
+        expect(prisma.payment.create).not.toHaveBeenCalled();
+      });
     });
 
     it('traduit une violation de l’index en conflit métier, jamais en erreur serveur', async () => {

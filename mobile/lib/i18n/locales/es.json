@@ -1377,7 +1377,7 @@
     "empty": "Aún no hay suscripciones.",
     "newLink": "+ Suscribir una fórmula",
     "startedLabel": "Activo desde el {{date}}",
-    "periodEndLabel": "Se renueva el {{date}}",
+    "periodEndLabel": "El periodo termina el {{date}} — la renovación nunca es automática",
     "cancelledLabel": "Cancelado el {{date}}",
     "new": {
       "title": "Suscribir una fórmula",

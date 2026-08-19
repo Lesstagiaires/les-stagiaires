@@ -202,4 +202,177 @@ describe('PaymentsService', () => {
       data: expect.objectContaining({ currentPeriodEnd: null }),
     });
   });
+
+  // ==========================================================================
+  // P1-2 — ANCRAGE DE PÉRIODE ET RENOUVELLEMENT ÉCHOUÉ
+  //
+  // Ces tests portent sur l'ARITHMÉTIQUE de la période et sur ce que le webhook
+  // écrit. La démonstration en base réelle — concurrence, index partiel, chaîne
+  // complète — vit dans `subscriptions-renouvellement.integration.spec.ts`.
+  // ==========================================================================
+  describe('P1-2 : ancrage de la période', () => {
+    const JOUR = 24 * 60 * 60 * 1000;
+
+    function donneesEcrites(): { startedAt?: Date; currentPeriodEnd?: Date } {
+      const appels = prisma.subscription.update.mock.calls as [
+        { data: { startedAt?: Date; currentPeriodEnd?: Date } },
+      ][];
+      return appels[0][0].data;
+    }
+
+    it('ajoute la nouvelle période aux jours restants lors d’une reconduction anticipée', async () => {
+      const finEnCours = new Date(Date.now() + 10 * JOUR);
+      prisma.payment.findUnique.mockResolvedValue(
+        makePayment({
+          subscription: {
+            id: 'sub-1',
+            billingCycle: 'ANNUAL',
+            beneficiaryUserId: 'user-1',
+            status: 'ACTIVE',
+            startedAt: new Date('2026-01-01T00:00:00Z'),
+            currentPeriodEnd: finEnCours,
+          },
+        }),
+      );
+
+      await service.handleProviderCallback('simulated', 'correct-secret', {
+        providerReference: 'ref-1',
+        status: 'CONFIRMED',
+      });
+
+      // Un an APRÈS l'ancienne échéance, pas un an après aujourd'hui : les dix
+      // jours restants sont conservés.
+      const attendu = new Date(finEnCours);
+      attendu.setFullYear(attendu.getFullYear() + 1);
+      expect(donneesEcrites().currentPeriodEnd?.getTime()).toBe(
+        attendu.getTime(),
+      );
+    });
+
+    it('repart de maintenant quand la période est déjà expirée', async () => {
+      const finPassee = new Date(Date.now() - 30 * JOUR);
+      prisma.payment.findUnique.mockResolvedValue(
+        makePayment({
+          subscription: {
+            id: 'sub-1',
+            billingCycle: 'ANNUAL',
+            beneficiaryUserId: 'user-1',
+            status: 'EXPIRED',
+            startedAt: new Date('2026-01-01T00:00:00Z'),
+            currentPeriodEnd: finPassee,
+          },
+        }),
+      );
+
+      await service.handleProviderCallback('simulated', 'correct-secret', {
+        providerReference: 'ref-1',
+        status: 'CONFIRMED',
+      });
+
+      // Aucune période rétroactive : l'échéance repart d'aujourd'hui.
+      const ecrit = donneesEcrites().currentPeriodEnd!.getTime();
+      const dansUnAn = new Date();
+      dansUnAn.setFullYear(dansUnAn.getFullYear() + 1);
+      expect(Math.abs(ecrit - dansUnAn.getTime())).toBeLessThan(60_000);
+    });
+
+    it('ne réécrit jamais startedAt : il marque le début de la relation, pas de la période', async () => {
+      const debutRelation = new Date('2026-01-01T00:00:00Z');
+      prisma.payment.findUnique.mockResolvedValue(
+        makePayment({
+          subscription: {
+            id: 'sub-1',
+            billingCycle: 'ANNUAL',
+            beneficiaryUserId: 'user-1',
+            status: 'ACTIVE',
+            startedAt: debutRelation,
+            currentPeriodEnd: new Date(Date.now() + 5 * JOUR),
+          },
+        }),
+      );
+
+      await service.handleProviderCallback('simulated', 'correct-secret', {
+        providerReference: 'ref-1',
+        status: 'CONFIRMED',
+      });
+
+      expect(donneesEcrites().startedAt).toBe(debutRelation);
+    });
+
+    it('renseigne startedAt à la toute première confirmation', async () => {
+      prisma.payment.findUnique.mockResolvedValue(
+        makePayment({
+          subscription: {
+            id: 'sub-1',
+            billingCycle: 'ANNUAL',
+            beneficiaryUserId: 'user-1',
+            status: 'PENDING_PAYMENT',
+            startedAt: null,
+            currentPeriodEnd: null,
+          },
+        }),
+      );
+
+      await service.handleProviderCallback('simulated', 'correct-secret', {
+        providerReference: 'ref-1',
+        status: 'CONFIRMED',
+      });
+
+      expect(donneesEcrites().startedAt).toBeInstanceOf(Date);
+    });
+  });
+
+  describe('P1-2 : un renouvellement échoué ne retire rien', () => {
+    it('laisse intact un abonnement encore couvert', async () => {
+      prisma.payment.findUnique.mockResolvedValue(
+        makePayment({
+          subscription: {
+            id: 'sub-1',
+            billingCycle: 'ANNUAL',
+            beneficiaryUserId: 'user-1',
+            status: 'ACTIVE',
+            startedAt: new Date('2026-01-01T00:00:00Z'),
+            currentPeriodEnd: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+          },
+        }),
+      );
+
+      await service.handleProviderCallback('simulated', 'correct-secret', {
+        providerReference: 'ref-1',
+        status: 'FAILED',
+      });
+
+      // Le cœur de la règle : dix jours déjà payés ne sont pas confisqués parce
+      // qu'une reconduction n'a pas abouti.
+      expect(prisma.subscription.update).toHaveBeenCalledWith({
+        where: { id: 'sub-1' },
+        data: { status: 'ACTIVE' },
+      });
+    });
+
+    it('passe bien en PAYMENT_FAILED quand aucune période ne court', async () => {
+      prisma.payment.findUnique.mockResolvedValue(
+        makePayment({
+          subscription: {
+            id: 'sub-1',
+            billingCycle: 'ANNUAL',
+            beneficiaryUserId: 'user-1',
+            status: 'PENDING_PAYMENT',
+            startedAt: null,
+            currentPeriodEnd: null,
+          },
+        }),
+      );
+
+      await service.handleProviderCallback('simulated', 'correct-secret', {
+        providerReference: 'ref-1',
+        status: 'FAILED',
+      });
+
+      expect(prisma.subscription.update).toHaveBeenCalledWith({
+        where: { id: 'sub-1' },
+        data: { status: 'PAYMENT_FAILED' },
+      });
+    });
+  });
 });

@@ -1377,7 +1377,7 @@
     "empty": "Aucun abonnement pour l'instant.",
     "newLink": "+ Souscrire à une formule",
     "startedLabel": "Actif depuis le {{date}}",
-    "periodEndLabel": "Renouvellement le {{date}}",
+    "periodEndLabel": "Fin de la période le {{date}} — le renouvellement n'est jamais automatique",
     "cancelledLabel": "Annulé le {{date}}",
     "new": {
       "title": "Souscrire à une formule",
