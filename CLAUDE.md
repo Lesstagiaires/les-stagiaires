@@ -14,7 +14,7 @@ Chaque donnée ou document manipulé par le système doit être rattaché à l'u
 |---|---|---|---|
 | Public | Profil public, offres publiées | Tout utilisateur | Contrôle d'intégrité |
 | Interne | Statistiques internes, documents de travail | Équipes habilitées | Accès par rôle |
-| Confidentiel | CV, diplômes, conventions, candidatures | Titulaire et destinataires autorisés | Chiffrement et journalisation |
+| Confidentiel | CV, diplômes, conventions, candidatures, parcours professionnel et intention initiale déclarés (`User.currentPath`, `User.initialIntent`) | Titulaire et destinataires autorisés | Chiffrement et journalisation |
 | Très sensible | Pièces d'identité, dossiers juridiques, projets entrepreneuriaux | Accès exceptionnel et limité | Authentification renforcée et contrôle strict |
 
 **Règle pour Claude Code** : avant d'implémenter un endpoint ou un écran qui lit ou écrit une donnée, identifier son niveau dans ce tableau et vérifier que la protection associée est bien en place (chiffrement, journalisation, contrôle d'accès) — pas après coup.

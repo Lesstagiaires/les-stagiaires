@@ -9,7 +9,7 @@ import {
   Length,
   MaxLength,
 } from 'class-validator';
-import { Language, Sex } from '../../../generated/prisma/enums';
+import { Language, Sex, UserIntent } from '../../../generated/prisma/enums';
 
 export class RegisterDto {
   @IsString()
@@ -84,4 +84,18 @@ export class RegisterDto {
   @IsString()
   @Length(4, 20)
   ambassadorCode?: string;
+
+  // V6-1 — ce que la personne est venue chercher, tel qu'elle l'a déclaré au
+  // premier écran. FACULTATIF, et ce n'est pas une commodité : une inscription
+  // ne doit jamais échouer parce que l'utilisateur est arrivé par un chemin qui
+  // n'en portait pas — lien direct, reprise d'un parcours interrompu, client
+  // antérieur à V6.
+  //
+  // Le rôle et le parcours en sont DÉRIVÉS côté serveur (table normative de
+  // `derivation-intention.ts`). Le client ne choisit donc jamais son rôle :
+  // `IsEnum` ferme la porte à toute autre valeur, et la table ne contient aucun
+  // rôle non auto-attribuable.
+  @IsOptional()
+  @IsEnum(UserIntent)
+  initialIntent?: UserIntent;
 }

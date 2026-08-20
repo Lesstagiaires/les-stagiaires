@@ -19,8 +19,10 @@ import {
   AccountStatus,
   MinorGatedAction,
   OtpPurpose,
+  UserPath,
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
+import { PARCOURS_INITIAL, ROLE_INITIAL } from './derivation-intention';
 import { generateLsIdCandidate } from '../common/ls-id/ls-id.util';
 import {
   condensatFactice,
@@ -73,6 +75,30 @@ export class AuthService implements OnModuleInit {
   ) {}
 
   // --- FR-AUTH-001 / 002 / 003 : inscription, OTP, LS-ID ---------------------------------
+
+  // V6-1 — attribution du rôle déduit de l'intention déclarée.
+  //
+  // LE FILTRE `selfAssignable` EST LA GARANTIE, PAS UN CONFORT. Il rend
+  // structurellement impossible qu'une intention finisse par accorder un rôle
+  // privilégié : même si quelqu'un ajoutait un jour `ADMIN` à la table de
+  // dérivation, la recherche ne le trouverait pas et aucun rôle ne serait
+  // attribué. La table ne peut donc pas devenir un chemin d'élévation.
+  //
+  // Un rôle introuvable n'échoue pas : l'inscription doit aboutir même si le
+  // catalogue de rôles diverge de la table — le compte reste utilisable, sans
+  // rôle, exactement comme une inscription sans intention.
+  private async attribuerRoleInitial(
+    userId: string,
+    roleName: string,
+  ): Promise<void> {
+    const role = await this.prisma.role.findFirst({
+      where: { name: roleName, selfAssignable: true },
+      select: { id: true },
+    });
+    if (!role) return;
+
+    await this.prisma.userRole.create({ data: { userId, roleId: role.id } });
+  }
 
   async register(dto: RegisterDto) {
     const existingPhone = await this.prisma.user.findUnique({
@@ -150,6 +176,14 @@ export class AuthService implements OnModuleInit {
         dateOfBirth,
         isMinor,
         status: AccountStatus.PENDING_VERIFICATION,
+        // V6-1 — l'intention est facultative, et le rester est une décision :
+        // aucune inscription ne doit échouer parce que l'utilisateur est arrivé
+        // par un chemin qui n'en portait pas. Un compte sans intention est un
+        // compte valide, dont le parcours reste « non déclaré ».
+        initialIntent: dto.initialIntent ?? null,
+        currentPath: dto.initialIntent
+          ? PARCOURS_INITIAL[dto.initialIntent]
+          : null,
       },
     });
     // Profil préreempli avec le nom déclaré à l'inscription — modifiable ensuite,
@@ -157,6 +191,11 @@ export class AuthService implements OnModuleInit {
     await this.prisma.profile.create({
       data: { userId: user.id, fullName: `${dto.firstName} ${dto.lastName}` },
     });
+
+    // V6-1 — le rôle DÉRIVE de l'intention, il n'est jamais choisi par le client.
+    if (dto.initialIntent) {
+      await this.attribuerRoleInitial(user.id, ROLE_INITIAL[dto.initialIntent]);
+    }
 
     // Rattachement à un ambassadeur, si un code valide a été saisi. Définitif : un
     // filleul n'a qu'un parrain (contrainte d'unicité en base). Aucun droit à
@@ -859,6 +898,68 @@ export class AuthService implements OnModuleInit {
   // connaître les roleId à passer à assignRole()/switchActiveRole(), sans jamais
   // exposer les rôles non auto-attribuables (ex. ADMIN) ni leurs identifiants
   // (CLAUDE.md §3 : moindre privilège, même pour de simples identifiants techniques).
+  // --- V6-1 : PARCOURS PROFESSIONNEL ----------------------------------------
+  //
+  // Ces deux méthodes ne prennent QUE l'identifiant du titulaire, issu du jeton.
+  // Aucune ne reçoit d'identifiant cible : il est donc structurellement
+  // impossible, depuis l'API, de lire ou d'écrire le parcours de quelqu'un
+  // d'autre — un recruteur, un établissement, un ambassadeur ou un tuteur ne
+  // dispose d'aucun chemin, pas même mal contrôlé.
+  async getMyPath(userId: string) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      // Sélection close, jamais l'entité entière : ajouter une colonne à `User`
+      // ne doit pas la faire apparaître ici par accident.
+      select: { initialIntent: true, currentPath: true },
+    });
+    return {
+      initialIntent: user.initialIntent,
+      currentPath: user.currentPath,
+    };
+  }
+
+  // Le parcours est déclaratif et n'obéit à AUCUNE machine à états : toutes les
+  // transitions entre les trois valeurs sont permises, retours en arrière
+  // compris. Une reprise d'études après un emploi est ordinaire, et un ordre
+  // imposé transformerait une situation vécue en parcours administratif.
+  //
+  // Il n'est jamais écrit automatiquement — ni depuis une candidature, un
+  // diplôme, une expérience, un abonnement, un rôle ou un paiement. Déduire une
+  // situation d'un comportement, c'est répéter la faute de PENDING_VERIFICATION.
+  async setMyPath(userId: string, path: UserPath) {
+    const avant = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { initialIntent: true, currentPath: true },
+    });
+
+    // Une déclaration identique n'est pas une transition : la journaliser
+    // remplirait le grand livre d'événements qui n'apprennent rien.
+    if (avant.currentPath === path) {
+      return {
+        initialIntent: avant.initialIntent,
+        currentPath: avant.currentPath,
+        changed: false,
+      };
+    }
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { currentPath: path },
+      select: { initialIntent: true, currentPath: true },
+    });
+
+    await this.audit.record('USER_PATH_CHANGED', userId, {
+      from: avant.currentPath,
+      to: path,
+    });
+
+    return {
+      initialIntent: user.initialIntent,
+      currentPath: user.currentPath,
+      changed: true,
+    };
+  }
+
   async listSelfAssignableRoles() {
     return this.prisma.role.findMany({
       where: { selfAssignable: true },

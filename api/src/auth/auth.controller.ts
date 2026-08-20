@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Req,
 } from '@nestjs/common';
@@ -22,6 +23,7 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { SetPathDto } from './dto/set-path.dto';
 import { SwitchRoleDto } from './dto/switch-role.dto';
 import { UpdateEmergencyContactDto } from './dto/update-emergency-contact.dto';
 import { VerifyLoginTwoFactorDto } from './dto/verify-login-two-factor.dto';
@@ -261,6 +263,31 @@ export class AuthController {
   }
 
   // --- Rôles multiples et historique (FR-AUTH-005 / 007) ---
+
+  // --- V6-1 : PARCOURS PROFESSIONNEL ----------------------------------------
+  //
+  // Placées ici et non sous un contrôleur `/me` générique : `initialIntent` et
+  // `currentPath` sont des colonnes de `User`, et ce contrôleur porte déjà les
+  // attributs de ce niveau — rôles, sessions, double authentification, contact
+  // d'urgence. Le dépôt ne connaît aucun espace `/me` transverse, et en créer un
+  // pour deux champs aurait ouvert un second lieu où ranger ce genre de route.
+  //
+  // Aucune des deux routes n'accepte d'identifiant d'utilisateur : la cible est
+  // toujours le porteur du jeton.
+  @Get('me/path')
+  getMyPath(@CurrentUser() user: AccessTokenPayload) {
+    return this.auth.getMyPath(user.sub);
+  }
+
+  // Le parcours appartient à la PERSONNE, jamais au rôle qu'elle exerce : un
+  // titulaire dont le rôle actif est ENTREPRISE peut parfaitement déclarer un
+  // parcours PROFESSIONAL. Le multi-rôles ne doit jamais empêcher quelqu'un de
+  // dire où il en est.
+  @HttpCode(HttpStatus.OK)
+  @Patch('me/path')
+  setMyPath(@CurrentUser() user: AccessTokenPayload, @Body() dto: SetPathDto) {
+    return this.auth.setMyPath(user.sub, dto.currentPath);
+  }
 
   // Public : catalogue statique nécessaire à tout client avant de pouvoir appeler
   // POST /auth/roles — sans lui, les roleId ne sont autrement connaissables.

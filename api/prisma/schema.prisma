@@ -48,6 +48,53 @@ enum Sex {
   FEMALE
 }
 
+// ============================================================================
+// V6-1 — TROIS DIMENSIONS QUI NE DOIVENT JAMAIS SE CONFONDRE
+//
+//   IDENTITÉ         qui est la personne        → User, UserRole[], activeRoleId
+//   INTENTION        pourquoi elle est venue    → UserIntent   (ci-dessous)
+//   SITUATION        où elle en est aujourd'hui → UserPath     (ci-dessous)
+//
+// Le parcours professionnel N'EST PAS un rôle. Aucun rôle de carrière
+// (STAGIAIRE_ACADEMIQUE, STAGIAIRE_PROFESSIONNEL, EMPLOYÉ) n'est créé, à dessein :
+// le RBAC porte l'habilitation, jamais l'étape de vie. Confondre les deux
+// obligerait à créer un compte par étape, exactement ce que le produit refuse.
+//
+// INVARIANT DE SÉCURITÉ. Ni `initialIntent` ni `currentPath` n'accordent ou
+// n'élargissent un droit : ni rôle, ni permission, ni entitlement, ni accès
+// payant, ni droit de lecture ou d'écriture. Ils orientent l'expérience, rien
+// d'autre. Un test de sabotage l'impose.
+// ============================================================================
+
+// POURQUOI SIX VALEURS ET NON HUIT. L'écran d'accueil propose huit choix, mais
+// « proposer un partenariat » et « autre demande » passent par un formulaire
+// PUBLIC qui ne crée aucun compte (PartnershipRequest). Aucune intention ne
+// pourrait donc jamais y être écrite : les inscrire ici aurait créé deux valeurs
+// inatteignables, qu'on aurait fini par employer à tort. Ces deux entonnoirs sont
+// déjà mesurés par PartnershipRequest.organizationType et .reason.
+enum UserIntent {
+  ACADEMIC_INTERNSHIP_SEARCH
+  PROFESSIONAL_INTERNSHIP_SEARCH
+  ORGANIZATION
+  ESTABLISHMENT
+  GUARDIAN
+  AMBASSADOR
+}
+
+// Le cycle du stagiaire. AUCUN ORDRE N'EST IMPOSÉ : toutes les transitions sont
+// permises, y compris les retours en arrière — une reprise d'études après un
+// emploi est ordinaire, et une machine à états linéaire serait un contresens.
+//
+// EMPLOYMENT est une SORTIE DÉCLARABLE, jamais une entrée proposée à
+// l'inscription : la plateforme ne publie aucune offre d'emploi (OpportunityType
+// n'en comporte aucune), et l'afficher au premier écran promettrait un service
+// qui n'existe pas.
+enum UserPath {
+  ACADEMIC
+  PROFESSIONAL
+  EMPLOYMENT
+}
+
 // Moteur de règles de protection des mineurs configurable par pays — jamais de seuil
 // d'âge ni de liste d'actions codés en dur (cahier des charges). Chaque action
 // sensible interroge CountryPolicyService.assertActionAllowed() plutôt que de
@@ -193,6 +240,26 @@ model User {
 
   language Language      @default(FR)
   status   AccountStatus @default(PENDING_VERIFICATION)
+
+  // --- V6-1 : INTENTION ET PARCOURS -----------------------------------------
+  // Voir les commentaires de UserIntent et UserPath pour l'invariant complet.
+  //
+  // `initialIntent` est une PHOTOGRAPHIE, écrite au plus une fois à l'inscription
+  // et jamais réécrite — ni par le titulaire, ni par une administration. Sa
+  // valeur n'a de sens que parce qu'elle n'a pas bougé.
+  //
+  // `currentPath` est ÉVOLUTIF et n'appartient qu'à son titulaire. Il n'est
+  // JAMAIS écrit automatiquement : ni depuis une candidature, un diplôme, une
+  // expérience, un abonnement, un rôle ou un paiement. Déduire une situation
+  // d'un comportement, c'est la faute de PENDING_VERIFICATION répétée.
+  //
+  // Les deux restent nuls pour tous les comptes antérieurs à V6-1 : « non
+  // déclaré » n'est pas « inconnu qu'on peut deviner ».
+  //
+  // Niveau CONFIDENTIEL (CLAUDE.md §1) : jamais exposés à un recruteur, une
+  // entreprise, un établissement, un ambassadeur ni dans une réponse publique.
+  initialIntent UserIntent?
+  currentPath   UserPath?
 
   // ==========================================================================
   // LA PREUVE DE POSSESSION DU TÉLÉPHONE — un FAIT, jamais une déduction
