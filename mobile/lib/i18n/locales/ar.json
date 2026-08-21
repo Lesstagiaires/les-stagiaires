@@ -343,6 +343,12 @@
         "submit": "إرسال البلاغ",
         "confirmation": "تم إرسال البلاغ، شكرًا لك.",
         "error": "تعذّر الإرسال."
+      },
+      "invite": {
+        "title": "هل ترغب في التقديم؟",
+        "body": "أنشئ حسابك للتقديم وحفظ هذا العرض ومتابعة طلباتك.",
+        "register": "إنشاء حسابي",
+        "login": "تسجيل الدخول"
       }
     },
     "alerts": {
@@ -1508,5 +1514,25 @@
     "open": "فتح",
     "loadMore": "عرض المزيد",
     "attachments": "المرفقات"
+  },
+  "publicHome": {
+    "eyebrow": "LES STAGIAIRES",
+    "title": "اعثر على التدريب الذي يطلق مسارك",
+    "subtitle": "عروض قريبة منك، دون إنشاء حساب.",
+    "offersTitle": "أحدث العروض",
+    "offersEmpty": "لا توجد عروض لعرضها حاليًا.",
+    "orientationTitle": "عمّ تبحث؟",
+    "orientationHint": "اختر ما يناسبك للمتابعة.",
+    "alreadyMember": "لدي حساب بالفعل",
+    "choices": {
+      "academicInternship": "أبحث عن تدريب أكاديمي",
+      "professionalInternship": "أبحث عن تدريب مهني",
+      "organization": "أمثّل شركة أو منظمة",
+      "establishment": "أمثّل مؤسسة تعليمية",
+      "guardian": "أنا والد أو وصي",
+      "ambassador": "أرغب في أن أصبح سفيرًا",
+      "partnership": "أرغب في اقتراح شراكة",
+      "other": "لدي طلب آخر"
+    }
   }
 }

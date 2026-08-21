@@ -18,6 +18,7 @@ import {
 } from '@expo-google-fonts/ibm-plex-sans-arabic';
 import { IBMPlexMono_500Medium } from '@expo-google-fonts/ibm-plex-mono';
 import { AuthProvider, useAuth } from '../lib/auth-context';
+import { colors } from '../components/theme';
 import { initI18n } from '../lib/i18n';
 
 // Alias vers les noms de famille utilisés dans components/theme.ts (fonts.*) — IBM Plex
@@ -67,6 +68,28 @@ function RootNavigator() {
           (entreprises, ONG, administrations, universités...) qui n'ont pas nécessairement
           de compte candidat. */}
       <Stack.Screen name="contact" options={{ headerShown: true, title: t('contact.title') }} />
+      {/* LE DÉTAIL D'UNE OFFRE — PUBLIC (V6-2), et hors des deux groupes gardés
+          à dessein. La plateforme doit pouvoir montrer ce qu'elle propose avant
+          de demander un compte, et l'API le permettait déjà : `GET
+          /opportunities/:id` est public, et renvoie 404 sur une offre non
+          publiée à qui n'a pas de titre à la voir.
+          UNE SEULE implémentation existe pour cette route : le fichier a été
+          DÉPLACÉ hors de `(app)`, jamais dupliqué. La recherche d'offres et les
+          alertes, elles, restent dans `(app)` — donc derrière le jeton. */}
+      <Stack.Screen
+        name="opportunities/[id]"
+        options={{
+          headerShown: true,
+          title: t('opportunities.detailTitle'),
+          // Recopié du layout que cet écran vient de quitter
+          // (`(app)/opportunities/_layout.tsx`) : sans ces deux options, le
+          // détail aurait perdu la teinte KORA de son en-tête en devenant
+          // public, et un même écran aurait eu deux apparences selon le chemin
+          // emprunté pour y arriver.
+          headerTintColor: colors.primary,
+          headerTitleStyle: { color: colors.text },
+        }}
+      />
 
       {/* Hors des deux groupes protégés, et volontairement : la page destinée au
           parent ou tuteur doit s'ouvrir que le jeune soit connecté ou non. Elle

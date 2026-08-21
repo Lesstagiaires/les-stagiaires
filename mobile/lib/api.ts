@@ -110,6 +110,18 @@ export type AccountStatus =
 
 export type Sex = 'MALE' | 'FEMALE';
 
+// V6-1 — ce que la personne est venue chercher, déclaré au premier écran.
+// SIX valeurs, alors que l'accueil public en propose huit : « proposer un
+// partenariat » et « autre demande » mènent à un formulaire public qui ne crée
+// aucun compte, aucune intention ne peut donc y être écrite.
+export type UserIntent =
+  | 'ACADEMIC_INTERNSHIP_SEARCH'
+  | 'PROFESSIONAL_INTERNSHIP_SEARCH'
+  | 'ORGANIZATION'
+  | 'ESTABLISHMENT'
+  | 'GUARDIAN'
+  | 'AMBASSADOR';
+
 export interface RegisterInput {
   firstName: string;
   lastName: string;
@@ -126,6 +138,12 @@ export interface RegisterInput {
   // expiré ou appartenant à un ambassadeur suspendu est ignoré EN SILENCE côté serveur :
   // une inscription ne doit jamais échouer à cause d'un code de parrainage.
   ambassadorCode?: string;
+  // FACULTATIVE, et ce n'est pas une commodité : une inscription ne doit jamais
+  // échouer parce que l'utilisateur est arrivé par un chemin qui n'en portait
+  // pas — lien direct, reprise d'un parcours interrompu, client antérieur à V6.
+  // Le rôle et le parcours en sont dérivés CÔTÉ SERVEUR : le client ne choisit
+  // jamais son rôle.
+  initialIntent?: UserIntent;
 }
 
 // Issue de la tentative de rattachement à un ambassadeur. Un STATUT, jamais une

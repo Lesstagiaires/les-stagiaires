@@ -343,6 +343,12 @@
         "submit": "Send report",
         "confirmation": "Report sent, thank you.",
         "error": "Couldn't send."
+      },
+      "invite": {
+        "title": "Want to apply?",
+        "body": "Create your account to apply, save this opportunity and track your applications.",
+        "register": "Create my account",
+        "login": "Log in"
       }
     },
     "alerts": {
@@ -1508,5 +1514,25 @@
     "open": "Open",
     "loadMore": "Load more",
     "attachments": "Attachments"
+  },
+  "publicHome": {
+    "eyebrow": "LES STAGIAIRES",
+    "title": "Find the internship that starts your career",
+    "subtitle": "Opportunities near you, no account needed.",
+    "offersTitle": "Latest opportunities",
+    "offersEmpty": "No opportunities to show right now.",
+    "orientationTitle": "What are you looking for?",
+    "orientationHint": "Pick what fits you to continue.",
+    "alreadyMember": "I already have an account",
+    "choices": {
+      "academicInternship": "I'm looking for an academic internship",
+      "professionalInternship": "I'm looking for a professional internship",
+      "organization": "I represent a company or an organisation",
+      "establishment": "I represent a school or university",
+      "guardian": "I'm a parent or guardian",
+      "ambassador": "I would like to become an ambassador",
+      "partnership": "I would like to propose a partnership",
+      "other": "I have another request"
+    }
   }
 }

@@ -28,8 +28,11 @@ export default function ResetPasswordScreen() {
       await api.resetPassword(phone, code.trim(), newPassword);
       // resetPassword() révoque tous les refresh tokens côté serveur — l'utilisateur doit
       // se reconnecter explicitement avec le nouveau mot de passe, pas de session auto.
+      // `/(auth)/login` et non `/(auth)` : depuis V6-2, l'index de ce groupe est
+      // l'accueil public. Le message de succès doit atterrir sur l'écran de
+      // connexion, qui est le seul à savoir l'afficher.
       router.replace({
-        pathname: '/(auth)',
+        pathname: '/(auth)/login',
         params: { message: t('auth.resetPassword.successMessage') },
       });
     } catch (err) {

@@ -343,6 +343,12 @@
         "submit": "Envoyer le signalement",
         "confirmation": "Signalement envoyé, merci.",
         "error": "Envoi impossible."
+      },
+      "invite": {
+        "title": "Envie de postuler ?",
+        "body": "Créez votre compte pour candidater, enregistrer cette offre et suivre vos candidatures.",
+        "register": "Créer mon compte",
+        "login": "Me connecter"
       }
     },
     "alerts": {
@@ -1508,5 +1514,25 @@
     "open": "Ouvrir",
     "loadMore": "Voir plus",
     "attachments": "Pièces jointes"
+  },
+  "publicHome": {
+    "eyebrow": "LES STAGIAIRES",
+    "title": "Trouvez le stage qui lance votre parcours",
+    "subtitle": "Des offres près de chez vous, sans créer de compte.",
+    "offersTitle": "Offres du moment",
+    "offersEmpty": "Aucune offre à afficher pour l'instant.",
+    "orientationTitle": "Que recherchez-vous ?",
+    "orientationHint": "Choisissez ce qui vous correspond pour continuer.",
+    "alreadyMember": "J'ai déjà un compte",
+    "choices": {
+      "academicInternship": "Je cherche un stage académique",
+      "professionalInternship": "Je cherche un stage professionnel",
+      "organization": "Je représente une entreprise ou une organisation",
+      "establishment": "Je représente un établissement",
+      "guardian": "Je suis parent ou tuteur",
+      "ambassador": "Je souhaite devenir ambassadeur",
+      "partnership": "Je souhaite proposer un partenariat",
+      "other": "J'ai une autre demande"
+    }
   }
 }

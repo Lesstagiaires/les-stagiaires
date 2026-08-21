@@ -343,6 +343,12 @@
         "submit": "Enviar denuncia",
         "confirmation": "Denuncia enviada, gracias.",
         "error": "No se pudo enviar."
+      },
+      "invite": {
+        "title": "¿Quieres postularte?",
+        "body": "Crea tu cuenta para postularte, guardar esta oferta y seguir tus candidaturas.",
+        "register": "Crear mi cuenta",
+        "login": "Iniciar sesión"
       }
     },
     "alerts": {
@@ -1508,5 +1514,25 @@
     "open": "Abrir",
     "loadMore": "Ver más",
     "attachments": "Adjuntos"
+  },
+  "publicHome": {
+    "eyebrow": "LES STAGIAIRES",
+    "title": "Encuentra las prácticas que inician tu carrera",
+    "subtitle": "Ofertas cerca de ti, sin crear una cuenta.",
+    "offersTitle": "Ofertas del momento",
+    "offersEmpty": "No hay ofertas para mostrar por ahora.",
+    "orientationTitle": "¿Qué buscas?",
+    "orientationHint": "Elige lo que te corresponde para continuar.",
+    "alreadyMember": "Ya tengo una cuenta",
+    "choices": {
+      "academicInternship": "Busco unas prácticas académicas",
+      "professionalInternship": "Busco unas prácticas profesionales",
+      "organization": "Represento a una empresa u organización",
+      "establishment": "Represento a un centro educativo",
+      "guardian": "Soy padre, madre o tutor",
+      "ambassador": "Quiero ser embajador",
+      "partnership": "Quiero proponer una colaboración",
+      "other": "Tengo otra solicitud"
+    }
   }
 }

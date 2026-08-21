@@ -11,20 +11,20 @@ import {
   View,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { Badge } from '../../../components/badge';
-import { ChipSelect } from '../../../components/chip-select';
-import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../../components/form';
-import { Card } from '../../../components/card';
-import { colors, spacing, typography } from '../../../components/theme';
+import { Badge } from '../../components/badge';
+import { ChipSelect } from '../../components/chip-select';
+import { ErrorText, FormInput, PrimaryButton, SecondaryButton } from '../../components/form';
+import { Card } from '../../components/card';
+import { colors, spacing, typography } from '../../components/theme';
 import {
   api,
   ApiError,
   type Opportunity,
   type ReportCategory,
-} from '../../../lib/api';
-import { useOpportunityTypeLabels, useWorkModeLabels } from '../../../lib/opportunity-labels';
-import { useReportCategoryLabels } from '../../../lib/report-labels';
-import { useAuth } from '../../../lib/auth-context';
+} from '../../lib/api';
+import { useOpportunityTypeLabels, useWorkModeLabels } from '../../lib/opportunity-labels';
+import { useReportCategoryLabels } from '../../lib/report-labels';
+import { useAuth } from '../../lib/auth-context';
 
 export default function OpportunityDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,12 +40,23 @@ export default function OpportunityDetailScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isFavoriteBusy, setIsFavoriteBusy] = useState(false);
 
+  // CONSULTATION PUBLIQUE (V6-2). Le jeton n'est plus une condition d'entrée :
+  // `getOpportunity` l'accepte déjà comme facultatif, et le serveur ne s'en sert
+  // que pour ÉLARGIR la visibilité — un membre de l'organisation publiante voit
+  // ses offres non publiées. Un visiteur, lui, n'obtient que les offres
+  // publiquement visibles, sinon un 404 : la garde est fermée par défaut, côté
+  // serveur, et rien ici ne peut l'ouvrir.
+  //
+  // Les favoris, eux, restent une donnée personnelle : on ne les demande que
+  // lorsqu'il y a quelqu'un à qui ils appartiennent.
   const reload = useCallback(async () => {
-    if (!id || !accessToken) return;
+    if (!id) return;
     try {
       const [detail, favorites] = await Promise.all([
-        api.getOpportunity(id, accessToken),
-        api.listFavorites(accessToken),
+        // `?? undefined` : le contexte d'authentification rend `null` pour un
+        // visiteur, quand la signature attend un jeton facultatif.
+        api.getOpportunity(id, accessToken ?? undefined),
+        accessToken ? api.listFavorites(accessToken) : Promise.resolve([]),
       ]);
       setOpportunity(detail);
       setIsFavorite(favorites.some((f) => f.opportunityId === id));
@@ -91,7 +102,10 @@ export default function OpportunityDetailScreen() {
     );
   }
 
-  if (loadError || !opportunity || !accessToken || !id) {
+  // `!accessToken` a disparu de cette condition : une offre publiée se consulte
+  // sans compte. Une offre introuvable — ou non publiée pour un visiteur — passe
+  // toujours par ici, avec le même message.
+  if (loadError || !opportunity || !id) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
@@ -106,13 +120,17 @@ export default function OpportunityDetailScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.headerRow}>
           <Badge label={opportunityTypeLabels[opportunity.type]} tone="primary" />
-          <Pressable onPress={handleToggleFavorite} disabled={isFavoriteBusy} hitSlop={8}>
-            <Ionicons
-              name={isFavorite ? 'heart' : 'heart-outline'}
-              size={26}
-              color={isFavorite ? colors.accentDark : colors.muted}
-            />
-          </Pressable>
+          {/* Le favori est une donnée personnelle : sans compte, l'action n'est
+              pas rendue. Jamais offerte puis refusée. */}
+          {accessToken && (
+            <Pressable onPress={handleToggleFavorite} disabled={isFavoriteBusy} hitSlop={8}>
+              <Ionicons
+                name={isFavorite ? 'heart' : 'heart-outline'}
+                size={26}
+                color={isFavorite ? colors.accentDark : colors.muted}
+              />
+            </Pressable>
+          )}
         </View>
 
         <Text style={styles.title}>{opportunity.title}</Text>
@@ -145,13 +163,34 @@ export default function OpportunityDetailScreen() {
           </>
         )}
 
-        <ApplySection
-          accessToken={accessToken}
-          opportunity={opportunity}
-          onApplied={(applicationId) => router.push(`/applications/${applicationId}`)}
-        />
-
-        <ReportSection accessToken={accessToken} opportunityId={id} />
+        {/* CANDIDATURE ET SIGNALEMENT — LA FRONTIÈRE DE V6-2.
+            Consulter est public ; s'engager ne l'est pas. Sans jeton, ces deux
+            sections ne sont pas rendues : elles cèdent la place à une invitation
+            à rejoindre la plateforme. Aucune requête n'est tentée puis rejetée,
+            et les routes serveur restent gardées de toute façon. */}
+        {accessToken ? (
+          <>
+            <ApplySection
+              accessToken={accessToken}
+              opportunity={opportunity}
+              onApplied={(applicationId) => router.push(`/applications/${applicationId}`)}
+            />
+            <ReportSection accessToken={accessToken} opportunityId={id} />
+          </>
+        ) : (
+          <Card style={styles.inviteCard}>
+            <Text style={styles.inviteTitle}>{t('opportunities.detail.invite.title')}</Text>
+            <Text style={styles.inviteBody}>{t('opportunities.detail.invite.body')}</Text>
+            <PrimaryButton
+              title={t('opportunities.detail.invite.register')}
+              onPress={() => router.push('/(auth)/register')}
+            />
+            <SecondaryButton
+              title={t('opportunities.detail.invite.login')}
+              onPress={() => router.push('/(auth)/login')}
+            />
+          </Card>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -340,6 +379,18 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  inviteCard: {
+    marginTop: spacing.xl,
+    gap: spacing.md,
+  },
+  inviteTitle: {
+    ...typography.h3,
+    color: colors.text,
+  },
+  inviteBody: {
+    ...typography.body,
+    color: colors.textSecondary,
   },
   content: {
     paddingHorizontal: spacing.xl,

@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -23,7 +23,13 @@ import {
 } from '../../components/form';
 import { spacing, typography } from '../../components/theme';
 import { AFRICAN_COUNTRIES } from '../../lib/countries';
-import { api, ApiError, type AgeThresholds, type Sex } from '../../lib/api';
+import {
+  api,
+  ApiError,
+  type AgeThresholds,
+  type Sex,
+  type UserIntent,
+} from '../../lib/api';
 import {
   requiresParentalPhone,
   showsParentalField,
@@ -48,6 +54,10 @@ export default function RegisterScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { register } = useAuth();
+  // V6-2 — l'intention choisie sur l'accueil public. Lue en paramètre de route
+  // plutôt que stockée : rien ne survit à l'écran, et il n'existe donc aucun
+  // état temporaire à réconcilier si l'utilisateur revient en arrière.
+  const { initialIntent } = useLocalSearchParams<{ initialIntent?: UserIntent }>();
   const SEX_OPTIONS: { value: Sex; label: string }[] = [
     { value: 'MALE', label: t('auth.register.male') },
     { value: 'FEMALE', label: t('auth.register.female') },
@@ -184,6 +194,10 @@ export default function RegisterScreen() {
         dateOfBirth: toIsoDateString(dateOfBirth),
         parentPhone,
         ambassadorCode: ambassadorCode.trim() || undefined,
+        // Transmise telle quelle depuis l'accueil public. Absente si l'écran a
+        // été atteint autrement — le serveur l'accepte, et le compte reste
+        // parfaitement valide sans elle.
+        initialIntent,
       });
       router.push({
         pathname: '/(auth)/verify-otp',
@@ -361,7 +375,14 @@ export default function RegisterScreen() {
           />
         </View>
 
-        <LinkButton title={t('auth.register.haveAccount')} onPress={() => router.back()} />
+        {/* Destination EXPLICITE, et non plus `router.back()`. Depuis V6-2, cet
+            écran est atteint aussi bien depuis la connexion que depuis l'accueil
+            public : revenir en arrière ramenait alors à l'accueil, alors que le
+            libellé promet la connexion. */}
+        <LinkButton
+          title={t('auth.register.haveAccount')}
+          onPress={() => router.replace('/(auth)/login')}
+        />
       </ScrollView>
     </KeyboardAvoidingView>
   );

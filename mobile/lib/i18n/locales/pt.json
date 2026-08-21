@@ -343,6 +343,12 @@
         "submit": "Enviar a denúncia",
         "confirmation": "Denúncia enviada, obrigado.",
         "error": "Não foi possível enviar."
+      },
+      "invite": {
+        "title": "Quer candidatar-se?",
+        "body": "Crie a sua conta para se candidatar, guardar esta oferta e acompanhar as suas candidaturas.",
+        "register": "Criar a minha conta",
+        "login": "Iniciar sessão"
       }
     },
     "alerts": {
@@ -1508,5 +1514,25 @@
     "open": "Abrir",
     "loadMore": "Ver mais",
     "attachments": "Anexos"
+  },
+  "publicHome": {
+    "eyebrow": "LES STAGIAIRES",
+    "title": "Encontre o estágio que lança o seu percurso",
+    "subtitle": "Ofertas perto de si, sem criar conta.",
+    "offersTitle": "Ofertas do momento",
+    "offersEmpty": "Não há ofertas para mostrar de momento.",
+    "orientationTitle": "O que procura?",
+    "orientationHint": "Escolha o que lhe corresponde para continuar.",
+    "alreadyMember": "Já tenho uma conta",
+    "choices": {
+      "academicInternship": "Procuro um estágio académico",
+      "professionalInternship": "Procuro um estágio profissional",
+      "organization": "Represento uma empresa ou organização",
+      "establishment": "Represento uma instituição de ensino",
+      "guardian": "Sou pai, mãe ou tutor",
+      "ambassador": "Quero tornar-me embaixador",
+      "partnership": "Quero propor uma parceria",
+      "other": "Tenho outro pedido"
+    }
   }
 }
