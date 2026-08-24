@@ -1183,12 +1183,27 @@ export interface CreateApplicationInput {
 
 // --- Entreprises / Organisations (module 6, côté ENTREPRISE) -------------------------------
 
+// La FAMILLE, binaire et inchangée : elle seule commande le droit aux
+// apprenants, le préfixe de l'identifiant et la formule d'abonnement.
 export type OrganizationType = 'ENTREPRISE' | 'ETABLISSEMENT';
+
+// V6-3 — la NATURE de l'organisation. Purement descriptive : elle n'entre dans
+// aucun calcul de formule, de droit ni de prix. Nulle pour les organisations
+// créées avant V6-3, et cette nullité se restitue telle quelle.
+export type OrganizationCategory =
+  | 'COMPANY'
+  | 'STARTUP'
+  | 'NGO'
+  | 'INSTITUTION'
+  | 'SCHOOL'
+  | 'UNIVERSITY'
+  | 'TRAINING_CENTER';
 export type OrganizationVerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
 
 export interface Organization {
   id: string;
   type: OrganizationType;
+  category: OrganizationCategory | null;
   orgId: string | null;
   ownerId: string;
   name: string;
@@ -1236,6 +1251,8 @@ export const ACQUISITION_SOURCES: OrganizationAcquisitionSource[] = [
 ];
 
 export interface CreateOrganizationInput {
+  // Obligatoire depuis V6-3, et cohérente avec la famille imposée par le rôle.
+  category: OrganizationCategory;
   name: string;
   sector?: string;
   country: string;
@@ -2033,6 +2050,19 @@ export const api = {
 
   listMyOrganizations: (accessToken: string) =>
     request<Organization[]>('/organizations/mine', { accessToken }),
+
+  // Route DISTINCTE de la mise à jour de page : la catégorie est réservée au
+  // propriétaire et aux administrateurs, jamais à un simple recruteur.
+  changeOrganizationCategory: (
+    accessToken: string,
+    organizationId: string,
+    category: OrganizationCategory,
+  ) =>
+    request<Organization>(`/organizations/${organizationId}/category`, {
+      method: 'PATCH',
+      body: { category },
+      accessToken,
+    }),
 
   createOrganization: (accessToken: string, input: CreateOrganizationInput) =>
     request<Organization>('/organizations', { method: 'POST', body: input, accessToken }),

@@ -540,7 +540,8 @@
       "acquisitionSourceLabel": "Comment avez-vous connu LES STAGIAIRES ?",
       "ambassadorCodeLabel": "Code ambassadeur (facultatif)",
       "ambassadorCodePlaceholder": "Ex. AB34CD",
-      "ambassadorCodeHint": "La question ci-dessus est une statistique. Seul ce code rattache votre entreprise à un ambassadeur."
+      "ambassadorCodeHint": "La question ci-dessus est une statistique. Seul ce code rattache votre entreprise à un ambassadeur.",
+      "categoryLabel": "Nature de l’organisation"
     },
     "organization": {
       "notFound": "Organisation introuvable.",
@@ -1306,6 +1307,16 @@
       "STILL_FRESH": "Cette offre est publiée depuis plus de deux mois. Actualisez-la ou clôturez-la si le poste est pourvu.",
       "EDUCATION_STATED": "Précisez le niveau d’études attendu : le candidat saura s’il peut postuler. Ne pas le renseigner n’exclut personne.",
       "LOCATION_USABLE": "Indiquez la ville, ou choisissez le mode à distance : le candidat doit savoir s’il peut prendre ce poste."
+    },
+    "organizationCategory": {
+      "COMPANY": "Entreprise",
+      "STARTUP": "Startup",
+      "NGO": "ONG / association",
+      "INSTITUTION": "Institution ou administration",
+      "SCHOOL": "École",
+      "UNIVERSITY": "Université",
+      "TRAINING_CENTER": "Centre de formation",
+      "undeclared": "Catégorie non déclarée"
     }
   },
   "moderation": {

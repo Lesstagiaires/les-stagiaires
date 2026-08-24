@@ -3,8 +3,10 @@ import type {
   NeedRequestStatus,
   NeedRequestType,
   OpportunityStatus,
+  OrganizationCategory,
   OrganizationMemberRole,
   OrganizationMemberStatus,
+  OrganizationType,
   OrganizationVerificationStatus,
 } from './api';
 import type { StatusTone } from './application-labels';
@@ -115,4 +117,40 @@ export const NEED_REQUEST_STATUS_TONE: Record<NeedRequestStatus, StatusTone> = {
   PENDING: 'accent',
   APPROVED: 'success',
   REJECTED: 'error',
+};
+
+// --- V6-3 : CATÉGORIE DE L'ORGANISATION ------------------------------------
+// La NATURE de l'organisation, distincte de sa FAMILLE (`type`). Purement
+// descriptive : elle n'entre dans aucun calcul de formule, de droit ni de prix.
+export function useOrganizationCategoryLabels(): Record<OrganizationCategory, string> {
+  const { t } = useTranslation();
+  return {
+    COMPANY: t('labels.organizationCategory.COMPANY'),
+    STARTUP: t('labels.organizationCategory.STARTUP'),
+    NGO: t('labels.organizationCategory.NGO'),
+    INSTITUTION: t('labels.organizationCategory.INSTITUTION'),
+    SCHOOL: t('labels.organizationCategory.SCHOOL'),
+    UNIVERSITY: t('labels.organizationCategory.UNIVERSITY'),
+    TRAINING_CENTER: t('labels.organizationCategory.TRAINING_CENTER'),
+  };
+}
+
+// Ce qu'on affiche quand la catégorie est nulle.
+//
+// Une organisation créée avant V6-3 n'a jamais déclaré ce qu'elle était, et rien
+// n'a été deviné à sa place. L'écran doit le dire — afficher « entreprise » par
+// défaut fabriquerait une information indiscernable d'une vraie déclaration.
+export function useUndeclaredCategoryLabel(): string {
+  const { t } = useTranslation();
+  return t('labels.organizationCategory.undeclared');
+}
+
+// Les catégories proposables pour une famille donnée.
+//
+// Confort d'usage, JAMAIS une garantie : le serveur revérifie l'appartenance à
+// la famille, et un déclencheur PostgreSQL refuse toute organisation sans
+// catégorie. Une liste d'interface ne protège rien.
+export const CATEGORIES_PAR_FAMILLE: Record<OrganizationType, OrganizationCategory[]> = {
+  ENTREPRISE: ['COMPANY', 'STARTUP', 'NGO', 'INSTITUTION'],
+  ETABLISSEMENT: ['SCHOOL', 'UNIVERSITY', 'TRAINING_CENTER'],
 };

@@ -57,6 +57,23 @@ export class OrganizationAccessService {
     }
   }
 
+  // Catégorie de l'organisation (V6-3) — réservée au propriétaire et aux
+  // administrateurs. Une méthode DISTINCTE plutôt qu'un appel à
+  // `assertCanManage` : ce dernier n'exclut que `VIEWER`, donc un `RECRUITER`
+  // y passerait. Déclarer ce qu'est l'organisation n'est pas de la gestion
+  // courante d'offres — c'est une déclaration sur son identité.
+  async assertCanDeclareCategory(
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
+    const access = await this.getAccess(organizationId, userId);
+    if (access !== 'OWNER' && access !== OrganizationMemberRole.ADMIN) {
+      throw new ForbiddenException(
+        'Seuls le propriétaire et les administrateurs déclarent la catégorie de cette organisation.',
+      );
+    }
+  }
+
   // Signature de convention — n'engage jamais un simple RECRUITER (CLAUDE.md §3).
   async assertCanSign(organizationId: string, userId: string): Promise<void> {
     const access = await this.getAccess(organizationId, userId);

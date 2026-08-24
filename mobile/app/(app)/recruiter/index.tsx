@@ -22,11 +22,15 @@ import {
   type HeldRole,
   type Organization,
   type OrganizationAcquisitionSource,
+  type OrganizationCategory,
   type OrganizationInvitation,
+  type OrganizationType,
 } from '../../../lib/api';
 import {
   useMemberRoleLabels,
+  useOrganizationCategoryLabels,
   useOrganizationVerificationLabels,
+  CATEGORIES_PAR_FAMILLE,
   ORGANIZATION_VERIFICATION_TONE,
 } from '../../../lib/organization-labels';
 import { useAuth } from '../../../lib/auth-context';
@@ -71,6 +75,16 @@ export default function RecruiterHomeScreen() {
   const isOrgEligible = heldRoles.some(
     (entry) => entry.role.name === 'ENTREPRISE' || entry.role.name === 'ETABLISSEMENT',
   );
+
+  // V6-3 — la FAMILLE découle du rôle détenu, exactement comme côté serveur.
+  // L'écran ne propose donc que les catégories de cette famille. Ce n'est qu'un
+  // confort : le serveur revérifie, et un déclencheur PostgreSQL refuse toute
+  // organisation sans catégorie.
+  const familleDuRole: OrganizationType = heldRoles.some(
+    (entry) => entry.role.name === 'ETABLISSEMENT',
+  )
+    ? 'ETABLISSEMENT'
+    : 'ENTREPRISE';
 
   if (!accessToken || organizations === null) {
     return (
@@ -144,7 +158,13 @@ export default function RecruiterHomeScreen() {
           </View>
         )}
 
-        {isOrgEligible && <CreateOrganizationSection accessToken={accessToken} onCreated={reload} />}
+        {isOrgEligible && (
+          <CreateOrganizationSection
+            accessToken={accessToken}
+            famille={familleDuRole}
+            onCreated={reload}
+          />
+        )}
 
         <ErrorText>{error}</ErrorText>
       </ScrollView>
@@ -219,22 +239,32 @@ function InvitationsSection({
 
 function CreateOrganizationSection({
   accessToken,
+  famille,
   onCreated,
 }: {
   accessToken: string;
+  // V6-3 — la famille imposée par le rôle détenu, calculée par l'écran parent.
+  famille: OrganizationType;
   onCreated: () => Promise<void>;
 }) {
   const { t } = useTranslation();
+  const categoryLabels = useOrganizationCategoryLabels();
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
   const [sector, setSector] = useState('');
   const [country, setCountry] = useState('');
   const [city, setCity] = useState('');
+  const [category, setCategory] = useState<OrganizationCategory | null>(null);
   const [acquisitionSource, setAcquisitionSource] =
     useState<OrganizationAcquisitionSource | null>(null);
   const [ambassadorCode, setAmbassadorCode] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const categoryOptions = CATEGORIES_PAR_FAMILLE[famille].map((value) => ({
+    value,
+    label: categoryLabels[value],
+  }));
 
   const acquisitionSourceOptions = ACQUISITION_SOURCES.map((value) => ({
     value,
@@ -245,7 +275,9 @@ function CreateOrganizationSection({
     setError(null);
     setIsSaving(true);
     try {
+      if (!category) return;
       await api.createOrganization(accessToken, {
+        category,
         name,
         sector: sector || undefined,
         country,
@@ -253,6 +285,7 @@ function CreateOrganizationSection({
         acquisitionSource: acquisitionSource ?? undefined,
         ambassadorCode: ambassadorCode.trim() || undefined,
       });
+      setCategory(null);
       setName('');
       setSector('');
       setCountry('');
@@ -301,6 +334,16 @@ function CreateOrganizationSection({
           Le premier est une statistique ; le second, et lui seul, crée un
           rattachement ouvrant droit à commission (points 9 à 11 des arbitrages du
           2026-07-31). Les libellés le disent explicitement à l'utilisateur. */}
+      {/* V6-3 — la nature de l'organisation. Obligatoire, et limitée aux
+          catégories de la famille imposée par le rôle : on décrit ce qu'on est,
+          on ne choisit pas sa famille — ni donc sa formule. */}
+      <Text style={typography.label}>{t('recruiter.home.categoryLabel')}</Text>
+      <ChipSelect
+        options={categoryOptions}
+        value={category}
+        onChange={(value) => setCategory(value as OrganizationCategory)}
+      />
+
       <Text style={typography.label}>{t('recruiter.home.acquisitionSourceLabel')}</Text>
       <ChipSelect
         options={acquisitionSourceOptions}

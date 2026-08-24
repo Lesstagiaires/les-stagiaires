@@ -540,7 +540,8 @@
       "acquisitionSourceLabel": "كيف تعرفت على LES STAGIAIRES؟",
       "ambassadorCodeLabel": "رمز السفير (اختياري)",
       "ambassadorCodePlaceholder": "مثال: AB34CD",
-      "ambassadorCodeHint": "السؤال أعلاه إحصائي فقط. هذا الرمز وحده يربط شركتك بسفير."
+      "ambassadorCodeHint": "السؤال أعلاه إحصائي فقط. هذا الرمز وحده يربط شركتك بسفير.",
+      "categoryLabel": "طبيعة المنظمة"
     },
     "organization": {
       "notFound": "المؤسسة غير موجودة.",
@@ -1306,6 +1307,16 @@
       "STILL_FRESH": "هذا العرض منشور منذ أكثر من شهرين. حدّثه أو أغلقه إذا شُغل المنصب.",
       "EDUCATION_STATED": "حدّد المستوى الدراسي المطلوب: سيعرف المرشّح إن كان بإمكانه التقديم. عدم ذكره لا يستبعد أحداً.",
       "LOCATION_USABLE": "اذكر المدينة، أو اختر العمل عن بُعد: على المرشّح أن يعرف إن كان بإمكانه شغل هذا المنصب."
+    },
+    "organizationCategory": {
+      "COMPANY": "شركة",
+      "STARTUP": "شركة ناشئة",
+      "NGO": "منظمة غير حكومية / جمعية",
+      "INSTITUTION": "مؤسسة أو إدارة عامة",
+      "SCHOOL": "مدرسة",
+      "UNIVERSITY": "جامعة",
+      "TRAINING_CENTER": "مركز تدريب",
+      "undeclared": "الفئة غير معلنة"
     }
   },
   "moderation": {

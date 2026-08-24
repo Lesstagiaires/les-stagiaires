@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   InternalServerErrorException,
@@ -7,12 +8,14 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { AmbassadorsService } from '../ambassadors/ambassadors.service';
 import {
+  OrganizationCategory,
   OrganizationMemberStatus,
   OrganizationType,
   OrganizationVerificationStatus,
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { generateOrgIdCandidate } from '../common/org-id/org-id.util';
+import { FAMILLE_DE_LA_CATEGORIE } from './organization-families';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationPageDto } from './dto/update-organization-page.dto';
@@ -23,6 +26,10 @@ const ORG_ROLE_NAMES = ['ENTREPRISE', 'ETABLISSEMENT'];
 const PUBLIC_ORGANIZATION_SELECT = {
   id: true,
   type: true,
+  // V6-3 — publique, et nulle pour les organisations antérieures. Le client doit
+  // la restituer telle quelle : « catégorie non déclarée », jamais une valeur de
+  // repli qui inventerait ce qu'on ignore.
+  category: true,
   orgId: true,
   name: true,
   sector: true,
@@ -64,10 +71,20 @@ export class OrganizationsService {
       heldOrgRole.role.name === 'ETABLISSEMENT'
         ? OrganizationType.ETABLISSEMENT
         : OrganizationType.ENTREPRISE;
+
+    // V6-3 — LA CATÉGORIE DÉCLARÉE DOIT APPARTENIR À LA FAMILLE DU RÔLE.
+    //
+    // Sans ce contrôle, la catégorie deviendrait un levier tarifaire : un
+    // titulaire du rôle ETABLISSEMENT déclarant COMPANY basculerait de la
+    // formule INSTITUTION vers BUSINESS. La catégorie est descriptive, elle ne
+    // doit jamais permettre de choisir sa famille — ni donc son prix.
+    this.assertCategorieDansLaFamille(dto.category, type);
+
     const orgId = await this.generateUniqueOrgId(type);
     const organization = await this.prisma.organization.create({
       data: {
         type,
+        category: dto.category,
         orgId,
         ownerId: userId,
         name: dto.name,
@@ -84,6 +101,7 @@ export class OrganizationsService {
       organizationId: organization.id,
       orgId,
       type,
+      category: dto.category,
       acquisitionSource: dto.acquisitionSource,
     });
 
@@ -100,6 +118,62 @@ export class OrganizationsService {
     }
 
     return organization;
+  }
+
+  // V6-3 — cohérence catégorie / famille, la garde commune à la création et au
+  // changement. Isolée pour n'avoir qu'un seul endroit à saboter dans un test.
+  private assertCategorieDansLaFamille(
+    categorie: OrganizationCategory,
+    famille: OrganizationType,
+  ): void {
+    if (FAMILLE_DE_LA_CATEGORIE[categorie] !== famille) {
+      throw new BadRequestException(
+        `La catégorie ${categorie} n'appartient pas à la famille de cette organisation.`,
+      );
+    }
+  }
+
+  // V6-3 — DÉCLARER OU CORRIGER LA CATÉGORIE.
+  //
+  // Route dédiée, et jamais `PATCH /:id/page` : cette dernière s'appuie sur
+  // `assertCanManage`, qui n'exclut que VIEWER — un RECRUITER y passerait, alors
+  // que déclarer ce qu'EST une organisation revient au propriétaire et aux
+  // administrateurs seuls.
+  //
+  // LA FAMILLE EST IMMUABLE. On ne change que la précision à l'intérieur d'elle :
+  // une école peut se dire université, jamais entreprise. `orgId` n'est donc
+  // jamais recalculé — son préfixe dépend de la famille, qui ne bouge pas.
+  async changeCategory(
+    userId: string,
+    organizationId: string,
+    category: OrganizationCategory,
+  ) {
+    const organization = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { id: true, type: true, category: true },
+    });
+    if (!organization) {
+      throw new NotFoundException('Organisation introuvable.');
+    }
+
+    await this.access.assertCanDeclareCategory(organizationId, userId);
+    this.assertCategorieDansLaFamille(category, organization.type);
+
+    const updated = await this.prisma.organization.update({
+      where: { id: organizationId },
+      // `category` SEUL : ni `type`, ni `orgId` ne figurent ici, et c'est
+      // délibéré — la famille et l'identifiant sont immuables.
+      data: { category },
+      select: PUBLIC_ORGANIZATION_SELECT,
+    });
+
+    await this.audit.record('ORGANIZATION_CATEGORY_DECLARED', userId, {
+      organizationId,
+      from: organization.category,
+      to: category,
+    });
+
+    return updated;
   }
 
   private async generateUniqueOrgId(type: OrganizationType): Promise<string> {

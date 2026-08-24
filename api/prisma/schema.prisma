@@ -957,6 +957,40 @@ model DigitalSafeAccessLog {
 // Module 4 — Gestion des opportunités (FR-M4-*)
 // ============================================================================
 
+// ============================================================================
+// V6-3 — LA CATÉGORIE PRÉCISE, DISTINCTE DE LA FAMILLE
+//
+// `OrganizationType` (ENTREPRISE / ETABLISSEMENT) reste la FAMILLE, et elle
+// seule commande les comportements historiques : droit aux apprenants, préfixe
+// de `orgId`, dérivation de la formule d'abonnement. Elle n'est ni renommée, ni
+// élargie.
+//
+// `OrganizationCategory` décrit la NATURE de l'organisation. Elle est
+// DESCRIPTIVE ET RIEN D'AUTRE : elle n'intervient dans aucune décision de
+// tarification, d'entitlement, d'autorisation, de RBAC ni de commission. Un
+// test de source l'impose, parce qu'une simple règle écrite se viole.
+//
+// POURQUOI DEUX AXES PLUTÔT QU'UN ENUM ÉLARGI. Fondre les sept catégories dans
+// `OrganizationType` aurait fait porter deux niveaux à un même champ — famille
+// pour les lignes anciennes, nature précise pour les nouvelles. C'est la faute
+// de PENDING_VERIFICATION, et PostgreSQL ne sait pas retirer une valeur d'enum :
+// l'erreur aurait été définitive.
+//
+// PAS DE VALEUR `OTHER`, à dessein : une catégorie fourre-tout finit par tout
+// absorber, et la donnée cesse de vouloir dire quelque chose.
+enum OrganizationCategory {
+  // Famille ENTREPRISE
+  COMPANY
+  STARTUP
+  NGO
+  INSTITUTION
+
+  // Famille ETABLISSEMENT
+  SCHOOL
+  UNIVERSITY
+  TRAINING_CENTER
+}
+
 enum OrganizationVerificationStatus {
   PENDING
   VERIFIED
@@ -982,7 +1016,22 @@ model Organization {
   // suffit : tout le reste (partenariats, offres, candidatures) en dépend par
   // clé étrangère.
   isDemo  Boolean          @default(false)
+  // LA FAMILLE — binaire, inchangée par V6-3, immuable après création. Elle
+  // seule pilote le droit aux apprenants, le préfixe de `orgId` et la
+  // dérivation de la formule d'abonnement.
   type    OrganizationType @default(ENTREPRISE)
+
+  // LA CATÉGORIE PRÉCISE (V6-3). Sa nullité a UN SEUL sens : « organisation
+  // antérieure à V6-3, catégorie non déclarée ». Jamais « inconnue qu'on peut
+  // deviner » — aucune reclassification automatique n'a été faite ni ne doit
+  // l'être.
+  //
+  // Pour toute NOUVELLE organisation elle est obligatoire, et cette obligation
+  // n'est pas portée par le service : un déclencheur `BEFORE INSERT` refuse
+  // toute insertion sans catégorie, d'où qu'elle vienne — service, script,
+  // Prisma ou SQL direct. Voir la migration 20260820140000.
+  category OrganizationCategory?
+
   // FR-ORG-001 / EDU-FR-002 : identifiant d'affichage, même mécanique que le LS-ID —
   // préfixe ORG- ou EDU- selon le type, attribué dès la création.
   orgId   String?          @unique

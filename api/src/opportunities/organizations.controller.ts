@@ -12,6 +12,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { AccessTokenPayload } from '../auth/token.service';
+import { ChangeOrganizationCategoryDto } from './dto/change-organization-category.dto';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationPageDto } from './dto/update-organization-page.dto';
 import { OrganizationsService } from './organizations.service';
@@ -48,6 +49,11 @@ export class OrganizationsController {
   }
 
   // FR-ORG-003 : page publique et marque employeur.
+  //
+  // NE JAMAIS Y AJOUTER LA CATÉGORIE. Cette route s'appuie sur
+  // `assertCanManage`, qui n'exclut que VIEWER : un RECRUITER y a donc accès.
+  // Déclarer ce qu'EST une organisation n'est pas de la gestion de vitrine, et
+  // relève du propriétaire ou d'un administrateur — voir `PATCH :id/category`.
   @Patch(':id/page')
   updatePublicPage(
     @CurrentUser() user: AccessTokenPayload,
@@ -55,6 +61,19 @@ export class OrganizationsController {
     @Body() dto: UpdateOrganizationPageDto,
   ) {
     return this.organizations.updatePublicPage(user.sub, id, dto);
+  }
+
+  // V6-3 — catégorie précise. Route DISTINCTE de `:id/page`, à dessein : elle
+  // porte un garde plus strict, réservé au propriétaire et aux administrateurs.
+  // La famille reste immuable ; seule la précision change, à l'intérieur d'elle.
+  @HttpCode(HttpStatus.OK)
+  @Patch(':id/category')
+  changeCategory(
+    @CurrentUser() user: AccessTokenPayload,
+    @Param('id') id: string,
+    @Body() dto: ChangeOrganizationCategoryDto,
+  ) {
+    return this.organizations.changeCategory(user.sub, id, dto.category);
   }
 
   // Réservé à un compte ADMIN — jamais d'auto-vérification (CLAUDE.md §3).

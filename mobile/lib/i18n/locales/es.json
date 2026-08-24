@@ -540,7 +540,8 @@
       "acquisitionSourceLabel": "¿Cómo conoció LES STAGIAIRES?",
       "ambassadorCodeLabel": "Código de embajador (opcional)",
       "ambassadorCodePlaceholder": "Ej. AB34CD",
-      "ambassadorCodeHint": "La pregunta anterior es una estadística. Solo este código vincula su empresa a un embajador."
+      "ambassadorCodeHint": "La pregunta anterior es una estadística. Solo este código vincula su empresa a un embajador.",
+      "categoryLabel": "Naturaleza de la organización"
     },
     "organization": {
       "notFound": "Organización no encontrada.",
@@ -1306,6 +1307,16 @@
       "STILL_FRESH": "Esta oferta lleva publicada más de dos meses. Actualícela o ciérrela si el puesto está cubierto.",
       "EDUCATION_STATED": "Precise el nivel de estudios esperado: el candidato sabrá si puede postularse. No indicarlo no excluye a nadie.",
       "LOCATION_USABLE": "Indique la ciudad, o elija el modo a distancia: el candidato debe saber si puede tomar este puesto."
+    },
+    "organizationCategory": {
+      "COMPANY": "Empresa",
+      "STARTUP": "Startup",
+      "NGO": "ONG / asociación",
+      "INSTITUTION": "Institución o administración",
+      "SCHOOL": "Escuela",
+      "UNIVERSITY": "Universidad",
+      "TRAINING_CENTER": "Centro de formación",
+      "undeclared": "Categoría no declarada"
     }
   },
   "moderation": {

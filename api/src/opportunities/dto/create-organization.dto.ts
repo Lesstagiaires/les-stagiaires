@@ -5,9 +5,22 @@ import {
   Length,
   MaxLength,
 } from 'class-validator';
-import { OrganizationAcquisitionSource } from '../../../generated/prisma/enums';
+import {
+  OrganizationAcquisitionSource,
+  OrganizationCategory,
+} from '../../../generated/prisma/enums';
 
 export class CreateOrganizationDto {
+  // V6-3 — OBLIGATOIRE, et sans valeur par défaut. Toute nouvelle organisation
+  // déclare ce qu'elle est. Le serveur vérifie ensuite que la catégorie
+  // appartient bien à la famille imposée par le rôle détenu : la catégorie
+  // décrit, elle ne permet jamais de choisir sa famille — ni donc sa formule.
+  //
+  // Le refus ne repose pas sur ce DTO seul : un déclencheur PostgreSQL rejette
+  // toute insertion sans catégorie, quel que soit le chemin emprunté.
+  @IsEnum(OrganizationCategory)
+  category: OrganizationCategory;
+
   @IsString()
   @MaxLength(200)
   name: string;

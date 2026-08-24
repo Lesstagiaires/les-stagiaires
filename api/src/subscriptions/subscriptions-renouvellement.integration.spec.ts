@@ -182,6 +182,11 @@ describe('P1-2 : renouvellement (base réelle)', () => {
         name: 'Entreprise de test',
         country: 'CM',
         city: 'Douala',
+        // Exigée depuis V6-3 : un déclencheur PostgreSQL refuse toute nouvelle
+        // organisation sans catégorie. Purement descriptive — la formule
+        // d'abonnement continue de dériver de la FAMILLE (`type`), et ce test
+        // vérifie précisément que cette dérivation n'a pas bougé.
+        category: 'COMPANY',
       },
     });
     organizationId = organization.id;

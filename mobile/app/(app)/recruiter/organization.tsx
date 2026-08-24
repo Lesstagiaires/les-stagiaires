@@ -10,6 +10,8 @@ import { colors, spacing, typography } from '../../../components/theme';
 import { api, ApiError, type Organization } from '../../../lib/api';
 import {
   useOrganizationVerificationLabels,
+  useOrganizationCategoryLabels,
+  useUndeclaredCategoryLabel,
   ORGANIZATION_VERIFICATION_TONE,
 } from '../../../lib/organization-labels';
 import { useAuth } from '../../../lib/auth-context';
@@ -18,6 +20,8 @@ export default function OrganizationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { t } = useTranslation();
+  const categoryLabels = useOrganizationCategoryLabels();
+  const undeclaredCategory = useUndeclaredCategoryLabel();
   const { accessToken, logout } = useAuth();
   const organizationVerificationLabels = useOrganizationVerificationLabels();
   const [organization, setOrganization] = useState<Organization | null>(null);
@@ -79,6 +83,14 @@ export default function OrganizationScreen() {
           />
         </View>
         {!!organization.orgId && <Text style={styles.orgId}>{organization.orgId}</Text>}
+        {/* V6-3 — la catégorie telle qu'elle est, sans repli. Une organisation
+            créée avant V6-3 n'en a pas déclaré, et l'écran le dit plutôt que
+            d'afficher une valeur par défaut qui passerait pour une déclaration. */}
+        <Text style={typography.caption}>
+          {organization.category
+            ? categoryLabels[organization.category]
+            : undeclaredCategory}
+        </Text>
         <Text style={typography.caption}>
           {organization.sector ? `${organization.sector} — ` : ''}
           {organization.city}, {organization.country}
