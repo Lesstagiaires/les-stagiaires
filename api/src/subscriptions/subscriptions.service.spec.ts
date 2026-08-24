@@ -16,7 +16,7 @@ import { SubscriptionsService } from './subscriptions.service';
 
 describe('SubscriptionsService', () => {
   let prisma: {
-    user: { findUniqueOrThrow: jest.Mock };
+    user: { findUniqueOrThrow: jest.Mock; findUnique: jest.Mock };
     organization: { findUniqueOrThrow: jest.Mock };
     subscription: {
       create: jest.Mock;
@@ -40,7 +40,18 @@ describe('SubscriptionsService', () => {
 
   beforeEach(() => {
     prisma = {
-      user: { findUniqueOrThrow: jest.fn() },
+      user: {
+        findUniqueOrThrow: jest.fn(),
+        // D-21 (V6-4) lit le parcours du bénéficiaire avant toute écriture. Ces
+        // scénarios-ci ne portent pas sur le plancher : ils représentent un
+        // compte SANS PARCOURS DÉCLARÉ, cas où la garde ressort sans restreindre.
+        //
+        // `currentPath: null` et non `undefined` : mesuré sur une base migrée,
+        // la colonne est nullable, sans valeur par défaut, et un compte créé
+        // sans parcours porte bien `null`. Un double qui rendrait `undefined`
+        // décrirait un état que PostgreSQL ne produit jamais.
+        findUnique: jest.fn().mockResolvedValue({ currentPath: null }),
+      },
       organization: { findUniqueOrThrow: jest.fn() },
       subscription: {
         create: jest.fn(),

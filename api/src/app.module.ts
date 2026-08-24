@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { DigitalSafeModule } from './digital-safe/digital-safe.module';
+import { EntitlementsModule } from './entitlements/entitlements.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { OpportunitiesModule } from './opportunities/opportunities.module';
 import { PartnershipRequestsModule } from './partnership-requests/partnership-requests.module';
@@ -54,6 +55,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     PartnershipRequestsModule,
     PartnershipsModule,
     SubscriptionsModule,
+    EntitlementsModule,
     AmbassadorsModule,
   ],
   controllers: [AppController],

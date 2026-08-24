@@ -32,6 +32,7 @@ import { SponsorSubscriptionDto } from './dto/sponsor-subscription.dto';
 import { SubscribeOrganizationDto } from './dto/subscribe-organization.dto';
 import { SubscribeSelfDto } from './dto/subscribe-self.dto';
 import { INDIVIDUAL_PLANS } from './individual-plans';
+import { atteintLePlancher, PLANCHER_PAR_PARCOURS } from './plancher-parcours';
 import { SubscriptionPricingService } from './subscription-pricing.service';
 
 // --- P1-1 : UN SEUL ABONNEMENT INDIVIDUEL À LA FOIS -------------------------
@@ -510,11 +511,55 @@ export class SubscriptionsService {
     }
   }
 
+  // D-21 — LE PARCOURS FIXE LE PLANCHER D'UNE ACQUISITION.
+  //
+  // ELLE VIT ICI, dans le point de passage unique, et non dans `subscribeSelf`.
+  // `subscribeOrgSponsored` crée lui aussi une formule individuelle pour un
+  // bénéficiaire : garder la seule auto-souscription laisserait un jeune en
+  // parcours professionnel obtenir PARCOURS par parrainage d'une organisation.
+  // Même raison, même emplacement que la garde d'unicité P1-1.
+  //
+  // ELLE NE S'APPLIQUE QU'À L'ACQUISITION. `renew()` ne choisit aucune formule —
+  // il reprend `subscription.plan` — et ne passe donc jamais ici : le droit
+  // acquis est préservé par construction, sans qu'une ligne ne le stipule.
+  //
+  // ELLE RESTREINT, ELLE N'ACCORDE JAMAIS. Aucune valeur de `currentPath` n'ouvre
+  // un accès ; elle ne fait que réduire l'ensemble des formules achetables.
+  private async assertPlancherDeParcoursRespecte(
+    params: CreateSubscriptionParams,
+  ): Promise<void> {
+    if (!params.beneficiaryUserId) return;
+    if (!estFormuleIndividuelle(params.plan)) return;
+
+    const beneficiaire = await this.prisma.user.findUnique({
+      where: { id: params.beneficiaryUserId },
+      select: { currentPath: true },
+    });
+
+    // Parcours non déclaré : aucune restriction. « Non déclaré » n'autorise pas
+    // à deviner une situation, et deviner ici reviendrait à facturer sur une
+    // supposition.
+    if (!beneficiaire?.currentPath) return;
+
+    const plancher = PLANCHER_PAR_PARCOURS[beneficiaire.currentPath];
+    // Plancher non arrêté pour ce parcours — EMPLOYMENT aujourd'hui. On
+    // n'invente aucune restriction : l'absence de décision ne se remplace pas
+    // par une valeur commerciale par défaut.
+    if (!plancher) return;
+
+    if (!atteintLePlancher(params.plan, plancher)) {
+      throw new BadRequestException(
+        'Cette formule ne correspond pas au parcours déclaré sur ce compte.',
+      );
+    }
+  }
+
   private async createSubscription(params: CreateSubscriptionParams) {
     // Refus AVANT toute écriture : ni Subscription, ni Payment, ni appel à la
     // passerelle. C'est ce qui garantit qu'un doublon ne peut pas produire de
     // paiement, donc pas de confirmation, donc pas de commission.
     await this.assertPlaceLibrePourFormuleIndividuelle(params);
+    await this.assertPlancherDeParcoursRespecte(params);
 
     const { amountMinor, currency } = this.pricing.resolve(
       params.plan,
