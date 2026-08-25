@@ -18,6 +18,66 @@ import {
 
 const CANCELLABLE_STATUSES = new Set<SubscriptionStatus>(['PENDING_PAYMENT', 'ACTIVE']);
 
+const JOUR_MS = 24 * 60 * 60 * 1000;
+// Même valeur que FENETRE_RENOUVELLEMENT_JOURS côté serveur. Recopiée parce que
+// le mobile ne partage aucun module avec l'API, et VÉRIFIÉE de l'autre côté :
+// `api/src/subscriptions/subscription-notices.service.spec.ts` lit cette ligne
+// et échoue si les deux valeurs divergent. Sans cela, l'écran annoncerait un
+// jour une ouverture que le serveur refuserait encore.
+const FENETRE_RENOUVELLEMENT_JOURS = 30;
+
+type RenouvellementEtat =
+  | { possible: true }
+  | { possible: false; motif: 'ONE_TIME' | 'PAIEMENT_EN_COURS' | 'RESILIE' | 'TROP_TOT'; ouvertureLe?: Date };
+
+// ============================================================================
+// POURQUOI CETTE RÈGLE EXISTE AUSSI ICI
+//
+// Elle REPRODUIT `assertRenouvelable` (subscriptions.service.ts), elle ne le
+// remplace pas : le serveur revérifie tout, et lui seul décide. Ce miroir ne
+// sert qu'à ne pas afficher un bouton qui échouerait — et surtout à DIRE
+// POURQUOI, là où un bouton grisé sans explication laisse l'utilisateur deviner.
+//
+// Elle n'accorde donc aucun droit. Au pire, elle se trompe et l'utilisateur voit
+// l'erreur du serveur, exactement comme avant V6-5.
+// ============================================================================
+function etatDuRenouvellement(
+  subscription: Subscription,
+  maintenant: number,
+): RenouvellementEtat {
+  if (subscription.billingCycle === 'ONE_TIME') {
+    return { possible: false, motif: 'ONE_TIME' };
+  }
+  if (subscription.status === 'PENDING_PAYMENT') {
+    return { possible: false, motif: 'PAIEMENT_EN_COURS' };
+  }
+  if (subscription.status === 'CANCELLED') {
+    return { possible: false, motif: 'RESILIE' };
+  }
+  // EXPIRED et PAYMENT_FAILED se reconduisent sans condition de date : il n'y a
+  // plus de période à protéger.
+  if (subscription.status !== 'ACTIVE') return { possible: true };
+  if (!subscription.currentPeriodEnd) return { possible: true };
+
+  const fin = new Date(subscription.currentPeriodEnd).getTime();
+  const restantMs = fin - maintenant;
+  if (restantMs > FENETRE_RENOUVELLEMENT_JOURS * JOUR_MS) {
+    return {
+      possible: false,
+      motif: 'TROP_TOT',
+      ouvertureLe: new Date(fin - FENETRE_RENOUVELLEMENT_JOURS * JOUR_MS),
+    };
+  }
+  return { possible: true };
+}
+
+// Le nombre de jours entiers restants. Arrondi au SUPÉRIEUR : à onze heures de
+// l'échéance, « il reste 1 jour » est plus juste que « il reste 0 jour », qui
+// donnerait à croire que tout est déjà fini.
+function joursRestants(fin: string, maintenant: number): number {
+  return Math.max(0, Math.ceil((new Date(fin).getTime() - maintenant) / JOUR_MS));
+}
+
 export default function SubscriptionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, i18n } = useTranslation();
@@ -31,6 +91,9 @@ export default function SubscriptionDetailScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [isRenewing, setIsRenewing] = useState(false);
+  const [renewError, setRenewError] = useState<string | null>(null);
+  const [renewNotice, setRenewNotice] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     if (!id || !accessToken) return;
@@ -68,6 +131,28 @@ export default function SubscriptionDetailScreen() {
     }
   }
 
+  async function handleRenew() {
+    if (!accessToken || !id) return;
+    setRenewError(null);
+    setRenewNotice(null);
+    setIsRenewing(true);
+    try {
+      const result = await api.renewSubscription(accessToken, id);
+      // Le paiement n'est pas encore encaissé : l'abonnement repasse en attente.
+      // Le dire évite qu'on croie la reconduction acquise dès l'appui.
+      setRenewNotice(
+        result.payment.instructions ?? t('subscriptions.detail.renewPending'),
+      );
+      await reload();
+    } catch (err) {
+      setRenewError(
+        err instanceof ApiError ? err.message : t('subscriptions.detail.renewError'),
+      );
+    } finally {
+      setIsRenewing(false);
+    }
+  }
+
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -87,6 +172,13 @@ export default function SubscriptionDetailScreen() {
       </SafeAreaView>
     );
   }
+
+  // Figé au rendu : recalculer à chaque ligne ferait varier le nombre de jours
+  // au milieu d'un même écran si l'on franchit minuit pendant la lecture.
+  const maintenant = Date.now();
+  const renouvellement = etatDuRenouvellement(subscription, maintenant);
+  // ONE_TIME n'a pas d'échéance périodique : aucune de ces lignes ne le concerne.
+  const periodique = subscription.billingCycle !== 'ONE_TIME';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -127,6 +219,60 @@ export default function SubscriptionDetailScreen() {
             </Text>
           )}
         </Section>
+
+        {/* V6-5 — LE CYCLE DE VIE, RENDU LISIBLE.
+            Une date de fin seule ne dit rien à qui ne compte pas les jours : on
+            affiche donc la durée restante, le moment où la reconduction s'ouvre,
+            et ce qui se passe une fois l'échéance franchie. */}
+        {periodique && (
+          <Section title={t('subscriptions.detail.lifecycleSection')}>
+            {subscription.status === 'ACTIVE' && !!subscription.currentPeriodEnd && (
+              <Text style={typography.body}>
+                {t('subscriptions.detail.remaining', {
+                  count: joursRestants(subscription.currentPeriodEnd, maintenant),
+                })}
+              </Text>
+            )}
+
+            {renouvellement.possible ? (
+              <Text style={typography.caption}>
+                {t('subscriptions.detail.renewOpen')}
+              </Text>
+            ) : (
+              <Text style={typography.caption}>
+                {renouvellement.motif === 'TROP_TOT' && renouvellement.ouvertureLe
+                  ? t('subscriptions.detail.renewOpensOn', {
+                      date: renouvellement.ouvertureLe.toLocaleDateString(i18n.language),
+                    })
+                  : t(`subscriptions.detail.renewBlocked.${renouvellement.motif}`)}
+              </Text>
+            )}
+
+            {/* Ce que l'on garde après l'échéance. Le dire ici, et pas seulement
+                dans l'e-mail, évite la crainte de perdre son profil ou ses
+                documents en laissant expirer un abonnement. */}
+            <Text style={typography.caption}>
+              {subscription.status === 'EXPIRED'
+                ? t('subscriptions.detail.afterExpiry')
+                : t('subscriptions.detail.onExpiry')}
+            </Text>
+          </Section>
+        )}
+
+        {renouvellement.possible && (
+          <Section title={t('subscriptions.detail.renewSection')}>
+            <ErrorText>{renewError}</ErrorText>
+            {!!renewNotice && <Text style={typography.body}>{renewNotice}</Text>}
+            <SecondaryButton
+              title={t('subscriptions.detail.renewButton')}
+              onPress={handleRenew}
+              loading={isRenewing}
+            />
+            <Text style={typography.caption}>
+              {t('subscriptions.detail.renewNoDayLost')}
+            </Text>
+          </Section>
+        )}
 
         {subscription.status === 'PENDING_PAYMENT' && (
           <Section title={t('subscriptions.detail.paymentSection')}>

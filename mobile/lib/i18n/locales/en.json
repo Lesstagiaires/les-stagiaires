@@ -1258,6 +1258,26 @@
       "NEED_REQUEST_ANSWERED": {
         "title": "Answer to your request",
         "body": "The administration has answered your needs request."
+      },
+      "SUBSCRIPTION_ACTIVATED": {
+        "title": "Your subscription is active",
+        "body": "Your payment has been confirmed."
+      },
+      "SUBSCRIPTION_RENEWED": {
+        "title": "Your subscription has been renewed",
+        "body": "Your cover continues without interruption."
+      },
+      "SUBSCRIPTION_COVERAGE_ENDED": {
+        "title": "Your subscription has ended",
+        "body": "You can subscribe again at any time."
+      },
+      "SUBSCRIPTION_RENEWAL_WINDOW_OPEN": {
+        "title": "You can renew your subscription",
+        "body": "The days you have left are not lost."
+      },
+      "SUBSCRIPTION_EXPIRING_SOON": {
+        "title": "Your subscription ends soon",
+        "body": "Renew it to keep your cover running."
       }
     },
     "notificationCategory": {
@@ -1419,8 +1439,27 @@
       "refresh": "Refresh status",
       "manageSection": "Manage",
       "cancelButton": "Cancel subscription",
-      "cancelError": "Couldn't cancel."
-    }
+      "cancelError": "Couldn't cancel.",
+      "lifecycleSection": "Renewal date",
+      "remaining_one": "You have {{count}} day of cover left.",
+      "remaining_other": "You have {{count}} days of cover left.",
+      "renewOpen": "You can renew this subscription now.",
+      "renewOpensOn": "Renewal will open on {{date}}.",
+      "renewBlocked": {
+        "ONE_TIME": "This is a one-off service: it does not renew.",
+        "PAIEMENT_EN_COURS": "A payment is already in progress for this subscription.",
+        "RESILIE": "This subscription was cancelled: subscribe again to open a new one.",
+        "TROP_TOT": "Renewal is not open yet."
+      },
+      "renewSection": "Renewal",
+      "renewButton": "Renew my subscription",
+      "renewNoDayLost": "The days you have left are not lost: the new period is added to the current one.",
+      "renewPending": "Renewal recorded. It will take effect once the provider confirms the payment.",
+      "renewError": "Renewal failed.",
+      "onExpiry": "When it ends, you keep your account, your profile and your documents; only the subscription benefits stop.",
+      "afterExpiry": "Your account, your profile and your documents remain yours. You can subscribe again at any time."
+    },
+    "endedOnLabel": "Cover ended on {{date}}"
   },
   "subscriptionsAdmin": {
     "filterAll": "All",

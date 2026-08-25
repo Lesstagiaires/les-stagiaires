@@ -20,6 +20,7 @@ import { PaymentNotSentError } from '../payments/payment-gateway-provider.interf
 import type { OrganizationAccessService } from '../opportunities/organization-access.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from './payments.service';
+import type { SubscriptionNoticesService } from './subscription-notices.service';
 import type { SubscriptionPricingService } from './subscription-pricing.service';
 import { SubscriptionsService } from './subscriptions.service';
 
@@ -163,6 +164,14 @@ describe('P1-2 : renouvellement (base réelle)', () => {
       {
         onPaymentConfirmed: () => Promise.resolve(),
       } as unknown as CommissionsService,
+      // V6-5 — même raisonnement que pour les commissions ci-dessus : P1-2
+      // éprouve la mécanique de reconduction, pas les avis. Le double rend
+      // visible qu'aucun avis n'entre dans ce que ce fichier démontre — et si
+      // l'émission venait un jour peser sur la reconduction, ces scénarios ne
+      // le masqueraient pas, ils resteraient muets sur le sujet.
+      {
+        signalerPaiementConfirme: () => Promise.resolve(),
+      } as unknown as SubscriptionNoticesService,
     );
 
     const user = await prisma.user.create({

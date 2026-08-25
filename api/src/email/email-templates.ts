@@ -45,6 +45,11 @@ export interface TemplateVars {
   requestedAt?: string;
   requestedBy?: string;
   recipient?: string;
+  // V6-5. Déclarée nommément, comme les autres : sans cela elle retombe sur la
+  // signature d'index (`string | string[]`) et ne peut plus entrer dans un
+  // gabarit sans que le typage proteste — à juste titre, un tableau n'ayant
+  // rien à faire au milieu d'une phrase.
+  currentPeriodEnd?: string;
 
   [key: string]: string | string[] | undefined;
 }
@@ -2384,6 +2389,310 @@ const LEARNER_INVITED_TPL: Localized = {
       'Se não conhece este estabelecimento, ignore esta mensagem.',
     ),
 };
+// ============================================================================
+// CYCLE DE VIE D'UN ABONNEMENT (V6-5)
+//
+// AUCUN NOM DE FORMULE dans ces cinq gabarits, à dessein. Les libellés
+// commerciaux traduits vivent déjà côté mobile (`subscription-labels.ts`), et
+// les recopier ici en aurait fait une seconde liste à tenir — celle qui finit
+// par dire « CARRIERE_SECURISEE » à un abonné le jour où l'on renomme la
+// formule. La date, elle, suffit à situer ce dont on parle.
+//
+// `currentPeriodEnd` est mis en forme par `normalize` : il arrive en ISO et
+// n'apparaît jamais tel quel.
+// ============================================================================
+const SUBSCRIPTION_ACTIVATED_TPL: Localized = {
+  [Language.FR]: (v) =>
+    institutional(
+      'Votre abonnement est actif',
+      'Votre abonnement est actif',
+      [
+        'Votre paiement a bien été confirmé et votre abonnement LES STAGIAIRES est désormais actif.',
+        `Vous êtes couvert jusqu’au ${v.currentPeriodEnd ?? 'terme de la période en cours'}.`,
+      ],
+      { label: 'Voir mon abonnement', path: '/subscriptions' },
+      'Ce message confirme un paiement : il vous est envoyé quelles que soient vos préférences de notification.',
+    ),
+  [Language.EN]: (v) =>
+    institutional(
+      'Your subscription is active',
+      'Your subscription is active',
+      [
+        'Your payment has been confirmed and your LES STAGIAIRES subscription is now active.',
+        `You are covered until ${v.currentPeriodEnd ?? 'the end of the current period'}.`,
+      ],
+      { label: 'View my subscription', path: '/subscriptions' },
+      'This message confirms a payment: it is sent to you regardless of your notification preferences.',
+    ),
+  [Language.ES]: (v) =>
+    institutional(
+      'Su suscripción está activa',
+      'Su suscripción está activa',
+      [
+        'Su pago ha sido confirmado y su suscripción a LES STAGIAIRES ya está activa.',
+        `Su cobertura es válida hasta el ${v.currentPeriodEnd ?? 'final del periodo en curso'}.`,
+      ],
+      { label: 'Ver mi suscripción', path: '/subscriptions' },
+      'Este mensaje confirma un pago: se le envía independientemente de sus preferencias de notificación.',
+    ),
+  [Language.AR]: (v) =>
+    institutional(
+      'اشتراكك مفعّل',
+      'اشتراكك مفعّل',
+      [
+        'تم تأكيد دفعتك، واشتراكك في LES STAGIAIRES مفعّل الآن.',
+        `تغطيتك سارية إلى غاية ${v.currentPeriodEnd ?? 'نهاية الفترة الجارية'}.`,
+      ],
+      { label: 'عرض اشتراكي', path: '/subscriptions' },
+      'تؤكد هذه الرسالة عملية دفع: تصلك مهما كانت تفضيلات الإشعارات لديك.',
+    ),
+  [Language.PT]: (v) =>
+    institutional(
+      'A sua subscrição está ativa',
+      'A sua subscrição está ativa',
+      [
+        'O seu pagamento foi confirmado e a sua subscrição LES STAGIAIRES está agora ativa.',
+        `Está coberto até ${v.currentPeriodEnd ?? 'ao fim do período em curso'}.`,
+      ],
+      { label: 'Ver a minha subscrição', path: '/subscriptions' },
+      'Esta mensagem confirma um pagamento: é-lhe enviada independentemente das suas preferências de notificação.',
+    ),
+};
+
+const SUBSCRIPTION_RENEWED_TPL: Localized = {
+  [Language.FR]: (v) =>
+    institutional(
+      'Votre abonnement est reconduit',
+      'Votre abonnement est reconduit',
+      [
+        'Votre paiement a bien été confirmé et votre abonnement LES STAGIAIRES se poursuit sans interruption.',
+        `Votre couverture court désormais jusqu’au ${v.currentPeriodEnd ?? 'terme de la nouvelle période'}.`,
+      ],
+      { label: 'Voir mon abonnement', path: '/subscriptions' },
+      'Ce message confirme un paiement : il vous est envoyé quelles que soient vos préférences de notification.',
+    ),
+  [Language.EN]: (v) =>
+    institutional(
+      'Your subscription has been renewed',
+      'Your subscription has been renewed',
+      [
+        'Your payment has been confirmed and your LES STAGIAIRES subscription continues without interruption.',
+        `Your cover now runs until ${v.currentPeriodEnd ?? 'the end of the new period'}.`,
+      ],
+      { label: 'View my subscription', path: '/subscriptions' },
+      'This message confirms a payment: it is sent to you regardless of your notification preferences.',
+    ),
+  [Language.ES]: (v) =>
+    institutional(
+      'Su suscripción ha sido renovada',
+      'Su suscripción ha sido renovada',
+      [
+        'Su pago ha sido confirmado y su suscripción a LES STAGIAIRES continúa sin interrupción.',
+        `Su cobertura es ahora válida hasta el ${v.currentPeriodEnd ?? 'final del nuevo periodo'}.`,
+      ],
+      { label: 'Ver mi suscripción', path: '/subscriptions' },
+      'Este mensaje confirma un pago: se le envía independientemente de sus preferencias de notificación.',
+    ),
+  [Language.AR]: (v) =>
+    institutional(
+      'تم تجديد اشتراكك',
+      'تم تجديد اشتراكك',
+      [
+        'تم تأكيد دفعتك، ويستمر اشتراكك في LES STAGIAIRES دون انقطاع.',
+        `تمتد تغطيتك الآن إلى غاية ${v.currentPeriodEnd ?? 'نهاية الفترة الجديدة'}.`,
+      ],
+      { label: 'عرض اشتراكي', path: '/subscriptions' },
+      'تؤكد هذه الرسالة عملية دفع: تصلك مهما كانت تفضيلات الإشعارات لديك.',
+    ),
+  [Language.PT]: (v) =>
+    institutional(
+      'A sua subscrição foi renovada',
+      'A sua subscrição foi renovada',
+      [
+        'O seu pagamento foi confirmado e a sua subscrição LES STAGIAIRES continua sem interrupção.',
+        `A sua cobertura decorre agora até ${v.currentPeriodEnd ?? 'ao fim do novo período'}.`,
+      ],
+      { label: 'Ver a minha subscrição', path: '/subscriptions' },
+      'Esta mensagem confirma um pagamento: é-lhe enviada independentemente das suas preferências de notificação.',
+    ),
+};
+
+// LA FENÊTRE S'OUVRE — et reconduire tôt ne coûte aucun jour. Ce n'est pas une
+// formule commerciale : `computePeriodEnd` ancre la nouvelle période sur
+// `max(currentPeriodEnd, maintenant)`, donc les jours restants sont conservés.
+const SUBSCRIPTION_RENEWAL_WINDOW_OPEN_TPL: Localized = {
+  [Language.FR]: (v) =>
+    institutional(
+      'Vous pouvez reconduire votre abonnement',
+      'La reconduction est ouverte',
+      [
+        `Votre abonnement LES STAGIAIRES arrive à échéance le ${v.currentPeriodEnd ?? 'terme de la période en cours'}.`,
+        'Vous pouvez le reconduire dès maintenant : les jours qu’il vous reste ne sont pas perdus, la nouvelle période s’ajoute à la période en cours.',
+      ],
+      { label: 'Reconduire mon abonnement', path: '/subscriptions' },
+      'Vous pouvez désactiver ce rappel dans vos préférences de notification.',
+    ),
+  [Language.EN]: (v) =>
+    institutional(
+      'You can renew your subscription',
+      'Renewal is open',
+      [
+        `Your LES STAGIAIRES subscription ends on ${v.currentPeriodEnd ?? 'the end of the current period'}.`,
+        'You can renew it now: the days you have left are not lost — the new period is added to the current one.',
+      ],
+      { label: 'Renew my subscription', path: '/subscriptions' },
+      'You can turn off this reminder in your notification preferences.',
+    ),
+  [Language.ES]: (v) =>
+    institutional(
+      'Puede renovar su suscripción',
+      'La renovación está abierta',
+      [
+        `Su suscripción a LES STAGIAIRES vence el ${v.currentPeriodEnd ?? 'final del periodo en curso'}.`,
+        'Puede renovarla desde ahora: los días que le quedan no se pierden, el nuevo periodo se suma al periodo en curso.',
+      ],
+      { label: 'Renovar mi suscripción', path: '/subscriptions' },
+      'Puede desactivar este recordatorio en sus preferencias de notificación.',
+    ),
+  [Language.AR]: (v) =>
+    institutional(
+      'يمكنك تجديد اشتراكك',
+      'باب التجديد مفتوح',
+      [
+        `ينتهي اشتراكك في LES STAGIAIRES بتاريخ ${v.currentPeriodEnd ?? 'نهاية الفترة الجارية'}.`,
+        'يمكنك تجديده من الآن: الأيام المتبقية لك لا تضيع، إذ تُضاف الفترة الجديدة إلى الفترة الجارية.',
+      ],
+      { label: 'تجديد اشتراكي', path: '/subscriptions' },
+      'يمكنك إيقاف هذا التذكير من تفضيلات الإشعارات.',
+    ),
+  [Language.PT]: (v) =>
+    institutional(
+      'Pode renovar a sua subscrição',
+      'A renovação está aberta',
+      [
+        `A sua subscrição LES STAGIAIRES termina a ${v.currentPeriodEnd ?? 'ao fim do período em curso'}.`,
+        'Pode renová-la já: os dias que lhe restam não se perdem — o novo período soma-se ao período em curso.',
+      ],
+      { label: 'Renovar a minha subscrição', path: '/subscriptions' },
+      'Pode desativar este lembrete nas suas preferências de notificação.',
+    ),
+};
+
+const SUBSCRIPTION_EXPIRING_SOON_TPL: Localized = {
+  [Language.FR]: (v) =>
+    institutional(
+      'Votre abonnement se termine bientôt',
+      'Votre abonnement se termine bientôt',
+      [
+        `Votre abonnement LES STAGIAIRES prend fin le ${v.currentPeriodEnd ?? 'terme de la période en cours'}.`,
+        'Passé cette date, vous conservez votre compte, votre profil et vos documents ; seuls les avantages liés à l’abonnement s’interrompent.',
+      ],
+      { label: 'Reconduire mon abonnement', path: '/subscriptions' },
+      'Ce rappel porte une échéance proche : il vous est envoyé quelles que soient vos préférences de notification.',
+    ),
+  [Language.EN]: (v) =>
+    institutional(
+      'Your subscription ends soon',
+      'Your subscription ends soon',
+      [
+        `Your LES STAGIAIRES subscription ends on ${v.currentPeriodEnd ?? 'the end of the current period'}.`,
+        'After that date you keep your account, your profile and your documents; only the subscription benefits stop.',
+      ],
+      { label: 'Renew my subscription', path: '/subscriptions' },
+      'This reminder carries a near deadline: it is sent to you regardless of your notification preferences.',
+    ),
+  [Language.ES]: (v) =>
+    institutional(
+      'Su suscripción termina pronto',
+      'Su suscripción termina pronto',
+      [
+        `Su suscripción a LES STAGIAIRES finaliza el ${v.currentPeriodEnd ?? 'final del periodo en curso'}.`,
+        'Pasada esa fecha, conserva su cuenta, su perfil y sus documentos; solo se interrumpen las ventajas ligadas a la suscripción.',
+      ],
+      { label: 'Renovar mi suscripción', path: '/subscriptions' },
+      'Este recordatorio conlleva un vencimiento próximo: se le envía independientemente de sus preferencias de notificación.',
+    ),
+  [Language.AR]: (v) =>
+    institutional(
+      'اشتراكك ينتهي قريبا',
+      'اشتراكك ينتهي قريبا',
+      [
+        `ينتهي اشتراكك في LES STAGIAIRES بتاريخ ${v.currentPeriodEnd ?? 'نهاية الفترة الجارية'}.`,
+        'بعد هذا التاريخ تحتفظ بحسابك وملفك ووثائقك؛ تتوقف فقط المزايا المرتبطة بالاشتراك.',
+      ],
+      { label: 'تجديد اشتراكي', path: '/subscriptions' },
+      'يحمل هذا التذكير أجلا قريبا: يصلك مهما كانت تفضيلات الإشعارات لديك.',
+    ),
+  [Language.PT]: (v) =>
+    institutional(
+      'A sua subscrição termina em breve',
+      'A sua subscrição termina em breve',
+      [
+        `A sua subscrição LES STAGIAIRES termina a ${v.currentPeriodEnd ?? 'ao fim do período em curso'}.`,
+        'Depois dessa data mantém a sua conta, o seu perfil e os seus documentos; apenas as vantagens ligadas à subscrição são interrompidas.',
+      ],
+      { label: 'Renovar a minha subscrição', path: '/subscriptions' },
+      'Este lembrete comporta um prazo próximo: é-lhe enviado independentemente das suas preferências de notificação.',
+    ),
+};
+
+const SUBSCRIPTION_COVERAGE_ENDED_TPL: Localized = {
+  [Language.FR]: (v) =>
+    institutional(
+      'Votre abonnement a pris fin',
+      'Votre abonnement a pris fin',
+      [
+        `Votre abonnement LES STAGIAIRES est arrivé à échéance le ${v.currentPeriodEnd ?? 'terme de la période'}.`,
+        'Votre compte, votre profil et vos documents restent les vôtres. Vous pouvez souscrire à nouveau à tout moment ; la nouvelle période démarrera à la date de votre paiement.',
+      ],
+      { label: 'Souscrire à nouveau', path: '/subscriptions' },
+      'Ce message constate la fin d’un droit : il vous est envoyé quelles que soient vos préférences de notification.',
+    ),
+  [Language.EN]: (v) =>
+    institutional(
+      'Your subscription has ended',
+      'Your subscription has ended',
+      [
+        `Your LES STAGIAIRES subscription ended on ${v.currentPeriodEnd ?? 'the end of the period'}.`,
+        'Your account, your profile and your documents remain yours. You can subscribe again at any time; the new period will start on the date of your payment.',
+      ],
+      { label: 'Subscribe again', path: '/subscriptions' },
+      'This message records the end of an entitlement: it is sent to you regardless of your notification preferences.',
+    ),
+  [Language.ES]: (v) =>
+    institutional(
+      'Su suscripción ha finalizado',
+      'Su suscripción ha finalizado',
+      [
+        `Su suscripción a LES STAGIAIRES venció el ${v.currentPeriodEnd ?? 'final del periodo'}.`,
+        'Su cuenta, su perfil y sus documentos siguen siendo suyos. Puede suscribirse de nuevo en cualquier momento; el nuevo periodo comenzará en la fecha de su pago.',
+      ],
+      { label: 'Suscribirme de nuevo', path: '/subscriptions' },
+      'Este mensaje constata el fin de un derecho: se le envía independientemente de sus preferencias de notificación.',
+    ),
+  [Language.AR]: (v) =>
+    institutional(
+      'انتهى اشتراكك',
+      'انتهى اشتراكك',
+      [
+        `انتهى اشتراكك في LES STAGIAIRES بتاريخ ${v.currentPeriodEnd ?? 'نهاية الفترة'}.`,
+        'يبقى حسابك وملفك ووثائقك لك. يمكنك الاشتراك من جديد في أي وقت؛ وتبدأ الفترة الجديدة من تاريخ دفعك.',
+      ],
+      { label: 'الاشتراك من جديد', path: '/subscriptions' },
+      'تثبت هذه الرسالة انتهاء حق: تصلك مهما كانت تفضيلات الإشعارات لديك.',
+    ),
+  [Language.PT]: (v) =>
+    institutional(
+      'A sua subscrição terminou',
+      'A sua subscrição terminou',
+      [
+        `A sua subscrição LES STAGIAIRES terminou a ${v.currentPeriodEnd ?? 'ao fim do período'}.`,
+        'A sua conta, o seu perfil e os seus documentos continuam a ser seus. Pode subscrever novamente a qualquer momento; o novo período começará na data do seu pagamento.',
+      ],
+      { label: 'Subscrever novamente', path: '/subscriptions' },
+      'Esta mensagem regista o fim de um direito: é-lhe enviada independentemente das suas preferências de notificação.',
+    ),
+};
 
 // ============================================================================
 // REGISTRE
@@ -2452,6 +2761,19 @@ const TEMPLATES: Partial<Record<NotificationType, Localized>> = {
   [NotificationType.PARTNERSHIP_TERMINATION_REQUESTED]:
     PARTNERSHIP_TERMINATION_REQUESTED_TPL,
   [NotificationType.PARTNERSHIP_TERMINATED]: PARTNERSHIP_TERMINATED_TPL,
+
+  // --- Cycle de vie d'un abonnement (V6-5) ---
+  // Les cinq évènements ont un gabarit dans les cinq langues. Sans cela,
+  // `email.service.ts` les journaliserait en SKIPPED / GABARIT_ABSENT et
+  // n'enverrait rien — la moitié « e-mail » du chantier n'existerait pas, et
+  // aucune erreur de compilation ne le dirait puisque cette table est `Partial`.
+  [NotificationType.SUBSCRIPTION_ACTIVATED]: SUBSCRIPTION_ACTIVATED_TPL,
+  [NotificationType.SUBSCRIPTION_RENEWED]: SUBSCRIPTION_RENEWED_TPL,
+  [NotificationType.SUBSCRIPTION_RENEWAL_WINDOW_OPEN]:
+    SUBSCRIPTION_RENEWAL_WINDOW_OPEN_TPL,
+  [NotificationType.SUBSCRIPTION_EXPIRING_SOON]: SUBSCRIPTION_EXPIRING_SOON_TPL,
+  [NotificationType.SUBSCRIPTION_COVERAGE_ENDED]:
+    SUBSCRIPTION_COVERAGE_ENDED_TPL,
 };
 
 export function hasEmailTemplate(type: NotificationType): boolean {
@@ -2518,6 +2840,10 @@ function normalize(vars: TemplateVars): TemplateVars {
     'effectiveDate',
     'requestedAt',
     'actionDeadline',
+    // V6-5 : la fin de période d'un abonnement voyage en ISO depuis
+    // `subscription-notices.service.ts`, et c'est la seule date des cinq
+    // gabarits d'abonnement.
+    'currentPeriodEnd',
   ] as const) {
     const value = raw[key];
     if (typeof value === 'string') {

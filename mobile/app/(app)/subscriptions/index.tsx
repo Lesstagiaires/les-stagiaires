@@ -88,6 +88,25 @@ export default function SubscriptionsScreen() {
                   {' — '}
                   {billingCycleLabels[subscription.billingCycle]}
                 </Text>
+                {/* V6-5 — L'ÉCHÉANCE PLUTÔT QUE RIEN.
+                    La date en haut de carte est celle de la SOUSCRIPTION : elle
+                    ne dit pas jusqu'à quand on est couvert, qui est la seule
+                    information sur laquelle on peut agir. Une prestation à
+                    l'acte n'a pas d'échéance et n'affiche donc pas cette ligne. */}
+                {!!subscription.currentPeriodEnd && (
+                  <Text style={typography.caption}>
+                    {t(
+                      subscription.status === 'EXPIRED'
+                        ? 'subscriptions.endedOnLabel'
+                        : 'subscriptions.periodEndLabel',
+                      {
+                        date: new Date(subscription.currentPeriodEnd).toLocaleDateString(
+                          i18n.language,
+                        ),
+                      },
+                    )}
+                  </Text>
+                )}
               </PressableCard>
             ))}
           </View>

@@ -1258,6 +1258,26 @@
       "NEED_REQUEST_ANSWERED": {
         "title": "Réponse à votre besoin",
         "body": "L’administration a répondu à votre demande de besoin."
+      },
+      "SUBSCRIPTION_ACTIVATED": {
+        "title": "Votre abonnement est actif",
+        "body": "Votre paiement a été confirmé."
+      },
+      "SUBSCRIPTION_RENEWED": {
+        "title": "Votre abonnement est reconduit",
+        "body": "Votre couverture se poursuit sans interruption."
+      },
+      "SUBSCRIPTION_COVERAGE_ENDED": {
+        "title": "Votre abonnement a pris fin",
+        "body": "Vous pouvez souscrire à nouveau à tout moment."
+      },
+      "SUBSCRIPTION_RENEWAL_WINDOW_OPEN": {
+        "title": "Vous pouvez reconduire votre abonnement",
+        "body": "Les jours qu’il vous reste ne sont pas perdus."
+      },
+      "SUBSCRIPTION_EXPIRING_SOON": {
+        "title": "Votre abonnement se termine bientôt",
+        "body": "Reconduisez-le pour ne pas interrompre votre couverture."
       }
     },
     "notificationCategory": {
@@ -1419,8 +1439,27 @@
       "refresh": "Actualiser le statut",
       "manageSection": "Gestion",
       "cancelButton": "Annuler l'abonnement",
-      "cancelError": "Annulation impossible."
-    }
+      "cancelError": "Annulation impossible.",
+      "lifecycleSection": "Échéance",
+      "remaining_one": "Il vous reste {{count}} jour de couverture.",
+      "remaining_other": "Il vous reste {{count}} jours de couverture.",
+      "renewOpen": "Vous pouvez reconduire cet abonnement dès maintenant.",
+      "renewOpensOn": "La reconduction s’ouvrira le {{date}}.",
+      "renewBlocked": {
+        "ONE_TIME": "Cette prestation est réglée à l’acte : elle ne se reconduit pas.",
+        "PAIEMENT_EN_COURS": "Un paiement est déjà en cours pour cet abonnement.",
+        "RESILIE": "Cet abonnement a été résilié : souscrivez à nouveau pour en ouvrir un.",
+        "TROP_TOT": "La reconduction n’est pas encore ouverte."
+      },
+      "renewSection": "Reconduction",
+      "renewButton": "Reconduire mon abonnement",
+      "renewNoDayLost": "Les jours qu’il vous reste ne sont pas perdus : la nouvelle période s’ajoute à la période en cours.",
+      "renewPending": "Reconduction enregistrée. Elle prendra effet une fois le paiement confirmé par le prestataire.",
+      "renewError": "Reconduction impossible.",
+      "onExpiry": "À l’échéance, vous conservez votre compte, votre profil et vos documents ; seuls les avantages liés à l’abonnement s’interrompent.",
+      "afterExpiry": "Votre compte, votre profil et vos documents restent les vôtres. Vous pouvez souscrire à nouveau à tout moment."
+    },
+    "endedOnLabel": "Couverture terminée le {{date}}"
   },
   "subscriptionsAdmin": {
     "filterAll": "Tous",

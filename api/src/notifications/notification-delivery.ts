@@ -181,6 +181,29 @@ export const NOTIFICATION_DELIVERY: Record<NotificationType, DeliveryPolicy> = {
   // d'autre. Prévenir l'intéressé qu'il est surveillé serait lui apprendre à ne
   // plus l'être.
   [NotificationType.AMBASSADOR_FRAUD_ALERT]: DeliveryPolicy.ADMINISTRATIVE,
+
+  // --- Cycle de vie d'un abonnement (V6-5) ---
+  //
+  // Arbitrage du promoteur du 2026-08-24. La granularité est assumée AU TYPE :
+  // la catégorie SUBSCRIPTIONS reste coupable dans les préférences, et
+  // `UNDISABLEABLE_CATEGORIES` n'a pas été touchée pour autant. Verrouiller la
+  // catégorie entière aurait rendu obligatoire tout ce qui viendra s'y ranger
+  // demain, pour ne régler que la question de l'échéance.
+  //
+  // De l'argent a été débité. Un reçu ne se coupe pas.
+  [NotificationType.SUBSCRIPTION_ACTIVATED]: DeliveryPolicy.EMAIL_REQUIRED,
+  [NotificationType.SUBSCRIPTION_RENEWED]: DeliveryPolicy.EMAIL_REQUIRED,
+  // Un droit vient d'être perdu — le constater après coup, par surprise, est
+  // exactement ce que cette table cherche à éviter.
+  [NotificationType.SUBSCRIPTION_COVERAGE_ENDED]: DeliveryPolicy.EMAIL_REQUIRED,
+  // J-7 : l'échéance est assez proche pour qu'un e-mail manqué ne se rattrape
+  // pas. Elle passe donc outre la préférence, comme tout ce qui porte une date
+  // butoir dans cette table.
+  [NotificationType.SUBSCRIPTION_EXPIRING_SOON]: DeliveryPolicy.EMAIL_REQUIRED,
+  // J-30 : information anticipée, sans urgence. C'est le seul des cinq qui
+  // relève du confort, donc le seul que l'utilisateur peut couper.
+  [NotificationType.SUBSCRIPTION_RENEWAL_WINDOW_OPEN]:
+    DeliveryPolicy.EMAIL_OPTIONAL,
 };
 
 export function deliveryPolicyOf(type: NotificationType): DeliveryPolicy {

@@ -1258,6 +1258,26 @@
       "NEED_REQUEST_ANSWERED": {
         "title": "رد على طلبك",
         "body": "ردت الإدارة على طلب احتياجك."
+      },
+      "SUBSCRIPTION_ACTIVATED": {
+        "title": "اشتراكك مفعّل",
+        "body": "تم تأكيد دفعتك."
+      },
+      "SUBSCRIPTION_RENEWED": {
+        "title": "تم تجديد اشتراكك",
+        "body": "تستمر تغطيتك دون انقطاع."
+      },
+      "SUBSCRIPTION_COVERAGE_ENDED": {
+        "title": "انتهى اشتراكك",
+        "body": "يمكنك الاشتراك من جديد في أي وقت."
+      },
+      "SUBSCRIPTION_RENEWAL_WINDOW_OPEN": {
+        "title": "يمكنك تجديد اشتراكك",
+        "body": "الأيام المتبقية لك لا تضيع."
+      },
+      "SUBSCRIPTION_EXPIRING_SOON": {
+        "title": "اشتراكك ينتهي قريبا",
+        "body": "جدّده حتى لا تنقطع تغطيتك."
       }
     },
     "notificationCategory": {
@@ -1419,8 +1439,27 @@
       "refresh": "تحديث الحالة",
       "manageSection": "الإدارة",
       "cancelButton": "إلغاء الاشتراك",
-      "cancelError": "تعذّر الإلغاء."
-    }
+      "cancelError": "تعذّر الإلغاء.",
+      "lifecycleSection": "أجل الاستحقاق",
+      "remaining_one": "يتبقى لك يوم واحد من التغطية.",
+      "remaining_other": "يتبقى لك {{count}} يوما من التغطية.",
+      "renewOpen": "يمكنك تجديد هذا الاشتراك من الآن.",
+      "renewOpensOn": "يفتح التجديد بتاريخ {{date}}.",
+      "renewBlocked": {
+        "ONE_TIME": "هذه خدمة تُدفع لمرة واحدة: لا تُجدّد.",
+        "PAIEMENT_EN_COURS": "هناك دفعة جارية بالفعل لهذا الاشتراك.",
+        "RESILIE": "تم إنهاء هذا الاشتراك: اشترك من جديد لفتح اشتراك آخر.",
+        "TROP_TOT": "باب التجديد لم يُفتح بعد."
+      },
+      "renewSection": "التجديد",
+      "renewButton": "تجديد اشتراكي",
+      "renewNoDayLost": "الأيام المتبقية لك لا تضيع: تُضاف الفترة الجديدة إلى الفترة الجارية.",
+      "renewPending": "تم تسجيل التجديد. يسري مفعوله بمجرد تأكيد المزوّد للدفعة.",
+      "renewError": "تعذّر التجديد.",
+      "onExpiry": "عند انتهاء الأجل تحتفظ بحسابك وملفك ووثائقك؛ تتوقف فقط المزايا المرتبطة بالاشتراك.",
+      "afterExpiry": "يبقى حسابك وملفك ووثائقك لك. يمكنك الاشتراك من جديد في أي وقت."
+    },
+    "endedOnLabel": "انتهت التغطية بتاريخ {{date}}"
   },
   "subscriptionsAdmin": {
     "filterAll": "الكل",

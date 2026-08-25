@@ -1258,6 +1258,26 @@
       "NEED_REQUEST_ANSWERED": {
         "title": "Respuesta a su solicitud",
         "body": "La administración ha respondido a su solicitud de necesidad."
+      },
+      "SUBSCRIPTION_ACTIVATED": {
+        "title": "Su suscripción está activa",
+        "body": "Su pago ha sido confirmado."
+      },
+      "SUBSCRIPTION_RENEWED": {
+        "title": "Su suscripción ha sido renovada",
+        "body": "Su cobertura continúa sin interrupción."
+      },
+      "SUBSCRIPTION_COVERAGE_ENDED": {
+        "title": "Su suscripción ha finalizado",
+        "body": "Puede suscribirse de nuevo en cualquier momento."
+      },
+      "SUBSCRIPTION_RENEWAL_WINDOW_OPEN": {
+        "title": "Puede renovar su suscripción",
+        "body": "Los días que le quedan no se pierden."
+      },
+      "SUBSCRIPTION_EXPIRING_SOON": {
+        "title": "Su suscripción termina pronto",
+        "body": "Renuévela para no interrumpir su cobertura."
       }
     },
     "notificationCategory": {
@@ -1419,8 +1439,27 @@
       "refresh": "Actualizar estado",
       "manageSection": "Gestión",
       "cancelButton": "Cancelar suscripción",
-      "cancelError": "No se pudo cancelar."
-    }
+      "cancelError": "No se pudo cancelar.",
+      "lifecycleSection": "Vencimiento",
+      "remaining_one": "Le queda {{count}} día de cobertura.",
+      "remaining_other": "Le quedan {{count}} días de cobertura.",
+      "renewOpen": "Puede renovar esta suscripción desde ahora.",
+      "renewOpensOn": "La renovación se abrirá el {{date}}.",
+      "renewBlocked": {
+        "ONE_TIME": "Esta prestación se paga por acto: no se renueva.",
+        "PAIEMENT_EN_COURS": "Ya hay un pago en curso para esta suscripción.",
+        "RESILIE": "Esta suscripción fue cancelada: suscríbase de nuevo para abrir otra.",
+        "TROP_TOT": "La renovación aún no está abierta."
+      },
+      "renewSection": "Renovación",
+      "renewButton": "Renovar mi suscripción",
+      "renewNoDayLost": "Los días que le quedan no se pierden: el nuevo periodo se suma al periodo en curso.",
+      "renewPending": "Renovación registrada. Surtirá efecto cuando el proveedor confirme el pago.",
+      "renewError": "No se ha podido renovar.",
+      "onExpiry": "Al vencer, conserva su cuenta, su perfil y sus documentos; solo se interrumpen las ventajas ligadas a la suscripción.",
+      "afterExpiry": "Su cuenta, su perfil y sus documentos siguen siendo suyos. Puede suscribirse de nuevo en cualquier momento."
+    },
+    "endedOnLabel": "Cobertura finalizada el {{date}}"
   },
   "subscriptionsAdmin": {
     "filterAll": "Todas",

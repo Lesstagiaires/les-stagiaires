@@ -2071,6 +2071,34 @@ enum NotificationType {
 
   // --- Besoin saisonnier / temporaire / bénévole ---
   NEED_REQUEST_ANSWERED
+
+  // --- Cycle de vie d'un abonnement (V6-5) ---
+  //
+  // CINQ TYPES, DEUX NATURES. Les trois premiers sont des CONSTATS : ils disent
+  // ce qui vient de se produire. Les deux derniers sont des SOLLICITATIONS : ils
+  // invitent à agir avant une échéance. La distinction n'est pas cosmétique —
+  // c'est elle qui décide de ce qu'un mineur reçoit, le renouvellement relevant
+  // juridiquement de son représentant légal.
+  SUBSCRIPTION_ACTIVATED
+  // Distinct de l'activation, à dessein : « reconduit » et « activé » ne
+  // racontent pas la même chose dans un historique, et confondre les deux
+  // empêcherait de lire l'ancienneté d'un abonné.
+  SUBSCRIPTION_RENEWED
+  SUBSCRIPTION_COVERAGE_ENDED
+  SUBSCRIPTION_RENEWAL_WINDOW_OPEN
+  SUBSCRIPTION_EXPIRING_SOON
+}
+
+// Les cinq mêmes évènements, vus du côté de l'idempotence. Énumération DISTINCTE
+// de NotificationType, qui en compte une centaine : celle-ci ne doit contenir que
+// ce dont on garantit l'unicité par période, et sa petitesse est ce qui permet
+// aux tables exhaustives de `subscription-notice-types.ts` de rester lisibles.
+enum SubscriptionNoticeType {
+  ACTIVATED
+  RENEWED
+  COVERAGE_ENDED
+  RENEWAL_WINDOW_OPEN
+  EXPIRING_SOON
 }
 
 model Notification {
@@ -2218,10 +2246,58 @@ model Subscription {
   beneficiaryOrganization Organization? @relation("SubscriptionBeneficiaryOrganization", fields: [beneficiaryOrganizationId], references: [id], onDelete: Cascade)
   initiatingOrganization  Organization? @relation("SubscriptionInitiatingOrganization", fields: [initiatingOrganizationId], references: [id], onDelete: SetNull)
   payments                Payment[]
+  notices                 SubscriptionNotice[]
 
   @@index([beneficiaryUserId])
   @@index([beneficiaryOrganizationId])
   @@index([status])
+}
+
+// ============================================================================
+// UN AVIS, UNE FOIS, PAR PÉRIODE (V6-5)
+//
+// CE QUE CETTE TABLE EST : le registre de ce qui a déjà été signalé. Elle
+// n'accorde aucun droit, ne modifie aucun statut, et rien ne la lit pour
+// décider quoi que ce soit — elle sert uniquement à ne pas redire deux fois la
+// même chose.
+//
+// POURQUOI UNE TABLE ET NON DES COLONNES HORODATÉES SUR Subscription. Le dépôt
+// utilise déjà des colonnes de ce genre (`warnedAt9m`, `warnedAt11m` sur
+// AmbassadorPortfolioEntry). Mesuré en revue V6-5, ce motif ne tient PAS les
+// garanties demandées ici :
+//   — il teste puis écrit, donc deux workers concurrents lisent tous deux `null`,
+//     passent tous deux, et notifient tous deux. C'est la leçon de P1-1 ;
+//   — une reconduction obligerait à remettre les colonnes à zéro, écriture
+//     supplémentaire qu'on peut oublier — et qu'on oublierait.
+//
+// CE QUE `periodEnd` RÈGLE. Il n'est pas une date d'information : il EST
+// l'identité de la période. Une reconduction déplace `currentPeriodEnd`, donc la
+// clé change, donc la période suivante retrouve naturellement ses avis — SANS
+// AUCUNE REMISE À ZÉRO. C'est la seule raison pour laquelle il entre dans la clé.
+//
+// AU PLUS UNE FOIS, ET NON AU MOINS UNE FOIS. `claimedAt` est posé à la
+// réservation, `sentAt` après l'envoi. Mourir entre les deux perd l'avis — mais
+// le perd VISIBLEMENT : une ligne sans `sentAt` est interrogeable. L'inverse
+// aurait fait recevoir deux fois le même message, ce qui apprend à ne plus les
+// lire.
+// ============================================================================
+model SubscriptionNotice {
+  id             String                 @id @default(cuid())
+  subscriptionId String
+  type           SubscriptionNoticeType
+
+  // NULL pour un ONE_TIME, qui n'a aucune période à faire expirer. Les deux
+  // index uniques PARTIELS de la migration 20260824120000 traitent les deux cas
+  // séparément — un index ordinaire ne le pourrait pas, PostgreSQL ne faisant
+  // jamais entrer en collision deux NULL.
+  periodEnd DateTime?
+
+  claimedAt DateTime  @default(now())
+  sentAt    DateTime?
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
 }
 
 model Payment {

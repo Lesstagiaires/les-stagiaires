@@ -817,6 +817,26 @@ export interface SubscribeResult {
   };
 }
 
+// Type DISTINCT de SubscribeResult, et non une extension : la reconduction
+// renvoie en plus `currentPeriodEnd`, parce qu'elle prolonge une période au lieu
+// d'en ouvrir une. Élargir SubscribeResult aurait fait croire que la souscription
+// initiale rend elle aussi cette date — ce n'est pas le cas.
+export interface RenewResult {
+  subscription: {
+    id: string;
+    plan: SubscriptionPlan;
+    status: SubscriptionStatus;
+    currentPeriodEnd: string | null;
+    amountMinor: number;
+    currency: string;
+  };
+  payment: {
+    id: string;
+    providerReference: string | null;
+    instructions?: string;
+  };
+}
+
 // --- Programme d'Ambassadeurs ---------------------------------------------------------------
 
 export type AmbassadorStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'TERMINATED';
@@ -2494,6 +2514,18 @@ export const api = {
 
   cancelSubscription: (accessToken: string, id: string) =>
     request<Subscription>(`/subscriptions/${id}/cancel`, {
+      method: 'POST',
+      accessToken,
+    }),
+
+  // Reconduction (P1-2). AUCUN CORPS DE REQUÊTE : la formule, le cycle et le
+  // pays sont ceux de l'abonnement, et le montant reste résolu côté serveur —
+  // c'est ce qui empêche un client de reconduire au prix d'hier.
+  //
+  // La route existe depuis P1-2 ; V6-5 n'a fait que l'exposer ici, l'écran de
+  // détail n'ayant jusqu'alors aucun moyen de l'appeler.
+  renewSubscription: (accessToken: string, id: string) =>
+    request<RenewResult>(`/subscriptions/${id}/renew`, {
       method: 'POST',
       accessToken,
     }),

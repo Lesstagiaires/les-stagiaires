@@ -13,6 +13,7 @@ import { CommissionsService } from '../ambassadors/commissions.service';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProviderPaymentWebhookDto } from './dto/provider-webhook.dto';
+import { SubscriptionNoticesService } from './subscription-notices.service';
 
 // Seul point d'entrée qui peut faire passer un abonnement à ACTIVE — jamais un endpoint
 // appelé par l'utilisateur final déclarant lui-même avoir payé (CLAUDE.md §6, non
@@ -25,6 +26,7 @@ export class PaymentsService {
     private readonly config: ConfigService,
     private readonly audit: AuditService,
     private readonly commissions: CommissionsService,
+    private readonly notices: SubscriptionNoticesService,
   ) {}
 
   async handleProviderCallback(
@@ -66,6 +68,12 @@ export class PaymentsService {
     const couvertureEncoreValide =
       finDePeriode != null && finDePeriode.getTime() > Date.now();
 
+    // V6-5 — ACTIVATION OU RECONDUCTION ? La question se tranche AVANT l'écriture.
+    // `startedAt` marque le début de la relation et n'est posé qu'une fois : une
+    // fois la transaction passée, il vaut une date dans les deux cas et ne
+    // distingue plus rien.
+    const premiereActivation = payment.subscription.startedAt == null;
+
     if (dto.status === 'CONFIRMED') {
       await this.prisma.$transaction([
         this.prisma.payment.update({
@@ -103,6 +111,15 @@ export class PaymentsService {
       // 2026-07-31). Le service ne remonte jamais d'exception — un problème de
       // commission ne doit pas faire échouer la confirmation d'un encaissement.
       await this.commissions.onPaymentConfirmed(payment.id);
+
+      // V6-5 — LE SIGNAL, APRÈS COUP ET SANS CONSÉQUENCE. Placé après la
+      // commission et hors de la transaction : un avis qui échoue ne doit ni
+      // annuler un encaissement, ni empêcher une commission. Il ne modifie aucun
+      // statut et n'appelle jamais `onPaymentConfirmed`.
+      await this.notices.signalerPaiementConfirme(
+        payment.subscriptionId,
+        premiereActivation,
+      );
     } else {
       await this.prisma.$transaction([
         this.prisma.payment.update({

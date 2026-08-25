@@ -4,6 +4,7 @@ import type { CommissionsService } from '../ambassadors/commissions.service';
 import type { AuditService } from '../audit/audit.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from './payments.service';
+import type { SubscriptionNoticesService } from './subscription-notices.service';
 
 function makePayment(overrides: Record<string, unknown> = {}) {
   return {
@@ -44,6 +45,13 @@ describe('PaymentsService', () => {
       config as unknown as ConfigService,
       audit as unknown as AuditService,
       commissions as unknown as CommissionsService,
+      // V6-5 — l'émission des avis est un SIGNAL, jamais une étape du paiement.
+      // Le double ne fait rien : ces scénarios éprouvent la confirmation
+      // d'encaissement et la commission, et un avis ne doit peser sur ni l'une
+      // ni l'autre.
+      {
+        signalerPaiementConfirme: jest.fn().mockResolvedValue(undefined),
+      } as unknown as SubscriptionNoticesService,
     );
   });
 

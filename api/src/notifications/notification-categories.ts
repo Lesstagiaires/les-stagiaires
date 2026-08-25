@@ -133,6 +133,22 @@ export const NOTIFICATION_CATEGORY: Record<
   [NotificationType.ORGANIZATION_ACCESS_REVOKED]:
     NotificationCategory.ORGANIZATIONS,
   [NotificationType.NEED_REQUEST_ANSWERED]: NotificationCategory.ORGANIZATIONS,
+
+  // --- Cycle de vie d'un abonnement (V6-5) ---
+  //
+  // SUBSCRIPTIONS et non PAYMENTS, bien qu'une expiration soit une échéance.
+  // La politique des préférences fonctionne à la CATÉGORIE, pas au type : ranger
+  // ces avis dans PAYMENTS les rendrait incoupables, mais rendrait du même coup
+  // incoupable tout ce qui viendra ensuite dans SUBSCRIPTIONS. Arbitrage du
+  // promoteur : on ne verrouille pas une catégorie entière pour un seul cas.
+  [NotificationType.SUBSCRIPTION_ACTIVATED]: NotificationCategory.SUBSCRIPTIONS,
+  [NotificationType.SUBSCRIPTION_RENEWED]: NotificationCategory.SUBSCRIPTIONS,
+  [NotificationType.SUBSCRIPTION_COVERAGE_ENDED]:
+    NotificationCategory.SUBSCRIPTIONS,
+  [NotificationType.SUBSCRIPTION_RENEWAL_WINDOW_OPEN]:
+    NotificationCategory.SUBSCRIPTIONS,
+  [NotificationType.SUBSCRIPTION_EXPIRING_SOON]:
+    NotificationCategory.SUBSCRIPTIONS,
 };
 
 // ============================================================================
