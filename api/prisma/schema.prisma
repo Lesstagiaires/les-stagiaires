@@ -2087,6 +2087,15 @@ enum NotificationType {
   SUBSCRIPTION_COVERAGE_ENDED
   SUBSCRIPTION_RENEWAL_WINDOW_OPEN
   SUBSCRIPTION_EXPIRING_SOON
+
+  // --- Supervision des balayages ---
+  //
+  // Trois types ADMINISTRATIFS : ils s'adressent à l'équipe LES STAGIAIRES, pas
+  // à un utilisateur final. Ils signalent un incident d'exploitation et
+  // n'entraînent aucune action automatique sur les données métier.
+  SWEEP_JOB_FAILED
+  SWEEP_DELAY_DETECTED
+  SWEEP_SILENCE_ON_STARTUP
 }
 
 // Les cinq mêmes évènements, vus du côté de l'idempotence. Énumération DISTINCTE
@@ -2099,6 +2108,78 @@ enum SubscriptionNoticeType {
   COVERAGE_ENDED
   RENEWAL_WINDOW_OPEN
   EXPIRING_SOON
+}
+
+// ============================================================================
+// SUPERVISION DES BALAYAGES
+//
+// CE QUE CETTE TABLE EST : la mémoire durable des incidents d'exploitation des
+// files BullMQ. Elle sert à trois choses, et à rien d'autre — identité d'un
+// épisode, déduplication, historique.
+//
+// CE QU'ELLE N'EST PAS : un gestionnaire d'incidents. Ni sévérité, ni
+// assignation, ni commentaire, ni état « ouvert / fermé ». L'identité suffit à
+// distinguer une panne persistante d'une rechute, et un état de fermeture
+// serait un état de plus à poser — donc à oublier.
+//
+// POURQUOI EN POSTGRESQL ET NON EN REDIS. La supervision porte précisément sur
+// une infrastructure dont Redis est la pièce critique. Faire dépendre la mémoire
+// d'un incident du composant surveillé reviendrait à perdre la trace de la panne
+// en même temps que la panne. Redis reste la source d'OBSERVATION ; PostgreSQL
+// est la source de VÉRITÉ.
+// ============================================================================
+enum SweepIncidentKind {
+  // Une file n'a pas tourné depuis plus de K fois sa cadence déclarée.
+  RETARD
+  // Un job de balayage a échoué.
+  ECHEC
+  // Constat agrégé au démarrage : les files trouvées silencieuses au réveil.
+  REVEIL
+}
+
+model SweepIncident {
+  id String @id @default(cuid())
+
+  // NON NUL, y compris pour un REVEIL qui porte le sentinelle '*'. Un `null` ne
+  // serait jamais en collision dans un index unique PostgreSQL — c'est
+  // exactement le piège que V6-5 a dû contourner par deux index partiels. Une
+  // valeur totale l'évite d'emblée.
+  queueName  String
+  kind       SweepIncidentKind
+  // L'IDENTITÉ DE L'ÉPISODE, et la raison pour laquelle aucun état de fermeture
+  // n'est nécessaire :
+  //   RETARD — `<schedulerId>:<next>`. `next` est l'instant planifié non honoré,
+  //            lu dans Redis. Mesuré : il ne bouge pas tant que rien ne tourne,
+  //            et il avance dès la reprise. Une rechute porte donc une identité
+  //            neuve, et une file orpheline une identité figée — donc une seule
+  //            alerte, jamais répétée.
+  //   ECHEC  — l'identifiant du job, immuable.
+  //   REVEIL — l'empreinte de la liste des files silencieuses. Aucune horloge :
+  //            deux instances qui démarrent ensemble calculent la même clé.
+  episodeKey String
+
+  detectedAt DateTime @default(now())
+
+  // LA NOTIFICATION EST UN EFFET DÉRIVÉ DE L'INCIDENT, jamais l'inverse.
+  //
+  // `notifiedAt` nul signifie « incident retenu, alerte pas encore partie » —
+  // un état VISIBLE et interrogeable, repris au passage suivant. Le compromis
+  // est assumé et inverse de celui de V6-5 : là-bas le destinataire est un
+  // utilisateur, et un doublon apprend à ignorer les alertes ; ici c'est un
+  // exploitant, et une alerte manquée est un aveuglement.
+  notifiedAt DateTime?
+  // Le compteur de tentatives EST le jeton de revendication. Reprendre un
+  // incident se fait par `UPDATE … WHERE notifyAttempts = <valeur lue>` : deux
+  // superviseurs concurrents lisent la même valeur, PostgreSQL sérialise, un
+  // seul voit sa mise à jour aboutir. Aucune temporisation, donc aucune
+  // heuristique — et un incident abandonné en cours de route reste repris.
+  notifyAttempts Int @default(0)
+
+  // Âge du retard, motif de l'échec, liste des files silencieuses. JAMAIS LU
+  // POUR DÉCIDER : seulement pour qu'un incident reste lisible dans six mois.
+  details Json?
+
+  @@unique([queueName, kind, episodeKey])
 }
 
 model Notification {

@@ -22,6 +22,7 @@ import { ProfilesModule } from './profiles/profiles.module';
 import { QueueModule } from './queue/queue.module';
 import { ReportsModule } from './reports/reports.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { SupervisionModule } from './supervision/supervision.module';
 
 @Module({
   imports: [
@@ -57,6 +58,9 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
     SubscriptionsModule,
     EntitlementsModule,
     AmbassadorsModule,
+    // En dernier, à dessein : le constat au réveil observe l'état des files une
+    // fois que TOUS les planificateurs des modules ci-dessus se sont enregistrés.
+    SupervisionModule,
   ],
   controllers: [AppController],
   providers: [

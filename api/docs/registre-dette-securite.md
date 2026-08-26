@@ -19,6 +19,109 @@ qu'il est ouvert.
 | S-05 | `Alert.alert` sur deux écrans (dette connue) | 🟠 | non — hors périmètre |
 | S-06 | Oracle d'existence de compte via `/auth/login` | 🟠 | audit à traiter |
 | S-07 | Oracle d'existence via `POST /auth/register` | 🟡 | arbitrage produit |
+| SUP-01 | Aucune détection pendant une panne totale de l'API | 🟠 | non — décision d'exploitation |
+| SUP-02 | La supervision elle-même relève de SUP-01 | 🟡 | non — traitée avec SUP-01 |
+| SUP-03 | Fenêtre résiduelle entre l'envoi et l'écriture de `notifiedAt` | 🟡 | non — compromis volontaire |
+| SUP-04 | Dépendance à la présence d'un administrateur actif | 🟡 | non — configuration et exploitation |
+| SUP-05 | Accumulation (`waiting` / `active`) non détectée | 🟡 | non — exclusion volontaire |
+| SUP-06 | Planificateurs BullMQ définis par `pattern`/cron non supervisés | 🟡 | non — dette de couverture |
+
+> **SUP-01 — aucune détection pendant une panne totale de l'API.**
+>
+> **Sujet.** Une supervision interne ne peut pas signaler l'indisponibilité
+> totale du processus qui l'héberge.
+>
+> **Effet.** L'interruption est constatée et datée lors du prochain démarrage,
+> mais aucune alerte ne peut être émise pendant que l'API est totalement
+> indisponible.
+>
+> **Décision future.** Relève d'une décision d'exploitation et d'une éventuelle
+> sonde externe.
+>
+> **Nature.** Dette architecturale et opérationnelle.
+
+> **SUP-02 — la supervision elle-même relève de SUP-01.**
+>
+> **Sujet.** La file et le processus de supervision ne peuvent pas
+> s'auto-surveiller pendant leur propre indisponibilité.
+>
+> **Effet.** Leur interruption relève de la même limite structurelle que SUP-01.
+>
+> **Décision future.** Traitée avec SUP-01, dans le cadre d'une supervision
+> externe.
+>
+> **Nature.** Dette architecturale.
+
+> **SUP-03 — fenêtre résiduelle entre la notification et `notifiedAt`.**
+>
+> **Sujet.** Une rupture après l'envoi de la notification mais avant
+> l'inscription de `notifiedAt` peut conduire à une nouvelle notification lors
+> de la reprise.
+>
+> **Garantie.** Aucune perte silencieuse imputable au mécanisme de supervision ;
+> reprise garantie après une interruption survenue avant l'envoi.
+>
+> **Limite.** Le système ne fournit **pas** de garantie de « exactly-once
+> delivery ».
+>
+> **Compromis.** Au moins une notification, avec possibilité résiduelle de
+> doublon dans la fenêtre comprise entre l'envoi et l'écriture de `notifiedAt`.
+>
+> **Décision.** Compromis volontaire, déjà cohérent avec l'arbitrage documenté
+> dans `module-partenariats.md` : « un doublon vaut mieux qu'un trou ».
+>
+> **Nature.** Dette fonctionnelle.
+
+> **SUP-04 — dépendance à la présence d'un administrateur actif.**
+>
+> **Sujet.** Les alertes administratives supposent l'existence d'au moins un
+> utilisateur disposant du rôle `ADMIN` et actif.
+>
+> **Effet.** Sans administrateur actif, la portée effective de l'alerte ne peut
+> être garantie.
+>
+> **Décision future.** Relève de la configuration et de l'exploitation du
+> système, et non du mécanisme de supervision lui-même.
+>
+> **Nature.** Dette opérationnelle.
+
+> **SUP-05 — accumulation non détectée.**
+>
+> **Sujet.** Aucun seuil d'alerte spécifique aux files `waiting` ou `active`
+> n'est actuellement implémenté.
+>
+> **Justification.** Exclusion volontaire résultant de l'arbitrage C.
+>
+> **État actuel.** Aucune accumulation détectée ; `waiting = 0` sur les onze
+> files lors du contrôle.
+>
+> **Décision future.** À réexaminer uniquement si un besoin fonctionnel ou
+> d'exploitation apparaît.
+>
+> **Nature.** Dette fonctionnelle.
+
+> **SUP-06 — les planificateurs par expression cron ne sont pas supervisés.**
+>
+> **Sujet.** La supervision des balayages détecte un retard par la règle
+> « `maintenant − next > K × every` ». Elle n'exploite donc que les
+> planificateurs portant une cadence numérique. `JobSchedulerJson` expose
+> `every` **ou** `pattern`, jamais les deux : un planificateur défini par
+> expression cron n'a pas de cadence en millisecondes et se trouve écarté par
+> `sweep-supervision.service.ts`, à l'endroit signalé en commentaire.
+>
+> **Effet actuel : nul.** Mesuré le 2026-08-25 — les onze planificateurs du
+> dépôt utilisent tous `{ every: … }`, aucun n'utilise `pattern`. Aucune file
+> n'échappe aujourd'hui à la supervision.
+>
+> **Risque futur.** Un balayage introduit demain avec une expression cron ne
+> serait pas supervisé, et **rien ne le signalerait** : l'omission est
+> silencieuse, ce qui est précisément ce que ce registre existe pour empêcher.
+>
+> **Décision.** Revoir la couverture **à l'introduction effective du premier
+> planificateur `pattern`**, et non par anticipation : le dépôt ne prend pas en
+> charge une fonctionnalité qui n'existe pas encore.
+>
+> **Nature.** Dette de couverture, pas anomalie fonctionnelle.
 
 > **S-06 et S-07 ont été découverts pendant l'audit de S-03**, le 2026-08-12.
 > Contrairement à S-03, dont l'oracle portait sur un `cuid` inénumérable, ces

@@ -1278,6 +1278,18 @@
       "SUBSCRIPTION_EXPIRING_SOON": {
         "title": "Su suscripción termina pronto",
         "body": "Renuévela para no interrumpir su cobertura."
+      },
+      "SWEEP_JOB_FAILED": {
+        "title": "Barrido fallido",
+        "body": "Una tarea periódica ha fallado: {{queueName}}."
+      },
+      "SWEEP_DELAY_DETECTED": {
+        "title": "Barrido retrasado",
+        "body": "La tarea periódica {{queueName}} no se ha ejecutado desde hace demasiado tiempo."
+      },
+      "SWEEP_SILENCE_ON_STARTUP": {
+        "title": "Barridos en silencio al iniciar",
+        "body": "Algunas tareas periódicas no se habían ejecutado antes de este reinicio."
       }
     },
     "notificationCategory": {

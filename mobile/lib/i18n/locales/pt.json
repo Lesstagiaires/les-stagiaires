@@ -1278,6 +1278,18 @@
       "SUBSCRIPTION_EXPIRING_SOON": {
         "title": "A sua subscrição termina em breve",
         "body": "Renove-a para não interromper a sua cobertura."
+      },
+      "SWEEP_JOB_FAILED": {
+        "title": "Varrimento falhado",
+        "body": "Uma tarefa periódica falhou: {{queueName}}."
+      },
+      "SWEEP_DELAY_DETECTED": {
+        "title": "Varrimento atrasado",
+        "body": "A tarefa periódica {{queueName}} não é executada há demasiado tempo."
+      },
+      "SWEEP_SILENCE_ON_STARTUP": {
+        "title": "Varrimentos silenciosos no arranque",
+        "body": "Algumas tarefas periódicas não tinham sido executadas antes deste reinício."
       }
     },
     "notificationCategory": {

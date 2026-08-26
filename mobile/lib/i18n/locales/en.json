@@ -1278,6 +1278,18 @@
       "SUBSCRIPTION_EXPIRING_SOON": {
         "title": "Your subscription ends soon",
         "body": "Renew it to keep your cover running."
+      },
+      "SWEEP_JOB_FAILED": {
+        "title": "Sweep failed",
+        "body": "A scheduled task failed: {{queueName}}."
+      },
+      "SWEEP_DELAY_DETECTED": {
+        "title": "Sweep overdue",
+        "body": "The scheduled task {{queueName}} has not run for too long."
+      },
+      "SWEEP_SILENCE_ON_STARTUP": {
+        "title": "Sweeps silent at startup",
+        "body": "Some scheduled tasks had not run before this restart."
       }
     },
     "notificationCategory": {

@@ -149,6 +149,15 @@ export const NOTIFICATION_CATEGORY: Record<
     NotificationCategory.SUBSCRIPTIONS,
   [NotificationType.SUBSCRIPTION_EXPIRING_SOON]:
     NotificationCategory.SUBSCRIPTIONS,
+
+  // --- Supervision des balayages ---
+  //
+  // SYSTEM : il ne s'agit ni d'une candidature, ni d'un abonnement, ni d'un
+  // partenariat, mais de l'état de la plateforme elle-même. Ces incidents ne
+  // concernent aucun utilisateur final — ils s'adressent à l'équipe.
+  [NotificationType.SWEEP_JOB_FAILED]: NotificationCategory.SYSTEM,
+  [NotificationType.SWEEP_DELAY_DETECTED]: NotificationCategory.SYSTEM,
+  [NotificationType.SWEEP_SILENCE_ON_STARTUP]: NotificationCategory.SYSTEM,
 };
 
 // ============================================================================

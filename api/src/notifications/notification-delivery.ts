@@ -204,6 +204,16 @@ export const NOTIFICATION_DELIVERY: Record<NotificationType, DeliveryPolicy> = {
   // relève du confort, donc le seul que l'utilisateur peut couper.
   [NotificationType.SUBSCRIPTION_RENEWAL_WINDOW_OPEN]:
     DeliveryPolicy.EMAIL_OPTIONAL,
+
+  // --- Supervision des balayages ---
+  //
+  // ADMINISTRATIVE : ces incidents s'adressent à l'équipe LES STAGIAIRES et
+  // relèvent du back-office, pas d'une boîte de réception personnelle. Aucun
+  // e-mail, donc aucun gabarit à écrire — et le canal SMS les ignore déjà, sa
+  // liste blanche étant fermée par défaut.
+  [NotificationType.SWEEP_JOB_FAILED]: DeliveryPolicy.ADMINISTRATIVE,
+  [NotificationType.SWEEP_DELAY_DETECTED]: DeliveryPolicy.ADMINISTRATIVE,
+  [NotificationType.SWEEP_SILENCE_ON_STARTUP]: DeliveryPolicy.ADMINISTRATIVE,
 };
 
 export function deliveryPolicyOf(type: NotificationType): DeliveryPolicy {

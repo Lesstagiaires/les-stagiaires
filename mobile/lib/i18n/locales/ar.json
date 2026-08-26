@@ -1278,6 +1278,18 @@
       "SUBSCRIPTION_EXPIRING_SOON": {
         "title": "اشتراكك ينتهي قريبا",
         "body": "جدّده حتى لا تنقطع تغطيتك."
+      },
+      "SWEEP_JOB_FAILED": {
+        "title": "فشل المسح الدوري",
+        "body": "فشلت مهمة دورية: {{queueName}}."
+      },
+      "SWEEP_DELAY_DETECTED": {
+        "title": "تأخر المسح الدوري",
+        "body": "لم تُنفَّذ المهمة الدورية {{queueName}} منذ مدة طويلة."
+      },
+      "SWEEP_SILENCE_ON_STARTUP": {
+        "title": "مهام دورية صامتة عند الإقلاع",
+        "body": "لم تكن بعض المهام الدورية قد نُفِّذت قبل إعادة التشغيل هذه."
       }
     },
     "notificationCategory": {

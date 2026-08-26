@@ -1278,6 +1278,18 @@
       "SUBSCRIPTION_EXPIRING_SOON": {
         "title": "Votre abonnement se termine bientôt",
         "body": "Reconduisez-le pour ne pas interrompre votre couverture."
+      },
+      "SWEEP_JOB_FAILED": {
+        "title": "Balayage en échec",
+        "body": "Un traitement périodique a échoué : {{queueName}}."
+      },
+      "SWEEP_DELAY_DETECTED": {
+        "title": "Balayage en retard",
+        "body": "Le traitement périodique {{queueName}} ne s’est pas exécuté depuis trop longtemps."
+      },
+      "SWEEP_SILENCE_ON_STARTUP": {
+        "title": "Balayages silencieux au démarrage",
+        "body": "Des traitements périodiques n’avaient pas tourné avant ce redémarrage."
       }
     },
     "notificationCategory": {
