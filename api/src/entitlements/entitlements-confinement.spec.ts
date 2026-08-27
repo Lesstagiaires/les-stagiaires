@@ -133,9 +133,8 @@ describe('Frontières de la couche d’entitlements', () => {
   it.each([
     ['APPLICATION_SUBMIT', /\bAPPLICATION_SUBMIT\b/],
     ['REPORT_ABUSE', /\bREPORT_ABUSE\b/],
-    // Le parcours oriente l'expérience et fixe le plancher d'un ACHAT (D-21).
-    // Il n'ouvre jamais une capacité — et D-21 vit dans `subscriptions/`.
-    ['currentPath', /\bcurrentPath\b/],
+    // Le parcours ne peut être lu que par le décideur central, qui l'utilise
+    // maintenant pour vérifier l'éligibilité de la formule aux droits.
     ['initialIntent', /\binitialIntent\b/],
     // La catégorie d'organisation est descriptive (V6-3), jamais décisionnelle.
     ['OrganizationCategory', /\bOrganizationCategory\b/],

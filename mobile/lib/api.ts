@@ -837,6 +837,20 @@ export interface RenewResult {
   };
 }
 
+export type EntitlementCapability =
+  | 'GMAIL_ACCOUNT_OPENING_ASSISTANCE'
+  | 'CV_AND_COVER_LETTER_ASSISTANCE'
+  | 'LEGAL_CONTENTION_ASSISTANCE'
+  | 'PERSONALITY_ORIENTATION_REPORT'
+  | 'EXPLANATION_REQUEST_WRITING_ASSISTANCE'
+  | 'DATA_PROTECTION_ASSISTANCE'
+  | 'PROFESSIONAL_INTERNSHIP_APPLICATION';
+
+export interface ActiveEntitlements {
+  plan: SubscriptionPlan | null;
+  entitlements: EntitlementCapability[];
+}
+
 // --- Programme d'Ambassadeurs ---------------------------------------------------------------
 
 export type AmbassadorStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'TERMINATED';
@@ -2529,6 +2543,9 @@ export const api = {
       method: 'POST',
       accessToken,
     }),
+
+  getMyEntitlements: (accessToken: string) =>
+    request<ActiveEntitlements>('/entitlements/mine', { accessToken }),
 
   // Une organisation souscrit pour elle-même — BUSINESS/INSTITUTION dérivé
   // automatiquement de son type côté serveur, jamais choisi par le client.

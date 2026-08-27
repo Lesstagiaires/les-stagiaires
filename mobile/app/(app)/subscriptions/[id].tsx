@@ -6,7 +6,13 @@ import { Badge } from '../../../components/badge';
 import { colors, ErrorText, SecondaryButton } from '../../../components/form';
 import { Section } from '../../../components/section';
 import { spacing, typography } from '../../../components/theme';
-import { api, ApiError, type Subscription, type SubscriptionStatus } from '../../../lib/api';
+import {
+  api,
+  ApiError,
+  type ActiveEntitlements,
+  type Subscription,
+  type SubscriptionStatus,
+} from '../../../lib/api';
 import { useAuth } from '../../../lib/auth-context';
 import { formatAmountMinor } from '../../../lib/money';
 import {
@@ -15,6 +21,7 @@ import {
   useSubscriptionPlanLabels,
   useSubscriptionStatusLabels,
 } from '../../../lib/subscription-labels';
+import { libellesEntitlements } from '../../../lib/entitlement-labels';
 
 const CANCELLABLE_STATUSES = new Set<SubscriptionStatus>(['PENDING_PAYMENT', 'ACTIVE']);
 
@@ -87,6 +94,8 @@ export default function SubscriptionDetailScreen() {
   const billingCycleLabels = useBillingCycleLabels();
 
   const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [activeEntitlements, setActiveEntitlements] = useState<ActiveEntitlements | null>(null);
+  const [entitlementsError, setEntitlementsError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -98,7 +107,17 @@ export default function SubscriptionDetailScreen() {
   const reload = useCallback(async () => {
     if (!id || !accessToken) return;
     try {
-      setSubscription(await api.getSubscription(accessToken, id));
+      const nextSubscription = await api.getSubscription(accessToken, id);
+      setSubscription(nextSubscription);
+      try {
+        setActiveEntitlements(await api.getMyEntitlements(accessToken));
+        setEntitlementsError(null);
+      } catch (err) {
+        setActiveEntitlements(null);
+        setEntitlementsError(
+          err instanceof ApiError ? err.message : t('subscriptions.loadError'),
+        );
+      }
       setLoadError(null);
     } catch (err) {
       if (err instanceof ApiError && err.statusCode === 401) {
@@ -219,6 +238,22 @@ export default function SubscriptionDetailScreen() {
             </Text>
           )}
         </Section>
+
+        {activeEntitlements?.plan === subscription.plan && activeEntitlements.entitlements.length > 0 && (
+          <Section title="Droits actifs">
+            <Text style={typography.caption}>
+              Les droits inclus dans votre formule sont actifs pendant votre période payée.
+            </Text>
+            {libellesEntitlements(activeEntitlements.entitlements).map((label) => (
+              <Text key={label} style={typography.body}>
+                {'• '}{label}
+              </Text>
+            ))}
+          </Section>
+        )}
+        {!!entitlementsError && !activeEntitlements && (
+          <ErrorText>{entitlementsError}</ErrorText>
+        )}
 
         {/* V6-5 — LE CYCLE DE VIE, RENDU LISIBLE.
             Une date de fin seule ne dit rien à qui ne compte pas les jours : on

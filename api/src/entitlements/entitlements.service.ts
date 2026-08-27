@@ -42,6 +42,37 @@ import {
 export class EntitlementsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async actifs(userId: string): Promise<{
+    plan: SubscriptionPlan | null;
+    entitlements: EntitlementCapability[];
+  }> {
+    const [abonnement, user] = await Promise.all([
+      this.abonnementIndividuelLePlusRecent(userId),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { currentPath: true },
+      }),
+    ]);
+    if (
+      !abonnement ||
+      !this.estCouvert(abonnement.status, abonnement.currentPeriodEnd)
+    ) {
+      return { plan: null, entitlements: [] };
+    }
+    if (
+      (abonnement.plan === SubscriptionPlan.CARRIERE_SECURISEE &&
+        user?.currentPath !== UserPath.ACADEMIC) ||
+      (abonnement.plan === SubscriptionPlan.CARRIERE_PLUS &&
+        user?.currentPath !== UserPath.PROFESSIONAL)
+    ) {
+      return { plan: null, entitlements: [] };
+    }
+    return {
+      plan: abonnement.plan,
+      entitlements: [...ENTITLEMENT_CATALOGUE[abonnement.plan]],
+    };
+  }
+
   async decide(
     userId: string,
     capability: EntitlementCapability,
@@ -163,6 +194,18 @@ export class EntitlementsService {
     requiredPlan: SubscriptionPlan | null,
   ): EntitlementDecision {
     return { allowed: false, reason, requiredPlan };
+  }
+
+  private estCouvert(
+    status: SubscriptionStatus,
+    currentPeriodEnd: Date | null,
+  ): boolean {
+    return (
+      status === SubscriptionStatus.ACTIVE ||
+      (status === SubscriptionStatus.CANCELLED &&
+        currentPeriodEnd != null &&
+        currentPeriodEnd.getTime() > Date.now())
+    );
   }
 
   private estConnue(capability: EntitlementCapability): boolean {

@@ -43,6 +43,80 @@ function serviceAvec(
 }
 
 describe('EntitlementsService', () => {
+  it('retourne les droits actifs de la formule CARRIERE_SECURISEE', async () => {
+    const service = serviceAvec(
+      {
+        plan: SubscriptionPlan.CARRIERE_SECURISEE,
+        status: SubscriptionStatus.ACTIVE,
+        currentPeriodEnd: new Date(Date.now() + 86_400_000),
+      },
+      UserPath.ACADEMIC,
+    );
+
+    await expect(service.actifs('u1')).resolves.toEqual({
+      plan: SubscriptionPlan.CARRIERE_SECURISEE,
+      entitlements: [
+        CAPABILITIES.GMAIL_ACCOUNT_OPENING_ASSISTANCE,
+        CAPABILITIES.CV_AND_COVER_LETTER_ASSISTANCE,
+        CAPABILITIES.LEGAL_CONTENTION_ASSISTANCE,
+      ],
+    });
+  });
+
+  it('retourne les six droits actifs de CARRIERE_PLUS', async () => {
+    const service = serviceAvec(
+      {
+        plan: SubscriptionPlan.CARRIERE_PLUS,
+        status: SubscriptionStatus.ACTIVE,
+        currentPeriodEnd: new Date(Date.now() + 86_400_000),
+      },
+      UserPath.PROFESSIONAL,
+    );
+
+    const result = await service.actifs('u1');
+
+    expect(result.plan).toBe(SubscriptionPlan.CARRIERE_PLUS);
+    expect(result.entitlements).toHaveLength(6);
+    expect(result.entitlements).toEqual(
+      expect.arrayContaining([
+        CAPABILITIES.GMAIL_ACCOUNT_OPENING_ASSISTANCE,
+        CAPABILITIES.CV_AND_COVER_LETTER_ASSISTANCE,
+        CAPABILITIES.LEGAL_CONTENTION_ASSISTANCE,
+        CAPABILITIES.PERSONALITY_ORIENTATION_REPORT,
+        CAPABILITIES.EXPLANATION_REQUEST_WRITING_ASSISTANCE,
+        CAPABILITIES.DATA_PROTECTION_ASSISTANCE,
+      ]),
+    );
+  });
+
+  it('retire les droits apres expiration ou parcours incompatible', async () => {
+    const expire = serviceAvec(
+      {
+        plan: SubscriptionPlan.CARRIERE_PLUS,
+        status: SubscriptionStatus.EXPIRED,
+        currentPeriodEnd: new Date(Date.now() - 86_400_000),
+      },
+      UserPath.PROFESSIONAL,
+    );
+    const incompatible = serviceAvec(
+      {
+        plan: SubscriptionPlan.CARRIERE_PLUS,
+        status: SubscriptionStatus.ACTIVE,
+        currentPeriodEnd: new Date(Date.now() + 86_400_000),
+      },
+      UserPath.ACADEMIC,
+    );
+
+    await expect(expire.actifs('u1')).resolves.toEqual({
+      plan: null,
+      entitlements: [],
+    });
+    await expect(incompatible.actifs('u1')).resolves.toEqual({
+      plan: null,
+      entitlements: [],
+    });
+  });
+
   it('refuse une capacité inconnue, sans proposer de formule', async () => {
     const decision = await serviceAvec(null).decide('u1', CAPACITE_INCONNUE);
 
