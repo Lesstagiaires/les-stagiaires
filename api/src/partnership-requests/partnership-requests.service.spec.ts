@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import type { AuditService } from '../audit/audit.service';
 import type { NotificationsService } from '../notifications/notifications.service';
 import type { PrismaService } from '../prisma/prisma.service';
@@ -89,6 +89,51 @@ describe('PartnershipRequestsService', () => {
         }),
       );
     });
+
+    it('creates a quote request as QUOTE_PENDING without creating a subscription, payment, or entitlement', async () => {
+      const dto = {
+        organizationName: 'Acme Corp',
+        organizationType: 'COMPANY' as const,
+        contactName: 'Jane Doe',
+        phone: '+237670000000',
+        email: 'jane@acme.com',
+        country: 'Cameroun',
+        category: 'NEED_QUOTE' as const,
+        reason: 'MARKETING_PROJECT' as const,
+        subject: 'Campagne marketing',
+        description: 'Nous souhaitons solliciter des stagiaires.',
+      };
+      const request = makeRequest({
+        category: 'NEED_QUOTE',
+        reason: 'MARKETING_PROJECT',
+        status: 'QUOTE_PENDING',
+      });
+      prisma.partnershipRequest.create.mockResolvedValue(request);
+
+      const result = (await service.create(dto)) as { status: string };
+
+      expect(prisma.partnershipRequest.create).toHaveBeenCalledWith({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Jest matcher is intentionally untyped
+        data: expect.objectContaining({
+          category: 'NEED_QUOTE',
+          reason: 'MARKETING_PROJECT',
+          status: 'QUOTE_PENDING',
+        }),
+      });
+      expect(result.status).toBe('QUOTE_PENDING');
+      expect(prisma).not.toHaveProperty('subscription');
+      expect(prisma).not.toHaveProperty('payment');
+      expect(prisma).not.toHaveProperty('entitlement');
+      expect(audit.record).toHaveBeenCalledWith(
+        'PARTNERSHIP_REQUEST_SUBMITTED',
+        null,
+        expect.objectContaining({ category: 'NEED_QUOTE' }),
+      );
+      expect(notifications.notifyAdmins).toHaveBeenCalledWith(
+        'PARTNERSHIP_REQUEST_NEW',
+        expect.objectContaining({ category: 'NEED_QUOTE' }),
+      );
+    });
   });
 
   describe('getById', () => {
@@ -164,6 +209,48 @@ describe('PartnershipRequestsService', () => {
         'PARTNERSHIP_REQUEST_STATUS_CHANGED',
         'admin-1',
         { requestId: 'req-1', previousStatus: 'NEW', newStatus: 'IN_PROGRESS' },
+      );
+    });
+
+    it('enforces the quote lifecycle in order', async () => {
+      prisma.partnershipRequest.findUnique
+        .mockResolvedValueOnce(
+          makeRequest({ category: 'NEED_QUOTE', status: 'QUOTE_PENDING' }),
+        )
+        .mockResolvedValueOnce({
+          ...makeRequest({ category: 'NEED_QUOTE', status: 'IN_PROGRESS' }),
+          notes: [],
+        });
+
+      await service.updateStatus('admin-1', 'req-1', 'IN_PROGRESS');
+
+      expect(prisma.partnershipRequest.update).toHaveBeenCalledWith({
+        where: { id: 'req-1' },
+        data: { status: 'IN_PROGRESS' },
+      });
+    });
+
+    it('rejects skipping a quote lifecycle step', async () => {
+      prisma.partnershipRequest.findUnique.mockResolvedValue(
+        makeRequest({ category: 'NEED_QUOTE', status: 'QUOTE_PENDING' }),
+      );
+
+      await expect(
+        service.updateStatus('admin-1', 'req-1', 'QUOTE_SENT'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('filters administration requests by category', async () => {
+      prisma.partnershipRequest.findMany.mockResolvedValue([]);
+
+      await service.listAll({ category: 'NEED_QUOTE' });
+
+      expect(prisma.partnershipRequest.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment -- Jest matcher is intentionally untyped
+          where: expect.objectContaining({ category: 'NEED_QUOTE' }),
+        }),
       );
     });
   });

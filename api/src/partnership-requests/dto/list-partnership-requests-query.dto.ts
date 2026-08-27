@@ -1,5 +1,6 @@
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import {
+  PartnershipRequestCategory,
   PartnershipRequestReason,
   PartnershipRequestStatus,
 } from '../../../generated/prisma/enums';
@@ -12,6 +13,9 @@ export class ListPartnershipRequestsQueryDto {
   @IsOptional()
   @IsEnum(PartnershipRequestReason)
   reason?: PartnershipRequestReason;
+
+  @IsEnum(PartnershipRequestCategory)
+  category?: PartnershipRequestCategory;
 
   @IsOptional()
   @IsString()

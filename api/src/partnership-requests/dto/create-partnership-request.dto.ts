@@ -9,6 +9,7 @@ import {
 } from 'class-validator';
 import {
   PartnershipRequestOrgType,
+  PartnershipRequestCategory,
   PartnershipRequestReason,
 } from '../../../generated/prisma/enums';
 
@@ -49,6 +50,10 @@ export class CreatePartnershipRequestDto {
 
   @IsEnum(PartnershipRequestReason)
   reason: PartnershipRequestReason;
+
+  @IsOptional()
+  @IsEnum(PartnershipRequestCategory)
+  category?: PartnershipRequestCategory;
 
   @IsString()
   @Length(3, 200)

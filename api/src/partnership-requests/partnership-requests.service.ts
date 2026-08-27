@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { Prisma } from '../../generated/prisma/client';
 import type {
+  PartnershipRequestCategory,
   PartnershipRequestReason,
   PartnershipRequestStatus,
 } from '../../generated/prisma/enums';
@@ -28,13 +33,16 @@ export class PartnershipRequestsService {
   ) {}
 
   async create(dto: CreatePartnershipRequestDto) {
+    const category = dto.category ?? 'GENERAL';
+    const status = category === 'NEED_QUOTE' ? 'QUOTE_PENDING' : 'NEW';
     const request = await this.prisma.partnershipRequest.create({
-      data: { ...dto },
+      data: { ...dto, category, status },
     });
 
     await this.audit.record('PARTNERSHIP_REQUEST_SUBMITTED', null, {
       requestId: request.id,
       reason: request.reason,
+      category: request.category,
       organizationName: request.organizationName,
     });
 
@@ -44,6 +52,7 @@ export class PartnershipRequestsService {
       requestId: request.id,
       organizationName: request.organizationName,
       reason: request.reason,
+      category: request.category,
     });
 
     return {
@@ -58,11 +67,13 @@ export class PartnershipRequestsService {
     reason?: PartnershipRequestReason;
     assignedToId?: string;
     q?: string;
+    category?: PartnershipRequestCategory;
   }) {
     return this.prisma.partnershipRequest.findMany({
       where: {
         status: filters.status,
         reason: filters.reason,
+        category: filters.category,
         assignedToId: filters.assignedToId,
         organizationName: filters.q
           ? { contains: filters.q, mode: 'insensitive' }
@@ -95,6 +106,7 @@ export class PartnershipRequestsService {
   ) {
     const request = await this.mustFind(id);
     if (request.status === status) return this.getById(id);
+    this.assertStatusTransition(request.category, request.status, status);
 
     await this.prisma.$transaction([
       this.prisma.partnershipRequest.update({
@@ -118,6 +130,30 @@ export class PartnershipRequestsService {
     });
 
     return this.getById(id);
+  }
+
+  private assertStatusTransition(
+    category: PartnershipRequestCategory,
+    current: PartnershipRequestStatus,
+    next: PartnershipRequestStatus,
+  ): void {
+    if (category !== 'NEED_QUOTE') return;
+    const transitions: Record<
+      PartnershipRequestStatus,
+      PartnershipRequestStatus[]
+    > = {
+      QUOTE_PENDING: ['IN_PROGRESS'],
+      IN_PROGRESS: ['QUOTE_SENT'],
+      QUOTE_SENT: ['PROCESSED'],
+      PROCESSED: ['CLOSED'],
+      NEW: [],
+      CLOSED: [],
+    };
+    if (!transitions[current]?.includes(next)) {
+      throw new BadRequestException(
+        `Transition de demande de devis interdite: ${current} -> ${next}.`,
+      );
+    }
   }
 
   async assign(adminId: string, id: string, assigneeId?: string | null) {

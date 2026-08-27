@@ -1872,11 +1872,21 @@ enum PartnershipRequestReason {
   COMMERCIAL_INFO
   TECHNICAL_SUPPORT
   OTHER
+  MARKETING_PROJECT
+  INTERN_RECRUITMENT_REQUEST
+  OTHER_ORGANIZATION_NEED
+}
+
+enum PartnershipRequestCategory {
+  GENERAL
+  NEED_QUOTE
 }
 
 enum PartnershipRequestStatus {
   NEW
+  QUOTE_PENDING
   IN_PROGRESS
+  QUOTE_SENT
   PROCESSED
   CLOSED
 }
@@ -1905,6 +1915,7 @@ model PartnershipRequest {
   city    String?
 
   reason      PartnershipRequestReason
+  category    PartnershipRequestCategory @default(GENERAL)
   subject     String
   description String
 
@@ -1919,6 +1930,7 @@ model PartnershipRequest {
 
   @@index([status])
   @@index([reason])
+  @@index([category])
   @@index([assignedToId])
 }
 
