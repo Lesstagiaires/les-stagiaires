@@ -6,6 +6,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -37,6 +38,11 @@ import { RecommendationsService } from '../profiles/recommendations.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { DigitalSafeDocumentsService } from '../digital-safe/documents.service';
 import { SharesService } from '../digital-safe/shares.service';
+import {
+  CAPABILITIES,
+  EntitlementReason,
+} from '../entitlements/entitlement-capability';
+import { EntitlementsService } from '../entitlements/entitlements.service';
 import { OrganizationAccessService } from '../opportunities/organization-access.service';
 import { SMS_PROVIDER } from '../sms/sms-provider.interface';
 import type { SmsProvider } from '../sms/sms-provider.interface';
@@ -123,6 +129,7 @@ export class ApplicationsService {
     // Conservé pour le SEUL SMS restant : le code de consentement envoyé au parent
     // d'un mineur, qui n'a ni compte ni adresse électronique (CLAUDE.md §5).
     @Inject(SMS_PROVIDER) private readonly sms: SmsProvider,
+    @Optional() private readonly entitlements?: EntitlementsService,
   ) {}
 
   // --- FR-M5-001 / 002 : dossier préreempli et aperçu -------------------------------------
@@ -169,6 +176,18 @@ export class ApplicationsService {
       });
       if (!opportunity || opportunity.status !== OpportunityStatus.ACTIVE) {
         throw new NotFoundException('Offre introuvable ou non active.');
+      }
+
+      if (opportunity.type === OpportunityType.PROFESSIONAL_INTERNSHIP) {
+        const decision = await this.entitlements?.decide(
+          candidateId,
+          CAPABILITIES.PROFESSIONAL_INTERNSHIP_APPLICATION,
+        );
+        if (decision?.reason === EntitlementReason.PATH_RESTRICTED) {
+          throw new ForbiddenException(
+            'Cette formule ne permet pas de candidater aux stages professionnels.',
+          );
+        }
       }
 
       // Un mineur peut candidater à toute offre, y compris à relocalisation — c'est

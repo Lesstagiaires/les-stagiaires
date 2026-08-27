@@ -32,7 +32,16 @@ import { SubscriptionPlan } from '../../generated/prisma/enums';
 // posent jamais la question à cette couche — c'est la seule façon de garantir
 // qu'une règle mal écrite ne puisse pas les fermer. Un test de source l'impose.
 // ============================================================================
-export const CAPABILITIES = {} as const;
+export const CAPABILITIES = {
+  GMAIL_ACCOUNT_OPENING_ASSISTANCE: 'GMAIL_ACCOUNT_OPENING_ASSISTANCE',
+  CV_AND_COVER_LETTER_ASSISTANCE: 'CV_AND_COVER_LETTER_ASSISTANCE',
+  LEGAL_CONTENTION_ASSISTANCE: 'LEGAL_CONTENTION_ASSISTANCE',
+  PERSONALITY_ORIENTATION_REPORT: 'PERSONALITY_ORIENTATION_REPORT',
+  EXPLANATION_REQUEST_WRITING_ASSISTANCE:
+    'EXPLANATION_REQUEST_WRITING_ASSISTANCE',
+  DATA_PROTECTION_ASSISTANCE: 'DATA_PROTECTION_ASSISTANCE',
+  PROFESSIONAL_INTERNSHIP_APPLICATION: 'PROFESSIONAL_INTERNSHIP_APPLICATION',
+} as const;
 
 export type EntitlementCapability = keyof typeof CAPABILITIES;
 
@@ -46,6 +55,7 @@ export enum EntitlementReason {
   NOT_INCLUDED_IN_PLAN = 'NOT_INCLUDED_IN_PLAN',
   NO_ACTIVE_SUBSCRIPTION = 'NO_ACTIVE_SUBSCRIPTION',
   SUBSCRIPTION_EXPIRED = 'SUBSCRIPTION_EXPIRED',
+  PATH_RESTRICTED = 'PATH_RESTRICTED',
 }
 
 // JAMAIS UN BOOLÉEN. Un refus doit pouvoir dire à l'interface quelle formule

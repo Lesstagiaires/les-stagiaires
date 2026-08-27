@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import {
   SubscriptionPlan,
   SubscriptionStatus,
+  UserPath,
 } from '../../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
 import { INDIVIDUAL_PLANS } from '../subscriptions/individual-plans';
@@ -66,7 +67,36 @@ export class EntitlementsService {
       };
     }
 
-    const abonnement = await this.abonnementIndividuelLePlusRecent(userId);
+    const [abonnement, user] = await Promise.all([
+      this.abonnementIndividuelLePlusRecent(userId),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { currentPath: true },
+      }),
+    ]);
+
+    // La candidature professionnelle est gratuite et reste ouverte par défaut.
+    // Elle devient interdite uniquement pendant la couverture d'une formule
+    // académique, conformément à la règle métier du produit.
+    if (capability === CAPABILITIES.PROFESSIONAL_INTERNSHIP_APPLICATION) {
+      const couverture =
+        abonnement?.status === SubscriptionStatus.ACTIVE ||
+        (abonnement?.status === SubscriptionStatus.CANCELLED &&
+          abonnement.currentPeriodEnd != null &&
+          abonnement.currentPeriodEnd.getTime() > Date.now());
+      if (
+        couverture &&
+        abonnement?.plan === SubscriptionPlan.CARRIERE_SECURISEE &&
+        user?.currentPath === UserPath.ACADEMIC
+      ) {
+        return this.refus(EntitlementReason.PATH_RESTRICTED, null);
+      }
+      return {
+        allowed: true,
+        reason: EntitlementReason.INCLUDED,
+        requiredPlan: null,
+      };
+    }
     const proposition = this.planLePlusPetitIncluant(capability);
 
     // 3. AUCUN ABONNEMENT — la personne est sur GRATUIT, qui n'inclut pas cette
@@ -95,6 +125,19 @@ export class EntitlementsService {
         abonnement.currentPeriodEnd.getTime() > Date.now());
     if (!couvertureEncoreValide) {
       return this.refus(EntitlementReason.NO_ACTIVE_SUBSCRIPTION, proposition);
+    }
+
+    if (
+      abonnement.plan === SubscriptionPlan.CARRIERE_SECURISEE &&
+      user?.currentPath !== UserPath.ACADEMIC
+    ) {
+      return this.refus(EntitlementReason.PATH_RESTRICTED, null);
+    }
+    if (
+      abonnement.plan === SubscriptionPlan.CARRIERE_PLUS &&
+      user?.currentPath !== UserPath.PROFESSIONAL
+    ) {
+      return this.refus(EntitlementReason.PATH_RESTRICTED, null);
     }
 
     // 6. FORMULE ABSENTE DU CATALOGUE — ne peut normalement pas arriver, le

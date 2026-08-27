@@ -1,5 +1,8 @@
 import { SubscriptionPlan } from '../../generated/prisma/enums';
-import type { EntitlementCapability } from './entitlement-capability';
+import {
+  CAPABILITIES,
+  type EntitlementCapability,
+} from './entitlement-capability';
 
 // ============================================================================
 // CE QUE CHAQUE FORMULE INCLUT
@@ -53,8 +56,19 @@ export const ENTITLEMENT_CATALOGUE: Record<
   readonly EntitlementCapability[]
 > = {
   [SubscriptionPlan.GRATUIT]: [],
-  [SubscriptionPlan.CARRIERE_SECURISEE]: [],
-  [SubscriptionPlan.CARRIERE_PLUS]: [],
+  [SubscriptionPlan.CARRIERE_SECURISEE]: [
+    CAPABILITIES.GMAIL_ACCOUNT_OPENING_ASSISTANCE,
+    CAPABILITIES.CV_AND_COVER_LETTER_ASSISTANCE,
+    CAPABILITIES.LEGAL_CONTENTION_ASSISTANCE,
+  ],
+  [SubscriptionPlan.CARRIERE_PLUS]: [
+    CAPABILITIES.GMAIL_ACCOUNT_OPENING_ASSISTANCE,
+    CAPABILITIES.CV_AND_COVER_LETTER_ASSISTANCE,
+    CAPABILITIES.LEGAL_CONTENTION_ASSISTANCE,
+    CAPABILITIES.PERSONALITY_ORIENTATION_REPORT,
+    CAPABILITIES.EXPLANATION_REQUEST_WRITING_ASSISTANCE,
+    CAPABILITIES.DATA_PROTECTION_ASSISTANCE,
+  ],
   [SubscriptionPlan.BUSINESS]: [],
   [SubscriptionPlan.INSTITUTION]: [],
 };

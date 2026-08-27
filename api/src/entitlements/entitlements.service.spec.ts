@@ -8,6 +8,7 @@ import {
   EntitlementReason,
   type EntitlementCapability,
 } from './entitlement-capability';
+import { UserPath } from '../../generated/prisma/enums';
 import { ENTITLEMENT_CATALOGUE } from './entitlement-catalogue';
 import { EntitlementsService } from './entitlements.service';
 
@@ -32,9 +33,11 @@ function serviceAvec(
     status: SubscriptionStatus;
     currentPeriodEnd?: Date | null;
   } | null,
+  currentPath: UserPath | null = null,
 ) {
   const prisma = {
     subscription: { findFirst: jest.fn().mockResolvedValue(abonnement) },
+    user: { findUnique: jest.fn().mockResolvedValue({ currentPath }) },
   };
   return new EntitlementsService(prisma as unknown as PrismaService);
 }
@@ -76,11 +79,19 @@ describe('EntitlementsService', () => {
   // ==========================================================================
   // LE CATALOGUE LUI-MÊME
   // ==========================================================================
-  it('est vide en V6-4 — aucune capacité payante n’a été inventée', () => {
-    expect(Object.keys(CAPABILITIES)).toHaveLength(0);
-    for (const plan of Object.values(SubscriptionPlan)) {
-      expect(ENTITLEMENT_CATALOGUE[plan]).toEqual([]);
-    }
+  it('déclare les sept capacités métier attendues', () => {
+    expect(Object.keys(CAPABILITIES)).toHaveLength(7);
+    expect(ENTITLEMENT_CATALOGUE[SubscriptionPlan.CARRIERE_SECURISEE]).toEqual([
+      CAPABILITIES.GMAIL_ACCOUNT_OPENING_ASSISTANCE,
+      CAPABILITIES.CV_AND_COVER_LETTER_ASSISTANCE,
+      CAPABILITIES.LEGAL_CONTENTION_ASSISTANCE,
+    ]);
+    expect(ENTITLEMENT_CATALOGUE[SubscriptionPlan.CARRIERE_PLUS]).toEqual([
+      ...ENTITLEMENT_CATALOGUE[SubscriptionPlan.CARRIERE_SECURISEE],
+      CAPABILITIES.PERSONALITY_ORIENTATION_REPORT,
+      CAPABILITIES.EXPLANATION_REQUEST_WRITING_ASSISTANCE,
+      CAPABILITIES.DATA_PROTECTION_ASSISTANCE,
+    ]);
   });
 
   it('couvre exhaustivement les formules du schéma', () => {
@@ -131,4 +142,77 @@ describe('EntitlementsService', () => {
     // en base de quoi répondre à une question qui n'a pas de sens.
     expect(prisma.subscription.findFirst).not.toHaveBeenCalled();
   });
+
+  it('refuse les stages professionnels à un abonné académique', async () => {
+    const service = serviceAvec(
+      {
+        plan: SubscriptionPlan.CARRIERE_SECURISEE,
+        status: SubscriptionStatus.ACTIVE,
+        currentPeriodEnd: new Date(Date.now() + 86_400_000),
+      },
+      UserPath.ACADEMIC,
+    );
+    const decision = await service.decide(
+      'u1',
+      CAPABILITIES.PROFESSIONAL_INTERNSHIP_APPLICATION,
+    );
+    expect(decision).toEqual({
+      allowed: false,
+      reason: EntitlementReason.PATH_RESTRICTED,
+      requiredPlan: null,
+    });
+  });
+
+  it('retire la restriction après expiration ou annulation échue', async () => {
+    const service = serviceAvec({
+      plan: SubscriptionPlan.CARRIERE_SECURISEE,
+      status: SubscriptionStatus.CANCELLED,
+      currentPeriodEnd: new Date(Date.now() - 86_400_000),
+    });
+    const decision = await service.decide(
+      'u1',
+      CAPABILITIES.PROFESSIONAL_INTERNSHIP_APPLICATION,
+    );
+    expect(decision.allowed).toBe(true);
+  });
+
+  it.each([
+    CAPABILITIES.GMAIL_ACCOUNT_OPENING_ASSISTANCE,
+    CAPABILITIES.CV_AND_COVER_LETTER_ASSISTANCE,
+    CAPABILITIES.LEGAL_CONTENTION_ASSISTANCE,
+  ])(
+    'accorde le droit académique %s à CARRIÈRE SÉCURISÉE',
+    async (capability) => {
+      const service = serviceAvec(
+        {
+          plan: SubscriptionPlan.CARRIERE_SECURISEE,
+          status: SubscriptionStatus.ACTIVE,
+          currentPeriodEnd: new Date(Date.now() + 86_400_000),
+        },
+        UserPath.ACADEMIC,
+      );
+      const decision = await service.decide('u1', capability);
+      expect(decision.allowed).toBe(true);
+    },
+  );
+
+  it.each([
+    CAPABILITIES.PERSONALITY_ORIENTATION_REPORT,
+    CAPABILITIES.EXPLANATION_REQUEST_WRITING_ASSISTANCE,
+    CAPABILITIES.DATA_PROTECTION_ASSISTANCE,
+  ])(
+    'accorde le droit supplémentaire %s à CARRIÈRE PLUS',
+    async (capability) => {
+      const service = serviceAvec(
+        {
+          plan: SubscriptionPlan.CARRIERE_PLUS,
+          status: SubscriptionStatus.ACTIVE,
+          currentPeriodEnd: new Date(Date.now() + 86_400_000),
+        },
+        UserPath.PROFESSIONAL,
+      );
+      const decision = await service.decide('u1', capability);
+      expect(decision.allowed).toBe(true);
+    },
+  );
 });
