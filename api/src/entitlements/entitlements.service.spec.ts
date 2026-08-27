@@ -27,7 +27,11 @@ const CAPACITE_INCONNUE =
   'CAPACITE_QUI_N_EXISTE_PAS' as unknown as EntitlementCapability;
 
 function serviceAvec(
-  abonnement: { plan: SubscriptionPlan; status: SubscriptionStatus } | null,
+  abonnement: {
+    plan: SubscriptionPlan;
+    status: SubscriptionStatus;
+    currentPeriodEnd?: Date | null;
+  } | null,
 ) {
   const prisma = {
     subscription: { findFirst: jest.fn().mockResolvedValue(abonnement) },

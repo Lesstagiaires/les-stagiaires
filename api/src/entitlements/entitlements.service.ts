@@ -85,11 +85,15 @@ export class EntitlementsService {
       );
     }
 
-    // 5. TOUT AUTRE ÉTAT NON ACTIF — paiement en attente, paiement échoué,
-    //    résiliation. Aucun droit n'en découle, et ce n'est pas une expiration :
-    //    le motif doit dire lequel des deux, sinon l'interface propose le
-    //    mauvais geste.
-    if (abonnement.status !== SubscriptionStatus.ACTIVE) {
+    // 5. UNE RÉSILIATION PREND EFFET À L'ÉCHÉANCE PAYÉE. Elle interdit le
+    //    renouvellement, mais ne confisque pas les jours déjà achetés. Le
+    //    balayage convertira CANCELLED en EXPIRED à currentPeriodEnd.
+    const couvertureEncoreValide =
+      abonnement.status === SubscriptionStatus.ACTIVE ||
+      (abonnement.status === SubscriptionStatus.CANCELLED &&
+        abonnement.currentPeriodEnd != null &&
+        abonnement.currentPeriodEnd.getTime() > Date.now());
+    if (!couvertureEncoreValide) {
       return this.refus(EntitlementReason.NO_ACTIVE_SUBSCRIPTION, proposition);
     }
 
@@ -149,7 +153,7 @@ export class EntitlementsService {
         plan: { in: [...INDIVIDUAL_PLANS] },
       },
       orderBy: { createdAt: 'desc' },
-      select: { plan: true, status: true },
+      select: { plan: true, status: true, currentPeriodEnd: true },
     });
   }
 }

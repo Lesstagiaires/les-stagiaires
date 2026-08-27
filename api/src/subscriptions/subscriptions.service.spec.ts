@@ -364,6 +364,36 @@ describe('SubscriptionsService', () => {
       );
     });
 
+    it('preserves the paid days when cancelling an active subscription', async () => {
+      const finDePeriode = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000);
+      prisma.subscription.findUnique.mockResolvedValue({
+        id: 'sub-1',
+        beneficiaryUserId: 'user-1',
+        beneficiaryOrganizationId: null,
+        status: 'ACTIVE',
+        currentPeriodEnd: finDePeriode,
+      });
+      prisma.subscription.update.mockResolvedValue({
+        id: 'sub-1',
+        status: 'CANCELLED',
+        currentPeriodEnd: finDePeriode,
+      });
+
+      await service.cancel('user-1', 'sub-1');
+
+      expect(prisma.subscription.update).toHaveBeenCalledWith({
+        where: { id: 'sub-1' },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: expect.any(Date) as Date,
+        },
+      });
+      expect(prisma.subscription.update.mock.calls[0][0].data).not.toHaveProperty(
+        'currentPeriodEnd',
+        null,
+      );
+    });
+
     it('allows an organization billing manager to cancel an org-beneficiary subscription', async () => {
       prisma.subscription.findUnique.mockResolvedValue({
         id: 'sub-2',

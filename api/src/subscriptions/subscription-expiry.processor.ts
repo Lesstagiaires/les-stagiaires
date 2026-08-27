@@ -5,8 +5,9 @@ import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SubscriptionNoticesService } from './subscription-notices.service';
 
-// Transition automatique ACTIVE → EXPIRED une fois currentPeriodEnd dépassé — un
-// abonnement ONE_TIME (currentPeriodEnd = null) n'a pas de période récurrente à expirer.
+// Transition automatique ACTIVE/CANCELLED → EXPIRED une fois currentPeriodEnd
+// dépassé — un abonnement ONE_TIME (currentPeriodEnd = null) n'a pas de période
+// récurrente à expirer. Une annulation conserve ainsi les jours déjà payés.
 @Processor('subscription-expiry')
 export class SubscriptionExpiryProcessor extends WorkerHost {
   private readonly logger = new Logger(SubscriptionExpiryProcessor.name);
@@ -34,7 +35,9 @@ export class SubscriptionExpiryProcessor extends WorkerHost {
     // passer qu'un seul avis.
     const aExpirer = await this.prisma.subscription.findMany({
       where: {
-        status: SubscriptionStatus.ACTIVE,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.CANCELLED],
+        },
         currentPeriodEnd: { not: null, lte: echeance },
       },
       select: { id: true },
@@ -42,7 +45,9 @@ export class SubscriptionExpiryProcessor extends WorkerHost {
 
     const expired = await this.prisma.subscription.updateMany({
       where: {
-        status: SubscriptionStatus.ACTIVE,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.CANCELLED],
+        },
         currentPeriodEnd: { not: null, lte: echeance },
       },
       data: { status: SubscriptionStatus.EXPIRED },
