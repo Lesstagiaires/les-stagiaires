@@ -1,8 +1,10 @@
 import { NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { createHmac } from 'node:crypto';
 import type { ConfigService } from '@nestjs/config';
 import type { CommissionsService } from '../ambassadors/commissions.service';
 import type { AuditService } from '../audit/audit.service';
 import type { PrismaService } from '../prisma/prisma.service';
+import type { ProviderPaymentWebhookDto } from './dto/provider-webhook.dto';
 import { PaymentsService } from './payments.service';
 import type { SubscriptionNoticesService } from './subscription-notices.service';
 
@@ -10,6 +12,7 @@ function makePayment(overrides: Record<string, unknown> = {}) {
   return {
     id: 'pay-1',
     subscriptionId: 'sub-1',
+    providerName: 'simulated',
     status: 'INITIATED',
     subscription: {
       id: 'sub-1',
@@ -30,6 +33,19 @@ describe('PaymentsService', () => {
   let audit: { record: jest.Mock };
   let commissions: { onPaymentConfirmed: jest.Mock };
   let service: PaymentsService;
+
+  async function invokeWebhook(
+    provider: string,
+    secret: string,
+    dto: { providerReference: string; status: 'CONFIRMED' | 'FAILED' },
+    signatureSecret = secret,
+  ) {
+    const rawBody = Buffer.from(JSON.stringify(dto));
+    const signature = `sha256=${createHmac('sha256', signatureSecret)
+      .update(rawBody)
+      .digest('hex')}`;
+    return service.handleProviderCallback(provider, signature, dto, rawBody);
+  }
 
   beforeEach(() => {
     prisma = {
@@ -53,6 +69,30 @@ describe('PaymentsService', () => {
         signalerPaiementConfirme: jest.fn().mockResolvedValue(undefined),
       } as unknown as SubscriptionNoticesService,
     );
+
+    // Adaptateur de compatibilité pour les scénarios historiques qui appellent
+    // directement le service : la route de production ne possède pas ce chemin.
+    const handleProviderCallback = service.handleProviderCallback.bind(service);
+    service.handleProviderCallback = (
+      providerName: string,
+      signature: string | undefined,
+      dto: ProviderPaymentWebhookDto,
+      rawBody?: Buffer,
+    ) => {
+      if (rawBody) {
+        return handleProviderCallback(providerName, signature, dto, rawBody);
+      }
+      const body = Buffer.from(JSON.stringify(dto));
+      const generatedSignature = `sha256=${createHmac('sha256', signature ?? '')
+        .update(body)
+        .digest('hex')}`;
+      return handleProviderCallback(
+        providerName,
+        generatedSignature,
+        dto,
+        body,
+      );
+    };
   });
 
   // Le webhook est le SEUL déclencheur de commission de toute la plateforme
@@ -86,10 +126,10 @@ describe('PaymentsService', () => {
   // cet appel, pas un jeton utilisateur.
   it('rejects a webhook call with a missing or incorrect secret', async () => {
     await expect(
-      service.handleProviderCallback('simulated', 'wrong-secret', {
+      invokeWebhook('simulated', 'correct-secret', {
         providerReference: 'SIM-1',
         status: 'CONFIRMED',
-      }),
+      }, 'wrong-secret'),
     ).rejects.toBeInstanceOf(UnauthorizedException);
     expect(prisma.payment.findUnique).not.toHaveBeenCalled();
   });
@@ -98,10 +138,60 @@ describe('PaymentsService', () => {
     config.get.mockReturnValue(undefined);
 
     await expect(
-      service.handleProviderCallback('unknown-provider', 'anything', {
+      invokeWebhook('unknown-provider', 'anything', {
         providerReference: 'SIM-1',
         status: 'CONFIRMED',
       }),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it('scopes payment lookup to the provider', async () => {
+    prisma.payment.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.handleProviderCallback('orange-money-cm', 'correct-secret', {
+        providerReference: 'SIM-1',
+        status: 'CONFIRMED',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+
+    expect(prisma.payment.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          providerName_providerReference: {
+            providerName: 'orange-money-cm',
+            providerReference: 'SIM-1',
+          },
+        },
+      }),
+    );
+  });
+
+  it('accepts only an HMAC signature matching the raw webhook body', async () => {
+    const rawBody = Buffer.from(
+      JSON.stringify({ providerReference: 'SIM-1', status: 'CONFIRMED' }),
+    );
+    const signature = `sha256=${createHmac('sha256', 'correct-secret')
+      .update(rawBody)
+      .digest('hex')}`;
+    prisma.payment.findUnique.mockResolvedValue(makePayment());
+
+    await service.handleProviderCallback(
+      'simulated',
+      signature,
+      { providerReference: 'SIM-1', status: 'CONFIRMED' },
+      rawBody,
+    );
+
+    await expect(
+      service.handleProviderCallback(
+        'simulated',
+        signature,
+        { providerReference: 'SIM-1', status: 'CONFIRMED' },
+        Buffer.from(
+          JSON.stringify({ providerReference: 'SIM-1', status: 'FAILED' }),
+        ),
+      ),
     ).rejects.toBeInstanceOf(UnauthorizedException);
   });
 

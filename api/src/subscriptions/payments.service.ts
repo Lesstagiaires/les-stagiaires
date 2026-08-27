@@ -3,6 +3,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { ConfigService } from '@nestjs/config';
 import {
   PaymentStatus,
@@ -31,18 +32,28 @@ export class PaymentsService {
 
   async handleProviderCallback(
     providerName: string,
-    webhookSecret: string | undefined,
+    webhookSignature: string | undefined,
     dto: ProviderPaymentWebhookDto,
+    rawBody?: Buffer,
   ) {
     const expectedSecret = this.config.get<string>(
       `PAYMENT_WEBHOOK_SECRET_${providerName.toUpperCase()}`,
     );
-    if (!expectedSecret || webhookSecret !== expectedSecret) {
+    if (
+      !expectedSecret ||
+      !rawBody ||
+      !this.isValidWebhookSignature(rawBody, webhookSignature, expectedSecret)
+    ) {
       throw new UnauthorizedException('Signature de webhook invalide.');
     }
 
     const payment = await this.prisma.payment.findUnique({
-      where: { providerReference: dto.providerReference },
+      where: {
+        providerName_providerReference: {
+          providerName,
+          providerReference: dto.providerReference,
+        },
+      },
       include: { subscription: true },
     });
     if (!payment) {
@@ -148,6 +159,24 @@ export class PaymentsService {
     }
 
     return { id: payment.id, status: dto.status };
+  }
+
+  private isValidWebhookSignature(
+    rawBody: Buffer,
+    signature: string | undefined,
+    secret: string,
+  ): boolean {
+    if (!signature) return false;
+    const received = signature.startsWith('sha256=')
+      ? signature.slice('sha256='.length)
+      : signature;
+    const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
+    const receivedBuffer = Buffer.from(received, 'hex');
+    const expectedBuffer = Buffer.from(expected, 'hex');
+    return (
+      receivedBuffer.length === expectedBuffer.length &&
+      timingSafeEqual(receivedBuffer, expectedBuffer)
+    );
   }
 
   // ANCRAGE DE LA NOUVELLE PÉRIODE — arbitrage D-3 du promoteur, 2026-08-18.

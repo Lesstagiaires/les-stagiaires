@@ -2397,7 +2397,7 @@ model Payment {
   // Référence opaque émise par le prestataire, utilisée pour rapprocher son webhook de
   // confirmation à ce paiement — jamais de PIN ni d'identifiant de moyen de paiement
   // (CLAUDE.md §6, non négociable).
-  providerReference String? @unique
+  providerReference String?
 
   initiatedAt         DateTime  @default(now())
   // Horodatage de réception de la confirmation officielle du prestataire (webhook) —
@@ -2412,6 +2412,7 @@ model Payment {
 
   @@index([subscriptionId])
   @@index([status])
+  @@unique([providerName, providerReference])
 }
 
 // ============================================================================

@@ -132,31 +132,34 @@ export class RedisLoginThrottle implements LoginThrottle, OnModuleDestroy {
     private readonly config: ConfigService,
     private readonly audit: AuditService,
     budgets: Budgets = BUDGETS_PAR_DEFAUT,
+    redisClient?: Redis,
   ) {
     this.budgets = budgets;
     this.repli = new MemoryLoginThrottle(budgets);
     this.secret = this.config.get<string>('LOGIN_THROTTLE_HMAC_SECRET', '');
 
-    this.redis = new Redis(
-      this.config.get<string>('REDIS_URL', 'redis://localhost:6379'),
-      {
-        connectTimeout: 3_000,
-        commandTimeout: 2_000,
-        maxRetriesPerRequest: 1,
-        // Délai de grâce à la fermeture, avant destruction forcée de la prise.
-        // La valeur par défaut d'ioredis est de deux secondes — et ce minuteur
-        // court jusqu'au bout quand la connexion n'a jamais été établie, car
-        // aucun `close` ne vient l'annuler. Il retardait d'autant l'arrêt du
-        // processus : diagnostiqué par `--detectOpenHandles`, qui le désignait
-        // nommément. Un demi-seconde suffit largement à fermer une prise TCP.
-        disconnectTimeout: 500,
-        enableOfflineQueue: false,
-        lazyConnect: true,
-        // Le limiteur ne doit jamais faire tomber le démarrage : s'il n'y
-        // arrive pas, il dégrade. D'où l'absence de `retryStrategy` agressive.
-        retryStrategy: (tentatives) => Math.min(tentatives * 500, 5_000),
-      },
-    );
+    this.redis =
+      redisClient ??
+      new Redis(
+        this.config.get<string>('REDIS_URL', 'redis://localhost:6379'),
+        {
+          connectTimeout: 3_000,
+          commandTimeout: 2_000,
+          maxRetriesPerRequest: 1,
+          // Délai de grâce à la fermeture, avant destruction forcée de la prise.
+          // La valeur par défaut d'ioredis est de deux secondes — et ce minuteur
+          // court jusqu'au bout quand la connexion n'a jamais été établie, car
+          // aucun `close` ne vient l'annuler. Il retardait d'autant l'arrêt du
+          // processus : diagnostiqué par `--detectOpenHandles`, qui le désignait
+          // nommément. Un demi-seconde suffit largement à fermer une prise TCP.
+          disconnectTimeout: 500,
+          enableOfflineQueue: false,
+          lazyConnect: true,
+          // Le limiteur ne doit jamais faire tomber le démarrage : s'il n'y
+          // arrive pas, il dégrade. D'où l'absence de `retryStrategy` agressive.
+          retryStrategy: (tentatives) => Math.min(tentatives * 500, 5_000),
+        },
+      );
     // Une connexion Redis en erreur émet `error` ; sans écouteur, Node arrête
     // le processus. On note et on laisse le disjoncteur décider.
     this.redis.on('error', (e) => this.journal.debug(`Redis: ${e.message}`));

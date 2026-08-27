@@ -116,6 +116,26 @@ describe('S-06-C — le verrouillage ne dépend plus du compte visé', () => {
     return l;
   };
 
+  const limiteurRedisIndisponible = (budgets?: Budgets): RedisLoginThrottle => {
+    const client = new Redis({ lazyConnect: true });
+    client.connect = jest
+      .fn()
+      .mockRejectedValue(new Error('Redis indisponible')) as typeof client.connect;
+    client.eval = jest
+      .fn()
+      .mockRejectedValue(new Error('Redis indisponible')) as typeof client.eval;
+    client.disconnect = jest.fn() as typeof client.disconnect;
+    client.removeAllListeners = jest.fn() as typeof client.removeAllListeners;
+    const l = new RedisLoginThrottle(
+      configPour(REDIS_MORT),
+      audit,
+      budgets,
+      client,
+    );
+    limiteurs.push(l);
+    return l;
+  };
+
   const monter = (limiteur: unknown) =>
     new AuthService(
       prisma,
@@ -477,7 +497,6 @@ describe('S-06-C — le verrouillage ne dépend plus du compte visé', () => {
   // d'instances. Une réponse qui trahirait la panne indiquerait quand frapper.
   // ==========================================================================
   describe('aucune réponse ne révèle le mode dégradé', () => {
-    const MORT = 'redis://127.0.0.1:6399';
     const courts: Budgets = {
       parOrigineEtIdentifiant: { max: 2, fenetreSecondes: 60 },
       parOrigine: { maxVigilance: 100, maxDur: 100, fenetreSecondes: 60 },
@@ -503,7 +522,7 @@ describe('S-06-C — le verrouillage ne dépend plus du compte visé', () => {
 
     it('le 429 dégradé est INDISCERNABLE du 429 nominal', async () => {
       const sain = monter(limiteurRedis(configPour(), courts));
-      const casse = monter(limiteurRedis(configPour(MORT), courts));
+      const casse = monter(limiteurRedisIndisponible(courts));
 
       for (let i = 0; i < 2; i++)
         await tenter(sain, VICTIME, MAUVAIS, '203.0.113.140');
@@ -522,7 +541,7 @@ describe('S-06-C — le verrouillage ne dépend plus du compte visé', () => {
       // TEST STRUCTUREL : il n'énumère aucun nom de champ attendu, il inspecte
       // la sérialisation entière. Un champ de diagnostic ajouté demain par
       // mégarde tomberait ici, même si personne n'a pensé à l'y chercher.
-      const casse = monter(limiteurRedis(configPour(MORT), courts));
+      const casse = monter(limiteurRedisIndisponible(courts));
       for (let i = 0; i < 2; i++)
         await tenter(casse, VICTIME, MAUVAIS, '203.0.113.142');
       const r = await corpsDe(casse, MAUVAIS, '203.0.113.142');
@@ -696,11 +715,9 @@ describe('S-06-C — le verrouillage ne dépend plus du compte visé', () => {
   // REDIS INDISPONIBLE
   // ==========================================================================
   describe('Redis indisponible', () => {
-    // Un port sur lequel personne n'écoute : la panne est réelle, pas simulée.
-    const MORT = 'redis://127.0.0.1:6399';
-
+    // La panne est simulée par un client qui échoue immédiatement, sans socket.
     it("FAIL-OPEN : l'authentification reste possible", async () => {
-      const limiteur = limiteurRedis(configPour(MORT));
+      const limiteur = limiteurRedisIndisponible();
       const auth = monter(limiteur);
 
       // FAIL-CLOSED rendrait ici un 500 ou un 429 : une panne de cache
@@ -715,7 +732,7 @@ describe('S-06-C — le verrouillage ne dépend plus du compte visé', () => {
         parOrigine: { maxVigilance: 100, maxDur: 100, fenetreSecondes: 60 },
         parIdentifiant: { max: 100, fenetreSecondes: 60 },
       };
-      const auth = monter(limiteurRedis(configPour(MORT), courts));
+      const auth = monter(limiteurRedisIndisponible(courts));
 
       await tenter(auth, VICTIME, MAUVAIS, '203.0.113.160');
       await tenter(auth, VICTIME, MAUVAIS, '203.0.113.160');
@@ -745,7 +762,7 @@ describe('S-06-C — le verrouillage ne dépend plus du compte visé', () => {
         parOrigine: { maxVigilance: 100, maxDur: 100, fenetreSecondes: 60 },
         parIdentifiant: { max: 100, fenetreSecondes: 60 },
       };
-      const casse = monter(limiteurRedis(configPour(MORT), courts));
+      const casse = monter(limiteurRedisIndisponible(courts));
       await tenter(casse, VICTIME, MAUVAIS, '203.0.113.231');
       await tenter(casse, VICTIME, MAUVAIS, '203.0.113.231');
       const bloque = await tenter(casse, VICTIME, MAUVAIS, '203.0.113.231');
@@ -765,7 +782,7 @@ describe('S-06-C — le verrouillage ne dépend plus du compte visé', () => {
       const avant = await prisma.auditLog.count({
         where: { action: 'LOGIN_THROTTLE_DEGRADED' },
       });
-      const limiteur = limiteurRedis(configPour(MORT));
+      const limiteur = limiteurRedisIndisponible();
       const auth = monter(limiteur);
 
       for (let i = 0; i < 12; i++) {

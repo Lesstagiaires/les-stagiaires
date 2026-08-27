@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { execSync } from 'child_process';
+import { createHmac } from 'node:crypto';
 import { Client } from 'pg';
 import {
   AccountStatus,
@@ -92,11 +93,19 @@ describe('P1-2 : renouvellement (base réelle)', () => {
   // Confirme le dernier encaissement en vol, par le SEUL chemin qui existe :
   // le webhook du prestataire. Aucun test de ce fichier n'écrit `CONFIRMED`
   // directement — ce serait court-circuiter la règle que l'on prétend vérifier.
-  async function confirmerParWebhook(reference: string): Promise<void> {
-    await payments.handleProviderCallback('simulated', SECRET, {
+  async function confirmerParWebhook(
+    reference: string,
+    status: 'CONFIRMED' | 'FAILED' = 'CONFIRMED',
+  ): Promise<void> {
+    const dto = {
       providerReference: reference,
-      status: 'CONFIRMED',
-    });
+      status,
+    } as const;
+    const rawBody = Buffer.from(JSON.stringify(dto));
+    const signature = `sha256=${createHmac('sha256', SECRET)
+      .update(rawBody)
+      .digest('hex')}`;
+    await payments.handleProviderCallback('simulated', signature, dto, rawBody);
   }
 
   beforeAll(async () => {
@@ -376,10 +385,7 @@ describe('P1-2 : renouvellement (base réelle)', () => {
     });
 
     const demande = await service.renew(userId, abonnement.id);
-    await payments.handleProviderCallback('simulated', SECRET, {
-      providerReference: demande.payment.providerReference!,
-      status: 'FAILED',
-    });
+    await confirmerParWebhook(demande.payment.providerReference!, 'FAILED');
 
     const apres = await prisma.subscription.findUniqueOrThrow({
       where: { id: abonnement.id },
