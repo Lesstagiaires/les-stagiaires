@@ -5,9 +5,8 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { execSync } from 'child_process';
-import { createHmac } from 'node:crypto';
 import { Client } from 'pg';
+import { createHmac } from 'node:crypto';
 import {
   AccountStatus,
   PaymentStatus,
@@ -20,6 +19,7 @@ import type { MinorPolicyService } from '../auth/minor-policy.service';
 import { PaymentNotSentError } from '../payments/payment-gateway-provider.interface';
 import type { OrganizationAccessService } from '../opportunities/organization-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { createTemporaryPostgres } from '../test-support/temporary-postgres';
 import { PaymentsService } from './payments.service';
 import type { SubscriptionNoticesService } from './subscription-notices.service';
 import type { SubscriptionPricingService } from './subscription-pricing.service';
@@ -52,24 +52,8 @@ const INDEX = 'Payment_un_seul_en_vol_par_abonnement_key';
 const SECRET = 'secret-de-test';
 const JOUR = 24 * 60 * 60 * 1000;
 
-function urlDe(base: string): string {
-  const u = new URL(process.env.DATABASE_URL_ORIGINE!);
-  u.pathname = '/' + base;
-  return u.href;
-}
-
-async function sqlAdmin(requete: string): Promise<void> {
-  const c = new Client({ connectionString: urlDe('postgres') });
-  await c.connect();
-  try {
-    await c.query(requete);
-  } finally {
-    await c.end();
-  }
-}
-
-async function definitionDeLIndex(): Promise<string | null> {
-  const c = new Client({ connectionString: urlDe(BASE_JETABLE) });
+async function definitionDeLIndex(databaseUrl: string): Promise<string | null> {
+  const c = new Client({ connectionString: databaseUrl });
   await c.connect();
   try {
     const r = await c.query<{ indexdef: string }>(
@@ -84,6 +68,7 @@ async function definitionDeLIndex(): Promise<string | null> {
 
 describe('P1-2 : renouvellement (base réelle)', () => {
   let prisma: PrismaService;
+  let database: Awaited<ReturnType<typeof createTemporaryPostgres>>;
   let service: SubscriptionsService;
   let payments: PaymentsService;
   let userId: string;
@@ -109,24 +94,8 @@ describe('P1-2 : renouvellement (base réelle)', () => {
   }
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) {
-      throw new Error(
-        "DATABASE_URL absente : ce test d'intégration a besoin d'un PostgreSQL " +
-          "joignable (docker compose up -d) et d'un fichier api/.env.",
-      );
-    }
-    process.env.DATABASE_URL_ORIGINE = process.env.DATABASE_URL;
-
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE_JETABLE}"`);
-    await sqlAdmin(`CREATE DATABASE "${BASE_JETABLE}"`);
-
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: urlDe(BASE_JETABLE) },
-      stdio: 'pipe',
-    });
-
-    process.env.DATABASE_URL = urlDe(BASE_JETABLE);
-    prisma = new PrismaService();
+    database = await createTemporaryPostgres(BASE_JETABLE);
+    prisma = database.prisma;
 
     let reference = 0;
     const config = new ConfigService({
@@ -217,9 +186,11 @@ describe('P1-2 : renouvellement (base réelle)', () => {
   });
 
   afterAll(async () => {
-    await prisma?.$disconnect();
-    process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE_JETABLE}"`);
+    try {
+      // Prisma est la seule ressource spécifique de cette spec.
+    } finally {
+      await database?.close();
+    }
   }, 60_000);
 
   // Fabrique un abonnement dans l'état voulu, sans passer par le service : les
@@ -252,7 +223,7 @@ describe('P1-2 : renouvellement (base réelle)', () => {
   }
 
   it("l'index partiel existe et son prédicat n'a pas bougé", async () => {
-    const definition = await definitionDeLIndex();
+    const definition = await definitionDeLIndex(database.url);
 
     expect(definition).not.toBeNull();
     expect(definition).toContain('CREATE UNIQUE INDEX');

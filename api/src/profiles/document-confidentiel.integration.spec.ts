@@ -1,9 +1,7 @@
 import 'dotenv/config';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { execSync } from 'child_process';
 import { createHash } from 'crypto';
-import { Client } from 'pg';
 import {
   DocumentCategory,
   ProfileSection,
@@ -13,6 +11,7 @@ import { AuditService } from '../audit/audit.service';
 import { CountryPolicyService } from '../auth/country-policy.service';
 import { MinorPolicyService } from '../auth/minor-policy.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { createTemporaryPostgres } from '../test-support/temporary-postgres';
 import { DevMalwareScanner } from '../storage/dev-malware-scanner';
 import { DocumentEncryptionService } from '../storage/document-encryption.service';
 import { FileValidationService } from '../storage/file-validation.service';
@@ -37,24 +36,9 @@ import { VisibilityService } from './visibility.service';
 
 const BASE = 'stagiaires_it_document_confidentiel';
 
-function urlDe(base: string): string {
-  const u = new URL(process.env.DATABASE_URL_ORIGINE!);
-  u.pathname = '/' + base;
-  return u.href;
-}
-
-async function sqlAdmin(requete: string): Promise<void> {
-  const c = new Client({ connectionString: urlDe('postgres') });
-  await c.connect();
-  try {
-    await c.query(requete);
-  } finally {
-    await c.end();
-  }
-}
-
 describe('S-02 — confidentialité des documents de profil (base réelle)', () => {
   let prisma: PrismaService;
+  let database: Awaited<ReturnType<typeof createTemporaryPostgres>>;
   let documents: DocumentsService;
   let visibility: VisibilityService;
 
@@ -92,18 +76,8 @@ describe('S-02 — confidentialité des documents de profil (base réelle)', () 
   };
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL absente.');
-    process.env.DATABASE_URL_ORIGINE = process.env.DATABASE_URL;
-
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
-    await sqlAdmin(`CREATE DATABASE "${BASE}"`);
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: urlDe(BASE) },
-      stdio: 'pipe',
-    });
-
-    process.env.DATABASE_URL = urlDe(BASE);
-    prisma = new PrismaService();
+    database = await createTemporaryPostgres(BASE);
+    prisma = database.prisma;
 
     const config = new ConfigService({
       DOCUMENT_ENCRYPTION_KEY: 'a1'.repeat(32),
@@ -139,9 +113,11 @@ describe('S-02 — confidentialité des documents de profil (base réelle)', () 
   }, 240_000);
 
   afterAll(async () => {
-    await prisma?.$disconnect();
-    process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
+    try {
+      // Prisma est la seule ressource spécifique de cette spec.
+    } finally {
+      await database?.close();
+    }
   }, 60_000);
 
   // --- La cause racine -------------------------------------------------------

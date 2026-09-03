@@ -1,11 +1,10 @@
 import 'dotenv/config';
 import { Queue, Worker } from 'bullmq';
-import { execSync } from 'child_process';
 import IORedis from 'ioredis';
-import { Client } from 'pg';
 import { SweepIncidentKind } from '../../generated/prisma/enums';
 import type { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { createTemporaryPostgres } from '../test-support/temporary-postgres';
 import { SweepSupervisionService } from './sweep-supervision.service';
 import { identiteRetard } from './sweep-supervision.types';
 
@@ -27,30 +26,15 @@ const BASE_JETABLE = 'stagiaires_it_supervision';
 const REDIS_INDEX_TEST = '15';
 const HEURE = 60 * 60 * 1000;
 
-function urlPg(base: string): string {
-  const u = new URL(process.env.DATABASE_URL_ORIGINE!);
-  u.pathname = '/' + base;
-  return u.href;
-}
-
 function urlRedisTest(): string {
   const u = new URL(process.env.REDIS_URL ?? 'redis://127.0.0.1:6379');
   u.pathname = '/' + REDIS_INDEX_TEST;
   return u.href;
 }
 
-async function sqlAdmin(requete: string): Promise<void> {
-  const c = new Client({ connectionString: urlPg('postgres') });
-  await c.connect();
-  try {
-    await c.query(requete);
-  } finally {
-    await c.end();
-  }
-}
-
 describe('Supervision des balayages (Redis et PostgreSQL réels)', () => {
   let prisma: PrismaService;
+  let database: Awaited<ReturnType<typeof createTemporaryPostgres>>;
   let fileDeSupervision: Queue;
   // Un client à part pour la MISE EN SCÈNE. `IRedisClient`, le type que BullMQ
   // expose, ne déclare que les commandes dont BullMQ se sert — ni `zadd`, ni
@@ -93,23 +77,8 @@ describe('Supervision des balayages (Redis et PostgreSQL réels)', () => {
   }
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) {
-      throw new Error(
-        "DATABASE_URL absente : ce test d'intégration a besoin d'un PostgreSQL " +
-          "joignable (docker compose up -d) et d'un fichier api/.env.",
-      );
-    }
-    process.env.DATABASE_URL_ORIGINE = process.env.DATABASE_URL;
-
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE_JETABLE}"`);
-    await sqlAdmin(`CREATE DATABASE "${BASE_JETABLE}"`);
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: urlPg(BASE_JETABLE) },
-      stdio: 'pipe',
-    });
-
-    process.env.DATABASE_URL = urlPg(BASE_JETABLE);
-    prisma = new PrismaService();
+    database = await createTemporaryPostgres(BASE_JETABLE);
+    prisma = database.prisma;
 
     fileDeSupervision = new Queue('supervision-sweep', {
       connection: connexion,
@@ -127,12 +96,13 @@ describe('Supervision des balayages (Redis et PostgreSQL réels)', () => {
   });
 
   afterAll(async () => {
-    await redis.flushdb();
-    await redis.quit();
-    await fileDeSupervision.close();
-    await prisma?.$disconnect();
-    process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE_JETABLE}"`);
+    try {
+      await redis?.flushdb();
+      await redis?.quit();
+      await fileDeSupervision?.close();
+    } finally {
+      await database?.close();
+    }
   }, 60_000);
 
   // ==========================================================================
@@ -250,7 +220,7 @@ describe('Supervision des balayages (Redis et PostgreSQL réels)', () => {
   // C'EST L'INDEX UNIQUE QUI TRANCHE, JAMAIS LE CODE.
   it('ne laisse pas deux superviseurs concurrents ouvrir deux incidents', async () => {
     const { queue } = await fileEnRetard('file-concurrente', HEURE, 10 * HEURE);
-    const prismaB = new PrismaService();
+    const prismaB = new PrismaService(database.url);
     const a = superviseur();
     const b = superviseur(prismaB);
 
@@ -293,7 +263,7 @@ describe('Supervision des balayages (Redis et PostgreSQL réels)', () => {
     // les DEUX écritures, car c'est là, et seulement là, que la revendication
     // tranche. On retient donc chaque `updateMany` jusqu'à ce que les deux
     // soient arrivés — l'ordre du reste appartient à PostgreSQL.
-    const prismaB = new PrismaService();
+    const prismaB = new PrismaService(database.url);
     const a = superviseur();
     const b = superviseur(prismaB);
 

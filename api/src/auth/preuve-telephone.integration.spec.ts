@@ -2,11 +2,10 @@ import 'dotenv/config';
 import { ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { execSync } from 'child_process';
-import { Client } from 'pg';
 import { AccountStatus, OtpPurpose } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { createTemporaryPostgres } from '../test-support/temporary-postgres';
 import { AuthService } from './auth.service';
 import { CountryPolicyService } from './country-policy.service';
 import { MinorPolicyService } from './minor-policy.service';
@@ -41,24 +40,9 @@ const TUTEUR = '+237699003344';
 const VICTIME = '+237699005566';
 const ATTAQUANT = '+237699007788';
 
-function urlDe(base: string): string {
-  const u = new URL(process.env.DATABASE_URL_ORIGINE!);
-  u.pathname = '/' + base;
-  return u.href;
-}
-
-async function sqlAdmin(requete: string): Promise<void> {
-  const c = new Client({ connectionString: urlDe('postgres') });
-  await c.connect();
-  try {
-    await c.query(requete);
-  } finally {
-    await c.end();
-  }
-}
-
 describe('Preuve du téléphone et renvoi du code (base réelle)', () => {
   let prisma: PrismaService;
+  let database: Awaited<ReturnType<typeof createTemporaryPostgres>>;
   let auth: AuthService;
   let otp: OtpService;
   const sms: { to: string; body: string }[] = [];
@@ -163,22 +147,8 @@ describe('Preuve du téléphone et renvoi du code (base réelle)', () => {
   };
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) {
-      throw new Error(
-        "DATABASE_URL absente : ce test d'intégration a besoin d'un PostgreSQL joignable.",
-      );
-    }
-    process.env.DATABASE_URL_ORIGINE = process.env.DATABASE_URL;
-
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
-    await sqlAdmin(`CREATE DATABASE "${BASE}"`);
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: urlDe(BASE) },
-      stdio: 'pipe',
-    });
-
-    process.env.DATABASE_URL = urlDe(BASE);
-    prisma = new PrismaService();
+    database = await createTemporaryPostgres(BASE);
+    prisma = database.prisma;
     construire();
 
     const politique = {
@@ -199,9 +169,11 @@ describe('Preuve du téléphone et renvoi du code (base réelle)', () => {
   }, 180_000);
 
   afterAll(async () => {
-    await prisma?.$disconnect();
-    process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
+    try {
+      // Prisma est la seule ressource spécifique de cette spec.
+    } finally {
+      await database?.close();
+    }
   }, 60_000);
 
   // ==========================================================================

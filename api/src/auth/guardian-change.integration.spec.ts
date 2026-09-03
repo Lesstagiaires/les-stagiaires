@@ -4,8 +4,6 @@
 import 'dotenv/config';
 import { ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { execSync } from 'child_process';
-import { Client } from 'pg';
 import {
   AccountStatus,
   GuardianChangeStatus,
@@ -14,6 +12,7 @@ import {
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { createTemporaryPostgres } from '../test-support/temporary-postgres';
 import { CountryPolicyService } from './country-policy.service';
 import { GuardianChangeService } from './guardian-change.service';
 import { MinorPolicyService } from './minor-policy.service';
@@ -60,22 +59,6 @@ const TUTEUR_C_SAISI_CHANGEMENT = '+237 690 00 22 22';
 const TUTEUR_C_SAISI_CONSENTEMENT = '+237-690-002-222';
 const MINEUR_A = '+237690009999';
 
-function urlDe(base: string): string {
-  const u = new URL(process.env.DATABASE_URL_ORIGINE!);
-  u.pathname = '/' + base;
-  return u.href;
-}
-
-async function sqlAdmin(requete: string): Promise<void> {
-  const c = new Client({ connectionString: urlDe('postgres') });
-  await c.connect();
-  try {
-    await c.query(requete);
-  } finally {
-    await c.end();
-  }
-}
-
 // Le code à six chiffres, tel que le tuteur le lit dans son SMS. Extrait du
 // message plutôt que deviné : c'est le seul chemin dont dispose un vrai parent,
 // et un test qui court-circuite ce chemin ne prouve pas qu'il fonctionne.
@@ -91,6 +74,7 @@ function codeDuSms(corps: string): string {
 
 describe('Jonction changement de tuteur / consentement parental (base réelle)', () => {
   let prisma: PrismaService;
+  let database: Awaited<ReturnType<typeof createTemporaryPostgres>>;
   let consent: ParentalConsentService;
   let guardianChange: GuardianChangeService;
   const smsEnvoyes: { to: string; body: string }[] = [];
@@ -99,31 +83,8 @@ describe('Jonction changement de tuteur / consentement parental (base réelle)',
   let adminId: string;
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) {
-      throw new Error(
-        "DATABASE_URL absente : ce test d'intégration a besoin d'un PostgreSQL " +
-          "joignable (docker compose up -d) et d'un fichier api/.env.",
-      );
-    }
-    process.env.DATABASE_URL_ORIGINE = process.env.DATABASE_URL;
-
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE_JETABLE}"`);
-    await sqlAdmin(`CREATE DATABASE "${BASE_JETABLE}"`);
-
-    // Les migrations, les vraies. C'est aussi ce qui fait de ce test un contrôle
-    // de reproductibilité : si une migration cesse de s'appliquer sur une base
-    // vierge, il échoue ici, avant même le premier scénario.
-    //
-    // `execSync` et non `execFileSync` : depuis Node 20, lancer un `.cmd` sans
-    // passer par un interpréteur échoue avec EINVAL sous Windows.
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: urlDe(BASE_JETABLE) },
-      stdio: 'pipe',
-    });
-
-    // `PrismaService` lit DATABASE_URL à la construction : on bascule avant.
-    process.env.DATABASE_URL = urlDe(BASE_JETABLE);
-    prisma = new PrismaService();
+    database = await createTemporaryPostgres(BASE_JETABLE);
+    prisma = database.prisma;
 
     const audit = new AuditService(prisma);
     const countryPolicies = new CountryPolicyService(prisma, audit);
@@ -201,9 +162,11 @@ describe('Jonction changement de tuteur / consentement parental (base réelle)',
   }, 180_000);
 
   afterAll(async () => {
-    await prisma?.$disconnect();
-    process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE_JETABLE}"`);
+    try {
+      // Prisma est la seule ressource spécifique de cette spec.
+    } finally {
+      await database?.close();
+    }
   }, 60_000);
 
   // Le parcours est joué EN UN SEUL TEST, dans l'ordre. Le découper en treize

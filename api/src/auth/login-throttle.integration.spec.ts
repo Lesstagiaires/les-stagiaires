@@ -3,12 +3,11 @@ import type { HttpException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
-import { execSync } from 'child_process';
 import Redis from 'ioredis';
-import { Client } from 'pg';
 import { AccountStatus } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { createTemporaryPostgres } from '../test-support/temporary-postgres';
 import { AuthService } from './auth.service';
 import type { Budgets } from './login-throttle/login-throttle.interface';
 import { MemoryLoginThrottle } from './login-throttle/memory-login-throttle';
@@ -42,22 +41,6 @@ const DESACTIVE = '+237600000112';
 const VERROUILLE = '+237600000113';
 const SECRET_HMAC = 'secret-de-test-hmac-suffisamment-long-0123456789';
 
-function urlDe(base: string): string {
-  const u = new URL(process.env.DATABASE_URL_ORIGINE!);
-  u.pathname = '/' + base;
-  return u.href;
-}
-
-async function sqlAdmin(requete: string): Promise<void> {
-  const c = new Client({ connectionString: urlDe('postgres') });
-  await c.connect();
-  try {
-    await c.query(requete);
-  } finally {
-    await c.end();
-  }
-}
-
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://127.0.0.1:6379';
 
 function configPour(url = REDIS_URL): ConfigService {
@@ -79,6 +62,7 @@ describe('S-06-C — le verrouillage ne dépend plus du compte visé', () => {
   let audit: AuditService;
   let tokens: TokenService;
   let redisNu: Redis;
+  let database: Awaited<ReturnType<typeof createTemporaryPostgres>>;
   let victime = '';
 
   // LE MOCK OTP REPRODUIT LE DÉLAI DE GARDE RÉEL. `secondesDepuisDernierEnvoi`
@@ -206,18 +190,8 @@ describe('S-06-C — le verrouillage ne dépend plus du compte visé', () => {
   };
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL absente.');
-    process.env.DATABASE_URL_ORIGINE = process.env.DATABASE_URL;
-
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
-    await sqlAdmin(`CREATE DATABASE "${BASE}"`);
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: urlDe(BASE) },
-      stdio: 'pipe',
-    });
-
-    process.env.DATABASE_URL = urlDe(BASE);
-    prisma = new PrismaService();
+    database = await createTemporaryPostgres(BASE);
+    prisma = database.prisma;
     audit = new AuditService(prisma);
     tokens = new TokenService(new JwtService({}), configPour(), prisma);
 
@@ -231,12 +205,13 @@ describe('S-06-C — le verrouillage ne dépend plus du compte visé', () => {
   }, 240_000);
 
   afterAll(async () => {
-    // Toutes les connexions du limiteur, refermees avant de rendre la main.
-    await Promise.all(limiteurs.map((l) => l.onModuleDestroy()));
-    await redisNu?.quit().catch(() => undefined);
-    await prisma?.$disconnect();
-    process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
+    try {
+      // Toutes les connexions du limiteur, refermees avant de rendre la main.
+      await Promise.all(limiteurs.map((l) => l.onModuleDestroy()));
+      await redisNu?.quit().catch(() => undefined);
+    } finally {
+      await database?.close();
+    }
   }, 60_000);
 
   beforeEach(async () => {

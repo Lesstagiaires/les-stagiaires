@@ -1,7 +1,5 @@
 import 'dotenv/config';
 import { ForbiddenException } from '@nestjs/common';
-import { execSync } from 'child_process';
-import { Client } from 'pg';
 import {
   AccountStatus,
   ProfileSection,
@@ -12,6 +10,7 @@ import { CountryPolicyService } from '../auth/country-policy.service';
 import { MinorPolicyService } from '../auth/minor-policy.service';
 import { PassportService } from '../digital-safe/passport.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { createTemporaryPostgres } from '../test-support/temporary-postgres';
 import { CvService } from './cv.service';
 import { VisibilityService } from './visibility.service';
 
@@ -40,22 +39,6 @@ import { VisibilityService } from './visibility.service';
 
 const BASE = 'stagiaires_it_identite_publique';
 
-function urlDe(base: string): string {
-  const u = new URL(process.env.DATABASE_URL_ORIGINE!);
-  u.pathname = '/' + base;
-  return u.href;
-}
-
-async function sqlAdmin(requete: string): Promise<void> {
-  const c = new Client({ connectionString: urlDe('postgres') });
-  await c.connect();
-  try {
-    await c.query(requete);
-  } finally {
-    await c.end();
-  }
-}
-
 // Une valeur « vide » au sens de ce test : rien n'a été divulgué.
 function estVide(valeur: unknown): boolean {
   if (valeur === null || valeur === undefined) return true;
@@ -65,6 +48,7 @@ function estVide(valeur: unknown): boolean {
 
 describe("S-01 — l'identité publique reste sous le moteur de visibilité", () => {
   let prisma: PrismaService;
+  let database: Awaited<ReturnType<typeof createTemporaryPostgres>>;
   let visibility: VisibilityService;
   let cv: CvService;
   let passport: PassportService;
@@ -100,18 +84,8 @@ describe("S-01 — l'identité publique reste sous le moteur de visibilité", ()
   };
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL absente.');
-    process.env.DATABASE_URL_ORIGINE = process.env.DATABASE_URL;
-
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
-    await sqlAdmin(`CREATE DATABASE "${BASE}"`);
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: urlDe(BASE) },
-      stdio: 'pipe',
-    });
-
-    process.env.DATABASE_URL = urlDe(BASE);
-    prisma = new PrismaService();
+    database = await createTemporaryPostgres(BASE);
+    prisma = database.prisma;
 
     const audit = new AuditService(prisma);
     const pays = new CountryPolicyService(prisma, audit);
@@ -141,9 +115,11 @@ describe("S-01 — l'identité publique reste sous le moteur de visibilité", ()
   }, 240_000);
 
   afterAll(async () => {
-    await prisma?.$disconnect();
-    process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
+    try {
+      // Prisma est la seule ressource spécifique de cette spec.
+    } finally {
+      await database?.close();
+    }
   }, 60_000);
 
   // --- 1. Le défaut lui-même -------------------------------------------------

@@ -1,6 +1,5 @@
 import 'dotenv/config';
 import { ConfigService } from '@nestjs/config';
-import { execSync } from 'child_process';
 import { Client } from 'pg';
 import {
   OrganizationCategory,
@@ -10,6 +9,7 @@ import {
 } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { createTemporaryPostgres } from '../test-support/temporary-postgres';
 import { EstablishmentsService } from './establishments.service';
 import { OrganizationAccessService } from './organization-access.service';
 import { OrganizationsService } from './organizations.service';
@@ -35,49 +35,18 @@ import { OrganizationsService } from './organizations.service';
 
 const BASE_JETABLE = 'stagiaires_it_org_category';
 
-function urlDe(base: string): string {
-  const u = new URL(process.env.DATABASE_URL_ORIGINE!);
-  u.pathname = '/' + base;
-  return u.href;
-}
-
-async function sqlAdmin(requete: string): Promise<void> {
-  const c = new Client({ connectionString: urlDe('postgres') });
-  await c.connect();
-  try {
-    await c.query(requete);
-  } finally {
-    await c.end();
-  }
-}
-
 describe('V6-3 : catégorie des organisations (base réelle)', () => {
   let prisma: PrismaService;
+  let database: Awaited<ReturnType<typeof createTemporaryPostgres>>;
   let organizations: OrganizationsService;
   let sql: Client;
   let compteur = 0;
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) {
-      throw new Error(
-        "DATABASE_URL absente : ce test d'intégration a besoin d'un PostgreSQL " +
-          "joignable (docker compose up -d) et d'un fichier api/.env.",
-      );
-    }
-    process.env.DATABASE_URL_ORIGINE = process.env.DATABASE_URL;
+    database = await createTemporaryPostgres(BASE_JETABLE);
+    prisma = database.prisma;
 
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE_JETABLE}"`);
-    await sqlAdmin(`CREATE DATABASE "${BASE_JETABLE}"`);
-
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: urlDe(BASE_JETABLE) },
-      stdio: 'pipe',
-    });
-
-    process.env.DATABASE_URL = urlDe(BASE_JETABLE);
-    prisma = new PrismaService();
-
-    sql = new Client({ connectionString: urlDe(BASE_JETABLE) });
+    sql = new Client({ connectionString: database.url });
     await sql.connect();
 
     const audit = new AuditService(prisma);
@@ -100,10 +69,11 @@ describe('V6-3 : catégorie des organisations (base réelle)', () => {
   }, 180_000);
 
   afterAll(async () => {
-    await sql?.end();
-    await prisma?.$disconnect();
-    process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE_JETABLE}"`);
+    try {
+      await sql?.end();
+    } finally {
+      await database?.close();
+    }
   }, 60_000);
 
   async function creerUtilisateur(roleName?: string): Promise<string> {

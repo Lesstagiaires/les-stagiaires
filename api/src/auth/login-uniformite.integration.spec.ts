@@ -3,11 +3,10 @@ import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
-import { execSync } from 'child_process';
-import { Client } from 'pg';
 import { AccountStatus } from '../../generated/prisma/enums';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { createTemporaryPostgres } from '../test-support/temporary-postgres';
 import { AuthService } from './auth.service';
 import {
   condensatFactice,
@@ -41,22 +40,6 @@ const BASE = 'stagiaires_it_login_uniformite';
 const MOT_DE_PASSE = 'MotDePasseCorrect1';
 const MAUVAIS = 'MotDePasseFaux1';
 
-function urlDe(base: string): string {
-  const u = new URL(process.env.DATABASE_URL_ORIGINE!);
-  u.pathname = '/' + base;
-  return u.href;
-}
-
-async function sqlAdmin(requete: string): Promise<void> {
-  const c = new Client({ connectionString: urlDe('postgres') });
-  await c.connect();
-  try {
-    await c.query(requete);
-  } finally {
-    await c.end();
-  }
-}
-
 interface Reponse {
   type: string;
   statut: number;
@@ -73,6 +56,7 @@ function parametres(condensat: string): string {
 
 describe('S-06 passe 1 — uniformité des réponses de /auth/login', () => {
   let prisma: PrismaService;
+  let database: Awaited<ReturnType<typeof createTemporaryPostgres>>;
   let auth: AuthService;
 
   // Seul le compte actif a besoin d'être manipulé par identifiant (remise à
@@ -141,18 +125,8 @@ describe('S-06 passe 1 — uniformité des réponses de /auth/login', () => {
   };
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL absente.');
-    process.env.DATABASE_URL_ORIGINE = process.env.DATABASE_URL;
-
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
-    await sqlAdmin(`CREATE DATABASE "${BASE}"`);
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: urlDe(BASE) },
-      stdio: 'pipe',
-    });
-
-    process.env.DATABASE_URL = urlDe(BASE);
-    prisma = new PrismaService();
+    database = await createTemporaryPostgres(BASE);
+    prisma = database.prisma;
 
     const config = new ConfigService({
       LOCKOUT_MAX_ATTEMPTS: '5',
@@ -191,9 +165,7 @@ describe('S-06 passe 1 — uniformité des réponses de /auth/login', () => {
   }, 240_000);
 
   afterAll(async () => {
-    await prisma?.$disconnect();
-    process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
+    await database?.close();
   }, 60_000);
 
   // Depuis S-06-C, chaque tentative consomme un budget. Sans cette remise à

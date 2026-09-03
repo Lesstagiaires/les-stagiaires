@@ -1,9 +1,8 @@
 import 'dotenv/config';
 import { ConfigService } from '@nestjs/config';
-import { execSync } from 'child_process';
-import { Client } from 'pg';
 import { OtpPurpose } from '../../generated/prisma/enums';
 import { PrismaService } from '../prisma/prisma.service';
+import { createTemporaryPostgres } from '../test-support/temporary-postgres';
 import { OtpService } from './otp.service';
 
 // ============================================================================
@@ -19,24 +18,9 @@ import { OtpService } from './otp.service';
 
 const BASE = 'stagiaires_it_otp_securite';
 
-function urlDe(base: string): string {
-  const u = new URL(process.env.DATABASE_URL_ORIGINE!);
-  u.pathname = '/' + base;
-  return u.href;
-}
-
-async function sqlAdmin(requete: string): Promise<void> {
-  const c = new Client({ connectionString: urlDe('postgres') });
-  await c.connect();
-  try {
-    await c.query(requete);
-  } finally {
-    await c.end();
-  }
-}
-
 describe('Sécurité du code à usage unique (base réelle)', () => {
   let prisma: PrismaService;
+  let database: Awaited<ReturnType<typeof createTemporaryPostgres>>;
   let otp: OtpService;
   const sms: { to: string; body: string }[] = [];
   let alice = '';
@@ -68,18 +52,8 @@ describe('Sécurité du code à usage unique (base réelle)', () => {
     ).id;
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL absente.');
-    process.env.DATABASE_URL_ORIGINE = process.env.DATABASE_URL;
-
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
-    await sqlAdmin(`CREATE DATABASE "${BASE}"`);
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: urlDe(BASE) },
-      stdio: 'pipe',
-    });
-
-    process.env.DATABASE_URL = urlDe(BASE);
-    prisma = new PrismaService();
+    database = await createTemporaryPostgres(BASE);
+    prisma = database.prisma;
     otp = service();
 
     alice = await creerCompte('+237698000001');
@@ -87,9 +61,11 @@ describe('Sécurité du code à usage unique (base réelle)', () => {
   }, 180_000);
 
   afterAll(async () => {
-    await prisma?.$disconnect();
-    process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE}"`);
+    try {
+      // Prisma est la seule ressource spécifique de cette spec.
+    } finally {
+      await database?.close();
+    }
   }, 60_000);
 
   // --- 1. Réutilisation d'un code déjà consommé ------------------------------

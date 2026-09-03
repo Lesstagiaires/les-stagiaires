@@ -1,0 +1,110 @@
+(node:29612) ExperimentalWarning: VM Modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[33m[Nest] 29612  - [39m03/09/2026 02:22:35 [33m   WARN[39m [38;5;3m[RedisLoginThrottle] [39m[33mLimiteur de connexion dégradé : panne simulée[39m
+FAIL src/auth/login-throttle.integration.spec.ts (74.512 s)
+  ● S-06-C — le verrouillage ne dépend plus du compte visé › aucune réponse ne révèle le mode dégradé › le 429 dégradé est INDISCERNABLE du 429 nominal
+
+    ReferenceError: REDIS_MORT is not defined
+
+    [0m [90m 112 |[39m     client[33m.[39mremoveAllListeners [33m=[39m jest[33m.[39mfn() [36mas[39m [36mtypeof[39m client[33m.[39mremoveAllListeners[33m;[39m
+     [90m 113 |[39m     [36mconst[39m l [33m=[39m [36mnew[39m [33mRedisLoginThrottle[39m(
+    [31m[1m>[22m[39m[90m 114 |[39m       configPour([33mREDIS_MORT[39m)[33m,[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 115 |[39m       audit[33m,[39m
+     [90m 116 |[39m       budgets[33m,[39m
+     [90m 117 |[39m       client[33m,[39m[0m
+
+      at limiteurRedisIndisponible (auth/login-throttle.integration.spec.ts:114:18)
+      at Object.<anonymous> (auth/login-throttle.integration.spec.ts:500:28)
+
+  ● S-06-C — le verrouillage ne dépend plus du compte visé › aucune réponse ne révèle le mode dégradé › aucun champ de la réponse ne nomme le limiteur, Redis ou la dégradation
+
+    ReferenceError: REDIS_MORT is not defined
+
+    [0m [90m 112 |[39m     client[33m.[39mremoveAllListeners [33m=[39m jest[33m.[39mfn() [36mas[39m [36mtypeof[39m client[33m.[39mremoveAllListeners[33m;[39m
+     [90m 113 |[39m     [36mconst[39m l [33m=[39m [36mnew[39m [33mRedisLoginThrottle[39m(
+    [31m[1m>[22m[39m[90m 114 |[39m       configPour([33mREDIS_MORT[39m)[33m,[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 115 |[39m       audit[33m,[39m
+     [90m 116 |[39m       budgets[33m,[39m
+     [90m 117 |[39m       client[33m,[39m[0m
+
+      at limiteurRedisIndisponible (auth/login-throttle.integration.spec.ts:114:18)
+      at Object.<anonymous> (auth/login-throttle.integration.spec.ts:519:28)
+
+  ● S-06-C — le verrouillage ne dépend plus du compte visé › Redis indisponible › FAIL-OPEN : l'authentification reste possible
+
+    ReferenceError: REDIS_MORT is not defined
+
+    [0m [90m 112 |[39m     client[33m.[39mremoveAllListeners [33m=[39m jest[33m.[39mfn() [36mas[39m [36mtypeof[39m client[33m.[39mremoveAllListeners[33m;[39m
+     [90m 113 |[39m     [36mconst[39m l [33m=[39m [36mnew[39m [33mRedisLoginThrottle[39m(
+    [31m[1m>[22m[39m[90m 114 |[39m       configPour([33mREDIS_MORT[39m)[33m,[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 115 |[39m       audit[33m,[39m
+     [90m 116 |[39m       budgets[33m,[39m
+     [90m 117 |[39m       client[33m,[39m[0m
+
+      at limiteurRedisIndisponible (auth/login-throttle.integration.spec.ts:114:18)
+      at Object.<anonymous> (auth/login-throttle.integration.spec.ts:695:24)
+
+  ● S-06-C — le verrouillage ne dépend plus du compte visé › Redis indisponible › le repli mémoire continue de limiter
+
+    ReferenceError: REDIS_MORT is not defined
+
+    [0m [90m 112 |[39m     client[33m.[39mremoveAllListeners [33m=[39m jest[33m.[39mfn() [36mas[39m [36mtypeof[39m client[33m.[39mremoveAllListeners[33m;[39m
+     [90m 113 |[39m     [36mconst[39m l [33m=[39m [36mnew[39m [33mRedisLoginThrottle[39m(
+    [31m[1m>[22m[39m[90m 114 |[39m       configPour([33mREDIS_MORT[39m)[33m,[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 115 |[39m       audit[33m,[39m
+     [90m 116 |[39m       budgets[33m,[39m
+     [90m 117 |[39m       client[33m,[39m[0m
+
+      at limiteurRedisIndisponible (auth/login-throttle.integration.spec.ts:114:18)
+      at Object.<anonymous> (auth/login-throttle.integration.spec.ts:710:27)
+
+  ● S-06-C — le verrouillage ne dépend plus du compte visé › Redis indisponible › MESURE : Redis vivant écrit trois compteurs, Redis mort n’en écrit aucun
+
+    ReferenceError: REDIS_MORT is not defined
+
+    [0m [90m 112 |[39m     client[33m.[39mremoveAllListeners [33m=[39m jest[33m.[39mfn() [36mas[39m [36mtypeof[39m client[33m.[39mremoveAllListeners[33m;[39m
+     [90m 113 |[39m     [36mconst[39m l [33m=[39m [36mnew[39m [33mRedisLoginThrottle[39m(
+    [31m[1m>[22m[39m[90m 114 |[39m       configPour([33mREDIS_MORT[39m)[33m,[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 115 |[39m       audit[33m,[39m
+     [90m 116 |[39m       budgets[33m,[39m
+     [90m 117 |[39m       client[33m,[39m[0m
+
+      at limiteurRedisIndisponible (auth/login-throttle.integration.spec.ts:114:18)
+      at Object.<anonymous> (auth/login-throttle.integration.spec.ts:740:28)
+
+  ● S-06-C — le verrouillage ne dépend plus du compte visé › Redis indisponible › LOGIN_THROTTLE_DEGRADED est émis UNE SEULE FOIS
+
+    ReferenceError: REDIS_MORT is not defined
+
+    [0m [90m 112 |[39m     client[33m.[39mremoveAllListeners [33m=[39m jest[33m.[39mfn() [36mas[39m [36mtypeof[39m client[33m.[39mremoveAllListeners[33m;[39m
+     [90m 113 |[39m     [36mconst[39m l [33m=[39m [36mnew[39m [33mRedisLoginThrottle[39m(
+    [31m[1m>[22m[39m[90m 114 |[39m       configPour([33mREDIS_MORT[39m)[33m,[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 115 |[39m       audit[33m,[39m
+     [90m 116 |[39m       budgets[33m,[39m
+     [90m 117 |[39m       client[33m,[39m[0m
+
+      at limiteurRedisIndisponible (auth/login-throttle.integration.spec.ts:114:18)
+      at Object.<anonymous> (auth/login-throttle.integration.spec.ts:760:24)
+
+[32m[Nest] 29612  - [39m03/09/2026 02:24:22 [32m    LOG[39m [38;5;3m[SweepSupervisionService] [39m[32m1 alerte(s) de supervision reprise(s).[39m
+[32m[Nest] 29612  - [39m03/09/2026 02:24:22 [32m    LOG[39m [38;5;3m[SweepSupervisionService] [39m[32m1 alerte(s) de supervision reprise(s).[39m
+[33m[Nest] 29612  - [39m03/09/2026 02:24:42 [33m   WARN[39m [38;5;3m[DevMalwareScanner] [39m[33m[MALWARE_SCANNER=dev] Aucune analyse anti-malware réelle effectuée — non conforme pour la production (CLAUDE.md §4).[39m
+[95m[Nest] 29612  - [39m03/09/2026 02:24:42 [95m  DEBUG[39m [38;5;3m[LocalStorageProvider] [39m[95m[STORAGE_PROVIDER=local] Écrit : profiles/cmtkuef3j0001ukv9882c0j6g/d952c98f-eb49-40db-a8a2-e56a7bfc5d7f[39m
+[33m[Nest] 29612  - [39m03/09/2026 02:24:42 [33m   WARN[39m [38;5;3m[DevMalwareScanner] [39m[33m[MALWARE_SCANNER=dev] Aucune analyse anti-malware réelle effectuée — non conforme pour la production (CLAUDE.md §4).[39m
+[95m[Nest] 29612  - [39m03/09/2026 02:24:42 [95m  DEBUG[39m [38;5;3m[LocalStorageProvider] [39m[95m[STORAGE_PROVIDER=local] Écrit : profiles/cmtkuef3j0001ukv9882c0j6g/e2b1e6c0-532b-4481-b232-e4b6caa5d4c0[39m
+[33m[Nest] 29612  - [39m03/09/2026 02:24:43 [33m   WARN[39m [38;5;3m[DevMalwareScanner] [39m[33m[MALWARE_SCANNER=dev] Aucune analyse anti-malware réelle effectuée — non conforme pour la production (CLAUDE.md §4).[39m
+[95m[Nest] 29612  - [39m03/09/2026 02:24:43 [95m  DEBUG[39m [38;5;3m[LocalStorageProvider] [39m[95m[STORAGE_PROVIDER=local] Écrit : profiles/cmtkuef3w0003ukv9kn4y1skq/c3d597a7-b3d6-4df8-a0ba-4d8f45bf5540[39m
+[33m[Nest] 29612  - [39m03/09/2026 02:24:53 [33m   WARN[39m [38;5;3m[OtpService] [39m[33mDeux demandes de code simultanées : la seconde est ignorée.[39m
+
+Test Suites: 1 failed, 14 passed, 15 total
+Tests:       6 failed, 206 passed, 212 total
+Snapshots:   0 total
+Time:        220.536 s, estimated 225 s
+Ran all test suites.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

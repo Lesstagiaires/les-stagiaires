@@ -1,8 +1,6 @@
 import 'dotenv/config';
 import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { execSync } from 'child_process';
-import { Client } from 'pg';
 import {
   AccountStatus,
   SubscriptionPlan,
@@ -13,6 +11,7 @@ import { AuditService } from '../audit/audit.service';
 import type { MinorPolicyService } from '../auth/minor-policy.service';
 import type { OrganizationAccessService } from '../opportunities/organization-access.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { createTemporaryPostgres } from '../test-support/temporary-postgres';
 import { PLANCHER_PAR_PARCOURS } from './plancher-parcours';
 import type { SubscriptionPricingService } from './subscription-pricing.service';
 import { SubscriptionsService } from './subscriptions.service';
@@ -41,24 +40,9 @@ import { SubscriptionsService } from './subscriptions.service';
 
 const BASE_JETABLE = 'stagiaires_it_d21_plancher';
 
-function urlDe(base: string): string {
-  const u = new URL(process.env.DATABASE_URL_ORIGINE!);
-  u.pathname = '/' + base;
-  return u.href;
-}
-
-async function sqlAdmin(requete: string): Promise<void> {
-  const c = new Client({ connectionString: urlDe('postgres') });
-  await c.connect();
-  try {
-    await c.query(requete);
-  } finally {
-    await c.end();
-  }
-}
-
 describe('D-21 : le parcours fixe le plancher d’une acquisition (base réelle)', () => {
   let prisma: PrismaService;
+  let database: Awaited<ReturnType<typeof createTemporaryPostgres>>;
   let service: SubscriptionsService;
   let compteur = 0;
 
@@ -82,24 +66,8 @@ describe('D-21 : le parcours fixe le plancher d’une acquisition (base réelle)
   }
 
   beforeAll(async () => {
-    if (!process.env.DATABASE_URL) {
-      throw new Error(
-        "DATABASE_URL absente : ce test d'intégration a besoin d'un PostgreSQL " +
-          "joignable (docker compose up -d) et d'un fichier api/.env.",
-      );
-    }
-    process.env.DATABASE_URL_ORIGINE = process.env.DATABASE_URL;
-
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE_JETABLE}"`);
-    await sqlAdmin(`CREATE DATABASE "${BASE_JETABLE}"`);
-
-    execSync('npx prisma migrate deploy', {
-      env: { ...process.env, DATABASE_URL: urlDe(BASE_JETABLE) },
-      stdio: 'pipe',
-    });
-
-    process.env.DATABASE_URL = urlDe(BASE_JETABLE);
-    prisma = new PrismaService();
+    database = await createTemporaryPostgres(BASE_JETABLE);
+    prisma = database.prisma;
 
     let reference = 0;
     service = new SubscriptionsService(
@@ -129,9 +97,11 @@ describe('D-21 : le parcours fixe le plancher d’une acquisition (base réelle)
   }, 180_000);
 
   afterAll(async () => {
-    await prisma?.$disconnect();
-    process.env.DATABASE_URL = process.env.DATABASE_URL_ORIGINE;
-    await sqlAdmin(`DROP DATABASE IF EXISTS "${BASE_JETABLE}"`);
+    try {
+      // Prisma est la seule ressource spécifique de cette spec.
+    } finally {
+      await database?.close();
+    }
   }, 60_000);
 
   // ==========================================================================
