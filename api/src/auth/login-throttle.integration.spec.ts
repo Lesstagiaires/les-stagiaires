@@ -42,6 +42,9 @@ const VERROUILLE = '+237600000113';
 const SECRET_HMAC = 'secret-de-test-hmac-suffisamment-long-0123456789';
 
 const REDIS_URL = process.env.REDIS_URL ?? 'redis://127.0.0.1:6379';
+// Un port fermé sur localhost simule précisément une panne Redis sans dépendre
+// d'un service externe ni d'une fuite de l'authentification en mode dégradé.
+const REDIS_MORT = 'redis://127.0.0.1:1';
 
 function configPour(url = REDIS_URL): ConfigService {
   return new ConfigService({
