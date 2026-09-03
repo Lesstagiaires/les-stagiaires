@@ -1,10 +1,12 @@
 export const PAYMENT_GATEWAY_PROVIDER = 'PAYMENT_GATEWAY_PROVIDER';
+export const PAYMENT_GATEWAY_REGISTRY = 'PAYMENT_GATEWAY_REGISTRY';
 
 export interface PaymentInitiationRequest {
   paymentId: string;
   amountMinor: number;
   currency: string;
   countryCode: string;
+  paymentMethodCode: string;
 }
 
 export interface PaymentInitiationResult {

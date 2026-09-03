@@ -1,11 +1,27 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PAYMENT_GATEWAY_PROVIDER } from './payment-gateway-provider.interface';
+import {
+  PAYMENT_GATEWAY_PROVIDER,
+  PAYMENT_GATEWAY_REGISTRY,
+} from './payment-gateway-provider.interface';
+import { PaymentGatewayRegistry } from './payment-gateway.registry';
 import { SimulatedPaymentGatewayProvider } from './simulated-payment-gateway.provider';
 
 @Module({
   providers: [
     SimulatedPaymentGatewayProvider,
+    PaymentGatewayRegistry,
+    {
+      provide: PAYMENT_GATEWAY_REGISTRY,
+      useFactory: (
+        registry: PaymentGatewayRegistry,
+        simulated: SimulatedPaymentGatewayProvider,
+      ) => {
+        registry.register('simulated', simulated);
+        return registry;
+      },
+      inject: [PaymentGatewayRegistry, SimulatedPaymentGatewayProvider],
+    },
     {
       // "simulated" par défaut. Pour connecter une passerelle officielle par pays :
       // ajouter la classe (ex. OrangeMoneyCmProvider implements PaymentGatewayProvider),
@@ -21,9 +37,12 @@ import { SimulatedPaymentGatewayProvider } from './simulated-payment-gateway.pro
           'PAYMENT_GATEWAY_PROVIDER',
           'simulated',
         );
-        if (provider !== 'simulated') {
+        const environment = config.get<string>('NODE_ENV', 'development');
+        if (provider !== 'simulated' && environment === 'production') {
           throw new Error(
-            `PAYMENT_GATEWAY_PROVIDER="${provider}" n'est pas encore implémenté — seul "simulated" est disponible dans cette version.`,
+            `PAYMENT_GATEWAY_PROVIDER="${provider}" n'est pas implémenté en production. ` +
+              'Configurez "simulated" uniquement pour un environnement de test, ' +
+              'ou branchez un provider officiel avant le démarrage.',
           );
         }
         return simulated;
@@ -31,6 +50,6 @@ import { SimulatedPaymentGatewayProvider } from './simulated-payment-gateway.pro
       inject: [ConfigService, SimulatedPaymentGatewayProvider],
     },
   ],
-  exports: [PAYMENT_GATEWAY_PROVIDER],
+  exports: [PAYMENT_GATEWAY_PROVIDER, PAYMENT_GATEWAY_REGISTRY],
 })
 export class PaymentsModule {}

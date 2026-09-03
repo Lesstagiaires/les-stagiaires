@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export interface AccessTokenPayload {
   sub: string;
   roles: string[];
+  countryCode?: string;
   // Absent pour les jetons émis avant l'introduction du modèle Session (rétrocompatible) —
   // quand présent, JwtStrategy revérifie sa validité à chaque requête (CLAUDE.md §2).
   sessionId?: string;

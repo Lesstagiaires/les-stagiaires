@@ -804,10 +804,15 @@ export class AuthService implements OnModuleInit {
 
   private async issueTokens(userId: string, sessionId: string) {
     const roles = await this.getActiveRoleNames(userId);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { countryOfResidence: true },
+    });
     const accessToken = await this.tokens.signAccessToken({
       sub: userId,
       roles,
       sessionId,
+      countryCode: user?.countryOfResidence ?? undefined,
     });
     const refreshToken = await this.tokens.issueRefreshToken(userId, sessionId);
     return { accessToken, refreshToken };
@@ -827,10 +832,15 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Refresh token invalide ou expiré.');
 
     const roles = await this.getActiveRoleNames(rotated.userId);
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: rotated.userId },
+      select: { countryOfResidence: true },
+    });
     const accessToken = await this.tokens.signAccessToken({
       sub: rotated.userId,
       roles,
       sessionId: rotated.sessionId ?? undefined,
+      countryCode: user.countryOfResidence ?? undefined,
     });
     return { accessToken, refreshToken: rotated.newToken };
   }

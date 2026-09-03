@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -22,10 +23,13 @@ import {
 import { OrganizationAccessService } from '../opportunities/organization-access.service';
 import {
   PAYMENT_GATEWAY_PROVIDER,
+  PAYMENT_GATEWAY_REGISTRY,
   PaymentNotSentError,
   type PaymentGatewayProvider,
   type PaymentInitiationResult,
 } from '../payments/payment-gateway-provider.interface';
+import { PaymentGatewayRegistry } from '../payments/payment-gateway.registry';
+import type { PaymentMethodCode } from '../payments/payment-provider-catalogue';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListSubscriptionsQueryDto } from './dto/list-subscriptions-query.dto';
 import { SponsorSubscriptionDto } from './dto/sponsor-subscription.dto';
@@ -96,6 +100,8 @@ interface CreateSubscriptionParams {
   originType: SubscriptionOriginType;
   initiatingOrganizationId?: string;
   parentRedirectRequested?: boolean;
+  paymentMethodCode?: PaymentMethodCode;
+  paymentCurrency?: string;
 }
 
 @Injectable()
@@ -109,6 +115,9 @@ export class SubscriptionsService {
     private readonly pricing: SubscriptionPricingService,
     @Inject(PAYMENT_GATEWAY_PROVIDER)
     private readonly gateway: PaymentGatewayProvider,
+    @Optional()
+    @Inject(PAYMENT_GATEWAY_REGISTRY)
+    private readonly gatewayRegistry?: PaymentGatewayRegistry,
   ) {}
 
   // Auto-souscription individuelle PROTECT/PRO — jamais de contrôle mineur : un compte
@@ -126,6 +135,8 @@ export class SubscriptionsService {
       beneficiaryUserId: userId,
       originType: SubscriptionOriginType.SELF,
       parentRedirectRequested: dto.parentRedirectRequested ?? false,
+      paymentMethodCode: (dto.paymentMethodCode ?? 'simulated') as PaymentMethodCode,
+      paymentCurrency: dto.paymentCurrency,
     });
   }
 
@@ -151,6 +162,8 @@ export class SubscriptionsService {
       countryCode: organization.country,
       beneficiaryOrganizationId: organizationId,
       originType: SubscriptionOriginType.SELF,
+      paymentMethodCode: (dto.paymentMethodCode ?? 'simulated') as PaymentMethodCode,
+      paymentCurrency: dto.paymentCurrency,
     });
   }
 
@@ -181,6 +194,8 @@ export class SubscriptionsService {
       beneficiaryUserId,
       originType: SubscriptionOriginType.ORGANIZATION,
       initiatingOrganizationId: organizationId,
+      paymentMethodCode: (dto.paymentMethodCode ?? 'simulated') as PaymentMethodCode,
+      paymentCurrency: dto.paymentCurrency,
     });
   }
 
@@ -350,6 +365,7 @@ export class SubscriptionsService {
     currency: string;
     countryCode: string;
     providerName: string;
+    paymentMethodCode: PaymentMethodCode;
   }) {
     try {
       return await this.prisma.payment.create({ data });
@@ -373,18 +389,34 @@ export class SubscriptionsService {
     amountMinor: number;
     currency: string;
     countryCode: string;
+    paymentMethodCode?: PaymentMethodCode;
+    paymentCurrency?: string;
   }) {
-    const providerName = this.config.get<string>(
+    const paymentMethodCode = params.paymentMethodCode ?? 'simulated';
+    const currency = params.paymentCurrency ?? params.currency;
+    if (currency !== params.currency) {
+      throw new BadRequestException(
+        `La devise de paiement doit être ${params.currency} pour cette formule.`,
+      );
+    }
+    const resolved = this.gatewayRegistry?.resolve(
+      params.countryCode,
+      paymentMethodCode,
+      currency,
+    );
+    const providerName = resolved?.providerCode ?? this.config.get<string>(
       'PAYMENT_GATEWAY_PROVIDER',
       'simulated',
     );
+    const gateway = resolved?.provider ?? this.gateway;
 
     const payment = await this.ecrirePaiement({
       subscriptionId: params.subscriptionId,
       amountMinor: params.amountMinor,
-      currency: params.currency,
+      currency,
       countryCode: params.countryCode,
       providerName,
+      paymentMethodCode,
     });
 
     // Le montant n'est jamais confirmé à ce stade — seule l'initiation est faite ici,
@@ -403,11 +435,12 @@ export class SubscriptionsService {
     // que le prestataire CERTIFIE — voir `PaymentNotSentError`.
     let initiation: PaymentInitiationResult;
     try {
-      initiation = await this.gateway.initiate({
+      initiation = await gateway.initiate({
         paymentId: payment.id,
         amountMinor: params.amountMinor,
-        currency: params.currency,
+        currency,
         countryCode: params.countryCode,
+        paymentMethodCode,
       });
     } catch (error) {
       if (error instanceof PaymentNotSentError) {
@@ -578,6 +611,8 @@ export class SubscriptionsService {
         amountMinor,
         currency,
         countryCode: params.countryCode,
+        paymentMethodCode: params.paymentMethodCode,
+        paymentCurrency: params.paymentCurrency,
       });
 
     await this.audit.record(

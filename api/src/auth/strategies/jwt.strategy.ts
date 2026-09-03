@@ -28,6 +28,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         throw new UnauthorizedException('Session révoquée.');
       }
     }
-    return payload;
+    return {
+      ...payload,
+      countryCode: payload.countryCode?.toUpperCase(),
+    };
   }
 }

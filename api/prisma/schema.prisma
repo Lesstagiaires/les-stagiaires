@@ -2406,6 +2406,7 @@ model Payment {
   // "orange-money-cm", "mtn-momo-ci"...) — permet de journaliser une bascule de
   // passerelle par pays sans migration de schéma (architecture "provider-swap").
   providerName      String
+  paymentMethodCode String @default("simulated")
   // Référence opaque émise par le prestataire, utilisée pour rapprocher son webhook de
   // confirmation à ce paiement — jamais de PIN ni d'identifiant de moyen de paiement
   // (CLAUDE.md §6, non négociable).
